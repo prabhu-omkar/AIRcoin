@@ -90,9 +90,9 @@ URL parameters override `.env.local`: `source` (`mock`/`live`), `miner`, `mqtt`,
 ## Whole project on one machine
 
 ```powershell
-powershell -File vision-twin\scriptsull-stack.ps1                  # synthetic NoIR camera
-powershell -File vision-twin\scriptsull-stack.ps1 -Camera picam    # Pi camera (usb:0 -Liveness rgb on a laptop)
-powershell -File vision-twin\scriptsull-stack.ps1 -Stop
+powershell -File vision-twin\scripts\full-stack.ps1                  # synthetic NoIR camera
+powershell -File vision-twin\scripts\full-stack.ps1 -Camera picam    # Pi camera (usb:0 -Liveness rgb on a laptop)
+powershell -File vision-twin\scripts\full-stack.ps1 -Stop
 ```
 
 Starts miner-core and chain-market (`scripts\demo.cmd`, miner reading our C1), the C4 indexer, the vision
