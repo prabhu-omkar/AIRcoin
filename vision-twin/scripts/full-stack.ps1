@@ -81,12 +81,14 @@ Pop-Location
 $live = if ($Liveness) { "--liveness $Liveness" } else { "" }
 Start-Logged "vision" "python -m aircoin_vision.run $src $extra $live --serve 8080" $pipe
 
-Write-Host "4/4 twin + dashboard (live)"
+Write-Host "4/4 twin + dashboard (live), chain-market platform"
 Start-Logged "web" "npm.cmd run dev:live" (Join-Path $vt "twin")
+Start-Logged "platform" "npx.cmd vite" (Join-Path $root "chain-market\web")
 
 Write-Host ""
 Write-Host "Judges' twin      http://localhost:5173/"
 Write-Host "Owner dashboard   http://localhost:5174/"
-Write-Host "Miner controller  http://localhost:8090/   (scenarios, health)"
+Write-Host "Platform          http://localhost:3000/   (citizen wallet, enterprise, regulator/admin, marketplace)"
+Write-Host "Miner controller  http://localhost:8090/   (health)"
 Write-Host "Camera streams    http://localhost:8080/   (/raw, /ndvi, /c1.json)"
 Write-Host "Stop everything:  powershell -File vision-twin\scripts\full-stack.ps1 -Stop"

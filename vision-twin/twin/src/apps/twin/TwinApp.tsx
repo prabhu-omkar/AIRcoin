@@ -3,16 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { Header } from "../../components/Header";
 import { MinerModel } from "../../components/MinerModel";
 import { TwinCam } from "../../components/twin3d/TwinCam";
-import { config } from "../../config";
 import { startSource } from "../../sources";
 import { useTwin, type LogEntry } from "../../store";
 
-/** The miner camera as picture-in-picture: the real feed when configured, else the twin seen through the lens. */
+/** The miner camera as picture-in-picture: the twin seen through the miner's lens. */
 function CameraPip() {
   return (
     <section className="pip" aria-label="Miner camera">
-      <header><span className="pip-title">Miner camera</span><span className="meta">{config.feedUrl ? "live" : "twin view"}</span></header>
-      <div className="pip-body">{config.feedUrl ? <img className="feed" src={config.feedUrl} alt="Live camera feed" /> : <TwinCam />}</div>
+      <header><span className="pip-title">Miner camera</span><span className="meta">lens view</span></header>
+      <div className="pip-body"><TwinCam /></div>
     </section>
   );
 }
