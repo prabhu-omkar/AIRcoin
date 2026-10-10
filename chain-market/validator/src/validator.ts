@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import path from "path";
 import fs from "fs";
+import canonicalize from "canonicalize";
 import { ValidatorDb, AttestationRecord } from "./db";
 
 // ── Types ──
@@ -90,25 +91,30 @@ interface MinerInfo {
 
 export class Validator {
   private provider: ethers.JsonRpcProvider;
-  private signer: ethers.Wallet;
+  private signer: ethers.Signer;
   private mintController: ethers.Contract;
   private minerRegistry: ethers.Contract;
   private db: ValidatorDb;
   private miners: Map<string, MinerInfo> = new Map();
   private perEpochCap: bigint = ethers.parseEther("1"); // 1 AIR default
+  private calibrationHash?: string;
 
   constructor(
     rpcUrl: string,
     privateKey: string,
     deployments: Record<string, string>,
-    registryData: any
+    registryData: any,
+    calibrationHash?: string
   ) {
     this.provider = new ethers.JsonRpcProvider(
       rpcUrl,
       ethers.Network.from(Number(deployments.chainId || 31337)),
       { staticNetwork: true }
     );
-    this.signer = new ethers.Wallet(privateKey, this.provider);
+    // NonceManager serializes nonce allocation when queued epochs arrive together
+    // after an outage or more than one miner submits concurrently.
+    this.signer = new ethers.NonceManager(new ethers.Wallet(privateKey, this.provider));
+    this.calibrationHash = calibrationHash?.toLowerCase();
 
     // MintController ABI
     const mintControllerABI = [
@@ -171,6 +177,32 @@ export class Validator {
     // 1. Basic structure
     if (!attestation.v || !minerId || epoch == null || !attestation.amount || !attestation.signature) {
       return this.reject(minerId, epoch, "malformed", "Missing required fields");
+    }
+
+    // The epoch must be complete before it can be minted.
+    if (!attestation.end || attestation.end > Date.now()) {
+      return this.reject(minerId, epoch, "epoch_not_closed", "Epoch has not closed yet");
+    }
+
+    // Recompute the evidence commitment. The amount is signed separately in the
+    // EIP-191 digest and is deliberately excluded from evidence_hash by C3.
+    try {
+      const evidence: any = { ...attestation };
+      delete evidence.amount;
+      delete evidence.evidence_hash;
+      delete evidence.signature;
+      const encoded = canonicalize(evidence);
+      if (!encoded) throw new Error("canonicalization failed");
+      const expected = ethers.keccak256(ethers.toUtf8Bytes(encoded));
+      if (expected.toLowerCase() !== attestation.evidence_hash?.toLowerCase()) {
+        return this.reject(minerId, epoch, "evidence_hash_mismatch", "Evidence hash does not match payload");
+      }
+    } catch (e: any) {
+      return this.reject(minerId, epoch, "evidence_hash_mismatch", `Cannot hash evidence: ${e.message}`);
+    }
+
+    if (this.calibrationHash && attestation.calibration_hash?.toLowerCase() !== this.calibrationHash) {
+      return this.reject(minerId, epoch, "calibration_mismatch", "Unknown calibration table");
     }
 
     // 2. Check miner exists

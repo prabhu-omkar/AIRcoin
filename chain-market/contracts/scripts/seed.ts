@@ -9,6 +9,10 @@ import * as path from "path";
  * Uses the registry example from contracts-schema as reference.
  */
 async function main() {
+  const seedDataPath = path.join(__dirname, "..", "seed-data.json");
+  const existingSeed = fs.existsSync(seedDataPath)
+    ? JSON.parse(fs.readFileSync(seedDataPath, "utf-8"))
+    : null;
   const deployments = JSON.parse(
     fs.readFileSync(path.join(__dirname, "..", "deployments.json"), "utf-8")
   );
@@ -32,8 +36,11 @@ async function main() {
 
   // --- Register demo miner-001 ---
   const minerId1 = ethers.keccak256(ethers.toUtf8Bytes("miner-001"));
-  // Use a deterministic device key for the demo
-  const deviceWallet1 = ethers.Wallet.createRandom();
+  // Reuse demo device keys across local-chain resets. This keeps signed epochs in
+  // miner-core's offline queue valid after the contracts are redeployed.
+  const deviceWallet1 = new ethers.Wallet(
+    existingSeed?.miners?.["miner-001"]?.devicePrivateKey || ethers.Wallet.createRandom().privateKey
+  );
   const stickerIds1 = Array.from({ length: 20 }, (_, i) => i);  // 0-19
   const stickerSetHash1 = ethers.keccak256(
     ethers.solidityPacked(
@@ -56,7 +63,9 @@ async function main() {
 
   // --- Register demo miner-002 (virtual, for sticker-reuse test) ---
   const minerId2 = ethers.keccak256(ethers.toUtf8Bytes("miner-002"));
-  const deviceWallet2 = ethers.Wallet.createRandom();
+  const deviceWallet2 = new ethers.Wallet(
+    existingSeed?.miners?.["miner-002"]?.devicePrivateKey || ethers.Wallet.createRandom().privateKey
+  );
   const stickerIds2 = Array.from({ length: 20 }, (_, i) => i + 20);  // 20-39
   const stickerSetHash2 = ethers.keccak256(
     ethers.solidityPacked(
@@ -127,7 +136,7 @@ async function main() {
   };
 
   fs.writeFileSync(
-    path.join(__dirname, "..", "seed-data.json"),
+    seedDataPath,
     JSON.stringify(seedData, null, 2)
   );
   console.log("\n✓ Seed data written to seed-data.json");
