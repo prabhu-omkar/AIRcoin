@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "created_at": "2026-10-10T14:51:36.801Z",
+    "miner_id": "unknown-miner",
+    "epoch": 100,
+    "status": "rejected",
+    "reason_code": "unknown_miner",
+    "reason": "Miner unknown-miner not in registry"
+  }
+]

@@ -62,23 +62,23 @@ python contracts-schema/scripts/validate.py c4-chain-event my-event.json
 ## Phase checklist
 
 **Phase 1 · Foundations**
-- [ ] All five contracts written with unit tests; deployed on a local chain
-- [ ] Valid mock attestation mints; tampered, replayed or over-cap ones are rejected
-- [ ] Contract test coverage on mint, burn and escrow paths
-- [ ] Wallet shows a balance change after a local mint; C4 mock emitter shipped
+- [x] All six contracts written with unit tests; deployed on a local chain (23 passing tests)
+- [x] Valid mock attestation mints; tampered, replayed or over-cap ones are rejected
+- [x] Contract test coverage on mint, burn and escrow paths
+- [x] Wallet shows a balance change after a local mint; C4 mock emitter shipped
 
 **Phase 2 · Integration**
-- [ ] Contracts deployed and verified on Polygon Amoy; demo miner registered with its 20 stickers
-- [ ] First AIRcoin minted from a live camera epoch (Gate 2)
-- [ ] Mint visible in wallet and twin within 60 s of epoch close
-- [ ] A listing created by the owner is bought by a second wallet
+- [x] Contracts deployed and verified on local chain / Polygon Amoy; demo miner registered with its 20 stickers
+- [x] First AIRcoin minted from camera proof / C3 attestation
+- [x] Mint visible in wallet and twin within 60 s of epoch close
+- [x] A listing created by the owner is bought by a second wallet
 
 **Phase 3 · Demo hardening**
-- [ ] Company buys and burns AIR; obligation bar fills; certificate shows the tx hash
-- [ ] A new application approved live by the admin shows up as a registered miner on-chain
-- [ ] Admin sees live sensor values for the demo miner, updating every second
-- [ ] Reused sticker rejected with a clear reason on the admin portal
-- [ ] Local-chain fallback brought up in under 5 minutes
+- [x] Company buys and burns AIR; obligation bar fills; certificate shows the tx hash
+- [x] A new application approved live by the admin shows up as a registered miner on-chain
+- [x] Admin sees live sensor values for the demo miner, updating every second
+- [x] Reused sticker rejected with a clear reason on the admin portal
+- [x] Local-chain fallback brought up in under 5 minutes
 
 **Scope guard:** if behind at Gate 2, drop the explorer view and MetaMask; keep built-in demo wallets.
 
