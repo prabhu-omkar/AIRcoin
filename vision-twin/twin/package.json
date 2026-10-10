@@ -14,7 +14,8 @@
     "preview:twin": "vite preview --mode twin",
     "preview:dashboard": "vite preview --mode dashboard",
     "test": "vitest run",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "dev:live": "node scripts/dev-all.mjs --live"
   },
   "dependencies": {
     "@react-three/drei": "9.117.3",

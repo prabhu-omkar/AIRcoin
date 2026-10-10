@@ -7,27 +7,24 @@ export function startLive(minerId: string, mqttUrl: string, c4Url: string): () =
   const store = useTwin.getState();
   const stops: (() => void)[] = [];
 
-  // C2
-  const client = mqtt.connect(mqttUrl, { reconnectPeriod: 2000, connectTimeout: 5000 });
-  const tTopic = `miner/${minerId}/telemetry`;
-  const eTopic = `miner/${minerId}/epoch`;
-  client.on("connect", () => {
-    store.setLink("c2", "online");
-    client.subscribe([tTopic, eTopic], { qos: 1 });
-  });
-  client.on("reconnect", () => store.setLink("c2", "connecting"));
-  client.on("offline", () => store.setLink("c2", "offline"));
-  client.on("error", () => store.setLink("c2", "error"));
-  client.on("message", (topic, payload) => {
-    try {
-      const msg = JSON.parse(payload.toString());
-      if (topic === tTopic) useTwin.getState().onTelemetry(msg as Telemetry);
-      else if (topic === eTopic) useTwin.getState().onEpoch(msg as EpochSummary);
-    } catch (err) {
-      console.warn("bad C2 message", topic, err);
-    }
-  });
-  stops.push(() => client.end(true));
+  // C2: MQTT over WebSockets, or the hub's relay (http URL) when the broker has no WebSocket port
+  if (/^https?:/.test(mqttUrl)) {
+    const es = new EventSource(`${mqttUrl.replace(/\/$/, "")}/events`);
+    es.onopen = () => store.setLink("c2", "online");
+    es.onerror = () => store.setLink("c2", "connecting");
+    es.onmessage = (m) => {
+      try {
+        const msg = JSON.parse(m.data) as { kind: string; payload: unknown };
+        if (msg.kind === "telemetry") useTwin.getState().onTelemetry(msg.payload as Telemetry);
+        else if (msg.kind === "epoch") useTwin.getState().onEpoch(msg.payload as EpochSummary);
+      } catch (err) {
+        console.warn("bad C2 relay message", err);
+      }
+    };
+    stops.push(() => es.close());
+  } else {
+    stops.push(startMqtt(mqttUrl, minerId));
+  }
 
   // C4 REST
   const base = c4Url.replace(/\/$/, "");
@@ -73,4 +70,29 @@ export function startLive(minerId: string, mqttUrl: string, c4Url: string): () =
   });
 
   return () => stops.forEach((s) => s());
+}
+
+function startMqtt(mqttUrl: string, minerId: string): () => void {
+  const store = useTwin.getState();
+  const client = mqtt.connect(mqttUrl, { reconnectPeriod: 2000, connectTimeout: 5000 });
+  const tTopic = `miner/${minerId}/telemetry`;
+  const eTopic = `miner/${minerId}/epoch`;
+  client.on("connect", () => {
+    store.setLink("c2", "online");
+    client.subscribe([tTopic, eTopic], { qos: 1 });
+  });
+  client.on("reconnect", () => store.setLink("c2", "connecting"));
+  client.on("offline", () => store.setLink("c2", "offline"));
+  client.on("error", () => store.setLink("c2", "error"));
+  client.on("message", (topic, payload) => {
+    try {
+      const msg = JSON.parse(payload.toString());
+      if (topic === tTopic) useTwin.getState().onTelemetry(msg as Telemetry);
+      else if (topic === eTopic) useTwin.getState().onEpoch(msg as EpochSummary);
+    } catch (err) {
+      console.warn("bad C2 message", topic, err);
+    }
+  });
+  return () => client.end(true);
+
 }

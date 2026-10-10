@@ -1,5 +1,17 @@
-// npm run dev: mock hub + twin (:5173) + dashboard (:5174), each in its own process.
+// npm run dev: mock hub + twin (:5173) + dashboard (:5174), each in its own process. npm run dev:live: real data.
 import { spawn } from "node:child_process";
+
+// --live: real data. C2 from miner-core relayed by the hub (no WebSocket broker needed), C4 from the
+// chain-market indexer, camera from aircoin_vision.run --serve.
+if (process.argv.includes("--live")) {
+  Object.assign(process.env, {
+    HUB_MODE: "bridge",
+    VITE_SOURCE: "live",
+    VITE_MQTT_URL: process.env.VITE_MQTT_URL ?? "http://localhost:5175",
+    VITE_C4_URL: process.env.VITE_C4_URL ?? "http://localhost:3002",
+    VITE_FEED_URL: process.env.VITE_FEED_URL ?? "http://localhost:8080/",
+  });
+}
 
 const procs = [
   ["hub", "npx vite-node scripts/mock-hub.ts"],

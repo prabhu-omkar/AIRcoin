@@ -30,17 +30,28 @@ from .embed import make_embedder, similarity
 from .markers import MarkerDetector, plant_box
 
 
-def best_frame(source, detector, rig, frames):
-    """Take up to `frames` frames and keep the one with the most registered stickers."""
+def best_frame(source, detector, rig, frames, embed=None):
+    """Take up to `frames` frames and keep the one with the most registered stickers.
+
+    With `embed`, also returns every tag's feature vector averaged over all frames it appeared in:
+    one frame catches the leaves wherever they happened to be, the average is what the plant looks like.
+    """
     best, best_dets, best_n = None, [], -1
     registered = set(rig.sticker_ids)
+    vecs = {}
     for k, (_, frame) in enumerate(source):
         dets = [d for d in detector.detect(frame) if d.tag_id in registered]
+        if embed is not None:
+            for d in dets:
+                x, y, w, h = plant_box(d, rig.crop, frame.shape)
+                if w >= 8 and h >= 8:
+                    vecs.setdefault(d.tag_id, []).append(embed(frame[y:y + h, x:x + w]))
         if len(dets) > best_n:
             best, best_dets, best_n = frame, dets, len(dets)
-        if best_n == len(registered) or k + 1 >= frames:
+        if (embed is None and best_n == len(registered)) or k + 1 >= frames:
             break
-    return best, best_dets
+    mean = {t: (lambda v: v / (np.linalg.norm(v) + 1e-9))(np.mean(v, axis=0)) for t, v in vecs.items()}
+    return (best, best_dets, mean) if embed is not None else (best, best_dets)
 
 
 def leaf_area_estimate(crop, mm_per_px):
@@ -82,7 +93,8 @@ def main(argv=None):
     detector = MarkerDetector(rig.aruco_dictionary)
     source = open_source(args.source, rig.camera.get("width"), rig.camera.get("height"))
     try:
-        frame, dets = best_frame(source, detector, rig, 1 if isinstance(source, ImageSource) else args.frames)
+        n = args.frames if not isinstance(source, ImageSource) or len(source.paths) > 1 else 1
+        frame, dets, vectors = best_frame(source, detector, rig, n, embed)
     finally:
         source.close()
     if frame is None:
@@ -122,7 +134,7 @@ def main(argv=None):
             continue
         crop = frame[y:y + h, x:x + w]
         cv2.imwrite(str(out / f"tag-{tag:02d}.jpg"), crop)
-        np.save(out / f"tag-{tag:02d}.npy", embed(crop))
+        np.save(out / f"tag-{tag:02d}.npy", vectors.get(tag, embed(crop)))
         mmpp = d.mm_per_px(rig.marker_size_mm)
         manifest["tags"][str(tag)] = {
             "species": rig.plant(tag).species,

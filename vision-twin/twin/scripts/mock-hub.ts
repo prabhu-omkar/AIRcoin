@@ -15,9 +15,12 @@ import { MockMiner, type MockOutput } from "../src/sources/mock";
 import type { Tamper } from "../src/store";
 
 const PORT = Number(process.env.HUB_PORT ?? 5175);
+// HUB_MODE=bridge: no mock; relay real C2 (miner-core over plain MQTT) to the browsers instead.
+const BRIDGE = process.env.HUB_MODE === "bridge";
+const MQTT_URL = process.env.MQTT_URL ?? "mqtt://localhost:1883";
 const MINER_ID = process.env.MINER_ID ?? "miner-001";
 
-const miner = new MockMiner(MINER_ID, Date.now());
+const miner = new MockMiner(MINER_ID, Date.now()); // unused in bridge mode
 const clients = new Set<http.ServerResponse>();
 const physical = new Map<number, { kind: Tamper; at: number }>();
 let lastTelemetry: Telemetry | undefined;
@@ -47,8 +50,29 @@ const tick = () => {
     broadcast(out);
   }
 };
-tick();
-setInterval(tick, 1000);
+if (BRIDGE) {
+  const { default: mqtt } = await import("mqtt");
+  const client = mqtt.connect(MQTT_URL, { reconnectPeriod: 2000 });
+  const tTopic = `miner/${MINER_ID}/telemetry`;
+  const eTopic = `miner/${MINER_ID}/epoch`;
+  client.on("connect", () => {
+    console.log(`[hub] bridging ${tTopic}, ${eTopic} from ${MQTT_URL}`);
+    client.subscribe([tTopic, eTopic], { qos: 1 });
+  });
+  client.on("message", (topic, payload) => {
+    try {
+      const out: MockOutput = topic === tTopic ? { kind: "telemetry", payload: JSON.parse(payload.toString()) } : { kind: "epoch", payload: JSON.parse(payload.toString()) };
+      remember(out);
+      broadcast(out);
+    } catch (err) {
+      console.warn("[hub] bad C2 message", err);
+    }
+  });
+  latestC4 = []; // C4 comes from the chain-market indexer directly in live mode
+} else {
+  tick();
+  setInterval(tick, 1000);
+}
 
 function command(c: HubCommand) {
   if (c.type === "tamper") {
@@ -102,4 +126,4 @@ http
     }
     res.writeHead(404, cors).end();
   })
-  .listen(PORT, () => console.log(`[mock-hub] ${MINER_ID} on http://localhost:${PORT} (events: /events, commands: POST /command)`));
+  .listen(PORT, () => console.log(`[hub] ${BRIDGE ? "C2 bridge" : "mock"} for ${MINER_ID} on http://localhost:${PORT} (events: /events)`));

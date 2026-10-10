@@ -148,11 +148,21 @@ def main(argv=None):
     ap.add_argument("--swap", nargs="*", default=[], metavar="TAG:SPECIES", help="draw another species in a pot")
     ap.add_argument("--noir", action="store_true", help="render as the NoIR camera behind the blue gel")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--frames", type=int, default=1, help="write N frames (sway, noise, exposure vary) into the folder OUT")
     args = ap.parse_args(argv)
     swap = {int(t): sp for t, sp in (x.split(":", 1) for x in args.swap)}
-    img = render_rig(load_rig(args.rig), args.width, args.height, args.missing, args.unknown, args.tilt,
-                     seed=args.seed, swap=swap, fake=args.fake, noir=args.noir)
-    cv2.imwrite(args.out, img)
+    rig = load_rig(args.rig)
+    render = lambda seed: render_rig(rig, args.width, args.height, args.missing, args.unknown, args.tilt,  # noqa: E731
+                                     seed=seed, swap=swap, fake=args.fake, noir=args.noir)
+    if args.frames > 1:
+        from pathlib import Path
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        for k in range(args.frames):
+            cv2.imwrite(str(out / f"frame-{k:03d}.jpg"), render(args.seed + k + 1))
+        print(f"wrote {args.frames} frames to {out}")
+        return
+    cv2.imwrite(args.out, render(args.seed))
     print(f"wrote {args.out}")
 
 
