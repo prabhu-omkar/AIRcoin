@@ -1,0 +1,37 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Hardhat / Foundry
+cache/
+artifacts/
+typechain-types/
+out/
+broadcast/
+
+# Secrets and local state
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keys/
+*.sqlite
+*.db

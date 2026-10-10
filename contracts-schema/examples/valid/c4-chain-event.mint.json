@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "mint",
+  "tx_hash": "0x8c3d5d3849fd472bb70e93be08d4cc384e91e0c3186d1c78ea82a174479eeaf0",
+  "log_index": 0,
+  "block_number": 18234,
+  "ts": 1791799264000,
+  "data": {
+    "miner_id": "miner-001",
+    "epoch": 29863320,
+    "to": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+    "amount": "27684000000000000",
+    "evidence_hash": "0xc0bd49585d03da599e97092962060e592dd9b0dcab23229260bd38c599b9f431"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "v": 1,
+  "miner_id": "miner-001",
+  "device_address": "0x03204de92e11fc8c528139be419065920eb83dbf",
+  "owner_wallet": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+  "sticker_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "sticker_set_hash": "0x75280c76d5d8759f198065a7da510ff8c8e147a070c6485c523414f9cddda5e0",
+  "status": "active",
+  "location": {
+    "lat": 12.9716,
+    "lon": 77.5946,
+    "geohash": "tdr1v9qtj",
+    "geofence_m": 50,
+    "label": "Hackathon venue"
+  },
+  "registered_at": 1791795600000,
+  "totals": {
+    "minted": "1240000000000000000",
+    "epochs_minted": 59,
+    "epochs_rejected": 1,
+    "last_mint_epoch": 29863320
+  }
+}

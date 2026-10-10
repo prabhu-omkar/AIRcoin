@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "miner_id": "miner-001",
+  "epoch": 29863320,
+  "status": "accepted",
+  "tx_hash": "0x0a797b3c574efa1b50a3ac271bf9a621b3fa8b7a416038902e034af50d5d8e8c",
+  "amount": "27684000000000000"
+}

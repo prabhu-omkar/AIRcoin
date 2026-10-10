@@ -1,0 +1,25 @@
+# Shared local infrastructure for AIRcoin.
+#   docker compose up -d mqtt
+# MQTT:            mqtt://localhost:1883
+# MQTT over WS:    ws://localhost:9001   (browser apps)
+# Topics are defined in contracts-schema/README.md.
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2.0.20
+    container_name: aircoin-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infra/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/broker/uptime", "-C", "1", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mosquitto-data:

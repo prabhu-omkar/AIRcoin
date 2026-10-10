@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aircoin.example/schemas/v1/c2-telemetry.schema.json",
+  "title": "C2 · Live telemetry (B -> A, C)",
+  "description": "Published by miner-core on MQTT topic miner/{miner_id}/telemetry once per second (QoS 0). Everything the twin and the admin portal need to draw the live state of one miner.",
+  "type": "object",
+  "required": ["v", "miner_id", "ts", "sensors", "gps", "plants", "current_epoch", "flags"],
+  "properties": {
+    "v": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "miner_id": { "$ref": "common.schema.json#/$defs/miner_id" },
+    "ts": { "$ref": "common.schema.json#/$defs/timestamp_ms" },
+    "scenario": {
+      "description": "Active sensor-simulator scenario (free text so B can add scenarios without a contract change).",
+      "type": "string",
+      "examples": ["clean_morning", "rush_hour", "festival_smog", "rain_washout"]
+    },
+    "sensors_simulated": {
+      "description": "True when air sensor values come from the simulator.",
+      "type": "boolean"
+    },
+    "aqi": {
+      "description": "Current AQI (0-500) derived from the sensors.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 500
+    },
+    "sensors": { "$ref": "common.schema.json#/$defs/sensor_readings" },
+    "gps": { "$ref": "common.schema.json#/$defs/gps" },
+    "plants": {
+      "description": "Latest known state of each plant (from C1) plus its current estimated removal rate.",
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["tag_id", "species", "status", "leaf_area_cm2", "alive_score", "rate_air_per_h"],
+        "properties": {
+          "tag_id": { "$ref": "common.schema.json#/$defs/tag_id" },
+          "species": { "$ref": "common.schema.json#/$defs/species_id_or_unknown" },
+          "status": { "$ref": "common.schema.json#/$defs/plant_status" },
+          "leaf_area_cm2": { "type": "number", "minimum": 0 },
+          "alive_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "species_conf": { "type": "number", "minimum": 0, "maximum": 1 },
+          "rate_air_per_h": {
+            "description": "Current estimated earning rate for this plant in AIR per hour (display only). 0 for missing/removed/suspect plants.",
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "current_epoch": {
+      "description": "Progress of the epoch in flight.",
+      "type": "object",
+      "required": ["epoch", "start_ms", "end_ms", "running_air"],
+      "properties": {
+        "epoch": { "$ref": "common.schema.json#/$defs/epoch" },
+        "start_ms": { "$ref": "common.schema.json#/$defs/timestamp_ms" },
+        "end_ms": { "$ref": "common.schema.json#/$defs/timestamp_ms" },
+        "running_air": {
+          "description": "AIR estimated so far in this epoch (display only; the epoch message is authoritative).",
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "flags": {
+      "description": "Anti-cheat flags currently active.",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/anticheat_flag" }
+    },
+    "uplink": {
+      "description": "Health of the miner -> validator link.",
+      "type": "object",
+      "properties": {
+        "online": { "type": "boolean" },
+        "queued_attestations": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "device": {
+      "description": "Optional Pi health for the 3D model's exploded view.",
+      "type": "object",
+      "properties": {
+        "cpu_temp_c": { "type": "number" },
+        "cpu_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mem_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "uptime_s": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

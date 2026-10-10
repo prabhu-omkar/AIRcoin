@@ -1,0 +1,18 @@
+name: contracts-schema
+
+on:
+  push:
+    paths: ["contracts-schema/**", ".github/workflows/contracts-schema.yml"]
+  pull_request:
+    paths: ["contracts-schema/**", ".github/workflows/contracts-schema.yml"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r contracts-schema/requirements.txt
+      - run: python contracts-schema/scripts/validate.py

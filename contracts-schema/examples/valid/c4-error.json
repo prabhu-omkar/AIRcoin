@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "miner_not_found",
+    "message": "No miner with id miner-999"
+  }
+}
