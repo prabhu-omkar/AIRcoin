@@ -1,0 +1,12 @@
+eth-account>=0.13
+rfc8785>=0.1.4
+paho-mqtt>=2.0
+httpx>=0.27
+fastapi>=0.110
+uvicorn>=0.29
+psutil>=5.9
+jsonschema>=4.18
+pytest>=8
+# optional, only for a serial GPS module without gpsd:
+# pyserial>=3.5
+# pynmea2>=1.19

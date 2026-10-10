@@ -1,0 +1,15 @@
+{
+  "name": "@aircoin/chain-market-root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AIRcoin Workstream C: Smart Contracts, Validator Oracle, Event Indexer, and Web Exchange Platform",
+  "scripts": {
+    "test:contracts": "cd contracts && npx hardhat test",
+    "deploy:local": "bash scripts/deploy-local.sh",
+    "dev:validator": "cd validator && npm run dev",
+    "dev:indexer": "cd indexer && npm run dev",
+    "dev:mock": "cd mock && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "build:web": "cd web && npm run build"
+  }
+}

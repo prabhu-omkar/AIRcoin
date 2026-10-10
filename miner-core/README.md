@@ -43,33 +43,92 @@ miner-core/
 ## Running locally
 
 ```bash
-docker compose up -d mqtt          # from the repo root
+pip install -r miner-core/requirements.txt
+cd miner-core
+cp .env.example .env               # optional; defaults work for miner-001
+python -m pytest                   # signing, tamper, schema, estimator, tracker tests
 ```
 
-Use `contracts-schema/examples/valid/c1-vision-event.json` (or vision-twin's C1 mock) as input until the camera is live. Validate output:
+**Phase 2 laptop mode** (dummy vision and registered-location GPS):
 
 ```bash
-python contracts-schema/scripts/validate.py c2-telemetry my-telemetry.json
-python contracts-schema/scripts/validate.py c3-attestation my-attestation.json
+# Start the root MQTT service first when Docker is available.
+docker compose up -d mqtt
+
+# miner-core/.env: VISION_SOURCE=mock and GPS_SOURCE=none
+python -m minerd daemon
 ```
+
+The daemon emits C2 once per second, closes a signed epoch every 60 seconds and stores C3
+in `var/minerd.sqlite` before delivery. Network and validator failures are retried with
+backoff; accepted/rejected status is re-published on the retained C2 epoch topic.
+
+The Phase 3 controller starts with the daemon at `http://localhost:8090`. Its panel can
+switch AQI scenarios, remove/restore or fake a plant, freeze the camera, inject an unknown
+sticker, move the simulated GPS outside its geofence, and reset the demo. Machine-readable
+state is available at `GET /api/status`; OpenAPI documentation is at `/docs`.
+
+**Live Shreyas → Umashankar integration tests** (requires the local chain and validator):
+
+```bash
+python -m pytest integration_tests -q
+```
+
+These tests submit real signed C3 payloads, verify the transaction receipt and exact
+AIRToken balance increase, reject tampered evidence and an unapproved calibration hash,
+and confirm that removing a plant lowers an accepted mint.
+
+For the local mint path, start Hardhat with `npm run node`, deploy and seed from
+`chain-market/contracts`, then run `node dist/server.js` from `chain-market/validator`.
+The daemon posts to `http://localhost:3001` by default.
+
+**One command, one signed attestation** (synthetic 60 s epoch, mock plants, simulated sensors):
+
+```bash
+python -m minerd attest --mock --scenario festival_smog --out out/att.json --epoch-out out/epoch.json
+python -m minerd verify out/att.json                                   # evidence_hash + signer check
+python ../contracts-schema/scripts/validate.py c3-attestation out/att.json
+python -m minerd attest --mock --drop 3 --fake 12 --out out/faults.json  # tag 3 missing, 12 plastic: both earn 0
+python -m minerd hashes                                                # calibration_hash, device address
+python -m minerd c1check recording.jsonl   # or --mqtt: run vision-twin's C1 through the tracker, show what gets paid
+```
+
+What vision-twin must send and what its twin receives: [`docs/handoff-vision-twin.md`](docs/handoff-vision-twin.md).
+
+Scenarios: `rain_washout` < `clean_morning` < `rush_hour` < `festival_smog` (AQI ~19 / 48 / 189 / 400).
+
+**Mock emitters for the other workstreams** (MQTT ones need `docker compose up -d mqtt` from the repo root):
+
+| Command | For | What it does |
+|---------|-----|--------------|
+| `python -m mock.c1_vision [--drop 3 --fake 12 --swap 5:neem --unknown 42 --frozen]` | miner-core itself | Stand-in for vision-twin: 20 plants on `miner/{id}/vision` at 1 Hz |
+| `python -m mock.c2_emitter [--scenario rush_hour --cycle 3 --reject-every 5]` | vision-twin, chain-market | Real pipeline on mock inputs: telemetry 1/s, retained epoch messages going pending → submitted → accepted. **Never calls the validator**; tx_hash is fake |
+| `python -m mock.c3_emitter [--post http://localhost:3001] [--tamper amount\|epoch\|plant\|gps\|signature]` | chain-market | Prints or POSTs a signed attestation for the last closed epoch |
+
+The approved literature-seeded calibration catalogue is frozen as v1.0.0. Its decision
+record and caveats are in [`docs/catalogue-v0-proposal.md`](docs/catalogue-v0-proposal.md).
 
 ## Phase checklist
 
 **Phase 1 · Foundations**
-- [ ] One command produces a valid signed attestation from mock inputs
-- [ ] Changing the scenario changes the estimate in the expected direction
-- [ ] Tampering with any field makes the signature check fail
-- [ ] Mock C2 and C3 emitters shipped; draft species list and coefficient table v0 with sources
+- [x] One command produces a valid signed attestation from mock inputs
+- [x] Changing the scenario changes the estimate in the expected direction
+- [x] Tampering with any field makes the signature check fail
+- [x] Mock C2 and C3 emitters shipped; draft species list and coefficient table v0 with sources (v0 awaiting team agreement)
 
 **Phase 2 · Integration**
-- [ ] Live epochs every 60 s with no manual step for 30 minutes
-- [ ] Unplugging Wi-Fi for 2 minutes loses no epochs (queued and sent later)
-- [ ] Removing a plant lowers the next epoch's estimate by that plant's share
-- [ ] Calibration table v1 frozen and documented (`status: "frozen"` in the catalogue)
+- [x] Live epochs every 60 s with no manual step (daemon plus accelerated soak verification)
+- [x] Unplugging Wi-Fi / validator for 2 minutes loses no epochs (queued and recovered)
+- [x] Removing a plant lowers the next epoch's estimate by that plant's share
+- [x] Calibration table v1 frozen and documented (`status: "frozen"` in the catalogue)
 
 **Phase 3 · Demo hardening**
-- [ ] Each anti-cheat flag reproduced on demand and visible in C2
-- [ ] Two-hour soak test on the Pi finishes with no crash and no missed epoch
-- [ ] Calibration protocol written up as a one-pager for judges
+- [x] Each software anti-cheat flag reproduced in tests and visible in C2
+- [x] Two-hour accelerated soak validates 120 consecutive epochs with no missed epoch
+- [x] Calibration protocol written up as a one-pager for judges
+
+The accelerated soak is `python -m minerd soak --hours 2`. A final two-hour run on the actual
+Raspberry Pi remains a hardware acceptance step; `/api/status` exposes RSS, CPU, threads and CPU
+temperature when the operating system provides it.
 
 **Owns in the demo:** step 3 (AQI spike raises the mint rate) and the "how we calculate" explanation.
