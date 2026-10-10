@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { AntiCheatLog } from "../../components/AntiCheatLog";
 import { AqiChart } from "../../components/AqiChart";
 import { CameraPanel } from "../../components/CameraPanel";
-import { Earnings } from "../../components/Earnings";
 import { Gauges } from "../../components/Gauges";
 import { Header } from "../../components/Header";
 import { MapPanel } from "../../components/MapPanel";
@@ -20,7 +19,6 @@ export function DashboardApp() {
       <main className="grid dash">
         <CameraPanel />
         <PlantGrid />
-        <Earnings />
         <PlantDetail />
         <Gauges />
         <aside className="area-side">

@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { config } from "../config";
 import { fromBaseUnits } from "../contracts";
-import { mockControls } from "../sources";
-import { SCENARIO_NAMES, type Scenario } from "../sources/mock";
 import { useTwin, type LinkState } from "../store";
 
 /** Indian NAQI bands. */
@@ -53,7 +51,7 @@ export function Header({ app }: { app: "twin" | "dashboard" }) {
       <dl className="metrics">
         <div>
           <dt>Air quality</dt>
-          <dd><b className={tone}>{t?.aqi ?? "—"}</b><span>{t ? band : ""}</span></dd>
+          <dd><b className={tone}>{t?.aqi !== undefined ? Math.round(t.aqi) : "—"}</b><span>{t ? band : ""}</span></dd>
         </div>
         <div>
           <dt>Plants verified</dt>
@@ -70,15 +68,7 @@ export function Header({ app }: { app: "twin" | "dashboard" }) {
       </dl>
 
       <div className="spacer" />
-      {source === "mock" && (
-        <div className="mockbar">
-          <span className="flag">Mock data</span>
-          <select value={t?.scenario} onChange={(e) => mockControls.setScenario(e.target.value as Scenario)} aria-label="Mock scenario">
-            {SCENARIO_NAMES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
-          </select>
-          <button className="quiet" onClick={() => mockControls.rejectNext()} title="Next attestation is rejected (sticker reuse)">Reject next epoch</button>
-        </div>
-      )}
+      {source === "mock" && <span className="flag">Mock data</span>}
       <div className="links">
         <Link name="C2" state={stale ? "offline" : links.c2} />
         <Link name="C4" state={links.c4} />

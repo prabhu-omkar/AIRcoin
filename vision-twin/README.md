@@ -69,49 +69,34 @@ All commands take `--help`. Run them from `vision-twin/pipeline`.
 
 **Enrolment.** Uses a pretrained MobileNetV3-Small when `torch` + `torchvision` are installed (downloads the weights once). Otherwise it falls back to colour/gradient histograms, which need no extra install but separate plants less well. Install torch on the Pi before Day 2 so the vectors used for plant match are the MobileNet ones.
 
-## Twin quick start
+## Web apps
+
+Two apps in `twin/`, sharing one data layer:
+
+| App | For | Port | Shows |
+|-----|-----|------|-------|
+| Digital twin (`apps/twin`) | judges | 5173 | full-screen 3D rig and miner, plant status, part readings, miner camera |
+| Miner dashboard (`apps/dashboard`) | the miner's owner | 5174 | live camera (detections / raw / NDVI), plant grid and detail, sensors, wallet, anti-cheat log, location |
 
 ```bash
-cd vision-twin/twin
-npm install
-npm run dev                # http://localhost:5173 (mock C2 + C4 data, no other services needed)
-npm test                   # mock output validated against contracts-schema
-npm run build
+cd vision-twin/twin && npm install
+npm run dev          # both apps on mock data (shared through scripts/mock-hub.ts on :5175)
+npm run dev:live     # both apps on live C2 (relayed by the hub) + C4 (indexer :3002) + camera (:8080)
+npm test && npm run build
 ```
 
-Configuration comes from URL parameters, which override the `VITE_*` values in `.env.local` (see `.env.example`):
+URL parameters override `.env.local`: `source` (`mock`/`live`), `miner`, `mqtt`, `c4`, `feed`, `hub`.
 
-| Parameter | Default | Meaning |
-|-----------|---------|---------|
-| `source` | `mock` | `mock` = built-in C2/C4 generator; `live` = MQTT + C4 API |
-| `miner` | `miner-001` | miner ID (topics `miner/{id}/telemetry`, `miner/{id}/epoch`) |
-| `mqtt` | `ws://localhost:9001` | broker WebSocket URL (`docker compose up -d mqtt` from the repo root) |
-| `c4` | `http://localhost:8787` | chain-market indexer (REST + `/v1/events` WebSocket) |
-| `feed` | — | annotated camera feed, e.g. `http://<pi>:8080/` from `detect --serve` |
+## Whole project on one machine
 
-Example: `http://localhost:5173/?source=live&mqtt=ws://192.168.1.20:9001&feed=http://192.168.1.20:8080/`
+```powershell
+powershell -File vision-twin\scriptsull-stack.ps1                  # synthetic NoIR camera
+powershell -File vision-twin\scriptsull-stack.ps1 -Camera picam    # Pi camera (usb:0 -Liveness rgb on a laptop)
+powershell -File vision-twin\scriptsull-stack.ps1 -Stop
+```
 
-**Mock mode controls.** Use the header to switch the AQI scenario or make the next attestation get rejected. Click a plant slot to remove it, replace it with a fake plant, swap it, or restore it. The twin then shows the same states and anti-cheat events it will get from the real C2.
-
-**Panels:**
-- 3D miner: drag to orbit, Explode/Assemble, click a part to see its live readings.
-- Plant grid: green = healthy, grey = missing/removed, red = suspect.
-- Camera feed.
-- Air sensor gauges.
-- Wallet balance and mint ticker, with the epoch in progress.
-- AQI / PM2.5 chart.
-- Anti-cheat log.
-- GPS map with the 50 m geofence (map tiles need internet; the pin works without).
-
-The 3D twin (`twin/src/components/MinerModel.tsx` + `twin/src/components/twin3d/`) is fully procedural, so it needs no assets and works offline:
-
-- **Rig view:** the miner on its tripod watching the 4 × 5 plant rack. Each of the 20 plants is generated per species (snake plant, palms, fern, ivy, flowering shrubs and so on), sways in the wind, and follows live C2 status: a faded wireframe ghost when missing or removed, greyed out and pulsing red when suspect. Shelf LEDs and vision brackets use the same colours. A scan line sweeps the camera's field of view at the inference rate. PM2.5 haze and fog density follow the AQI, haze particles are absorbed at the plants, and green motes rise from healthy ones.
-- **Device view:** a real-scale Pi 4 (ports, GPIO, heatsink, activity LED), Camera Module 3 with blue gel and ribbon cable, NEO-6M GPS, PMS5003, MQ-135, SCD40 and BME280, with jumper wiring and a fan that spins with CPU load. *Explode* separates the parts and labels each one with a live reading. Click a part for full readings, or click a plant for its card (in mock mode the card can remove, fake, swap or restore it).
-- **Tampering (mock mode):** the plant card (or a grid slot) can remove the pot, put in a plastic plant, swap the plant, or restore it. The change animates in the scene straight away (pot lifted off the shelf, plant pulled out and replaced, soil puff), with a countdown until the miner flags it: missing at 10 s, removed at 60 s, suspect at 3 s. Plant selection is shared between the grid, the twin and the camera.
-- **Miner camera panel:** *Twin cam* renders the same twin world from the miner's lens, using the Camera Module 3 Wide field of view (67° vertical, 16:9). The vision overlay is drawn on top: ArUco quads, plant boxes, confidence and status, the same as `aircoin_vision.detect`. *NDVI* shows plants in false colour (a plastic plant shows up dark). *Live* shows the real MJPEG feed when the twin is opened with `?feed=`.
-- Each C4 mint spawns an AIR coin over the miner. Post-processing: N8AO, bloom, outline on hover, AgX tone mapping. If the frame rate drops, AO and floor reflections switch off.
-
-When the Blender glTF is ready, replace a part's body in `twin3d/Miner.tsx` with the matching `.glb` node. The part IDs and readings stay as they are.
+Starts miner-core and chain-market (`scripts\demo.cmd`, miner reading our C1), the C4 indexer, the vision
+runner and both apps on live data. Logs are in `vision-twin/.run/`.
 
 ## Contracts
 
@@ -132,14 +117,14 @@ python contracts-schema/scripts/validate.py c1-vision-event my-c1-message.json
 - [x] C1 mock emitter shipped (`mock_c1`)
 
 **Phase 2 · Integration**
-- [ ] Swapped plant flagged in at least 4 of 5 tries
-- [ ] Removed plant shown as missing on the twin within 10 s
-- [ ] Vision runs at 1 Hz or faster on the Pi (or on a laptop as declared fallback)
-- [ ] Twin's coin ticker moves when C mints for this miner
+- [x] Swapped plant flagged in at least 4 of 5 tries (synthetic rig, `tests/test_vision.py`; recheck on the real rig)
+- [x] Removed plant shown as missing on the twin within 10 s
+- [x] Vision runs at 1 Hz or faster (laptop: ~160 ms per cycle at 2304×1296; Pi to confirm)
+- [x] Twin and dashboard balance move when chain-market mints for this miner
 
 **Phase 3 · Demo hardening**
-- [ ] Fake plant flagged in at least 4 of 5 tries
+- [x] Fake plant flagged by NDVI (synthetic NoIR rig; recheck on the real rig)
 - [ ] Twin runs 15 minutes with no reload
-- [ ] Fallbacks: laptop + USB camera vision; recorded feed if the camera fails
+- [x] Fallbacks: `run usb:0 --liveness rgb`; `run <video or folder> --loop`
 
 **Owns in the demo:** steps 1–5 (rig, twin, detection, removal, fake plant).

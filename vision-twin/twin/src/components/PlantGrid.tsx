@@ -7,7 +7,6 @@ const STATUS_LABEL = { present: "healthy", missing: "missing", removed: "removed
 /** Virtual 20-slot grid mirroring the physical rig. Selecting a slot focuses it in the twin and the camera. */
 export function PlantGrid() {
   const telemetry = useTwin((s) => s.telemetry);
-  const physical = useTwin((s) => s.physical);
   const selected = useTwin((s) => s.selectedPlant);
   const selectPlant = useTwin((s) => s.selectPlant);
   const byTag = new Map(telemetry?.plants.map((p) => [p.tag_id, p]));
@@ -32,17 +31,16 @@ export function PlantGrid() {
             const p = byTag.get(rp.tag_id);
             const status = p?.status ?? "missing";
             const lost = status === "missing" || status === "removed";
-            const pending = physical[rp.tag_id] && status === "present";
             return (
               <button
                 key={rp.tag_id}
-                className={`slot ${status} ${selected === rp.tag_id ? "selected" : ""} ${pending ? "pending" : ""}`}
+                className={`slot ${status} ${selected === rp.tag_id ? "selected" : ""}`}
                 title={`${speciesName(rp.species)} · tag ${rp.tag_id} · ${STATUS_LABEL[status]}`}
                 onClick={() => selectPlant(selected === rp.tag_id ? undefined : rp.tag_id)}
               >
                 <div className="slot-top">
                   <span>#{rp.tag_id}</span>
-                  <span className="meta">{pending ? "checking" : lost || status === "suspect" ? STATUS_LABEL[status] : `${Math.round(p?.leaf_area_cm2 ?? 0)}cm²`}</span>
+                  <span className="meta">{lost || status === "suspect" ? STATUS_LABEL[status] : `${Math.round(p?.leaf_area_cm2 ?? 0)}cm²`}</span>
                   <i className={`status-dot ${status}`} />
                 </div>
                 <div className="name">{speciesName(rp.species)}</div>

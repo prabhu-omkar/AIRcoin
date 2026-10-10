@@ -30,7 +30,7 @@ export function CameraPanel() {
           <span className="seg small">
             <button className={stream === "annotated" ? "active" : ""} onClick={() => pick("annotated")}>Detections</button>
             <button className={stream === "raw" ? "active" : ""} disabled={simulated} onClick={() => pick("raw")}>Raw</button>
-            <button className={stream === "ndvi" ? "active" : ""} onClick={() => pick("ndvi")}>NDVI</button>
+            <button className={stream === "ndvi" ? "active" : ""} disabled={simulated} onClick={() => pick("ndvi")}>NDVI</button>
           </span>
         </span>
       </h2>
@@ -39,7 +39,7 @@ export function CameraPanel() {
           <img key={stream} className="feed" src={base + PATHS[stream]} alt={`Miner camera, ${stream} view`} onError={() => setFailed(true)} />
         ) : simulated ? (
           <Suspense fallback={<div className="feed-placeholder">Loading view…</div>}>
-            <TwinCam mode={stream === "ndvi" ? "ndvi" : "rgb"} />
+            <TwinCam />
           </Suspense>
         ) : (
           <div className="feed-placeholder">

@@ -21,7 +21,7 @@ export function AntiCheatLog() {
         ) : (
           <div className="empty-state">
             <b>Nothing flagged</b>
-            <span>Remove a pot or put in a plastic plant from the plant card to see the miner catch it.</span>
+            <span>Removed pots, swapped or plastic plants and unknown stickers show up here.</span>
           </div>
         )}
       </div>

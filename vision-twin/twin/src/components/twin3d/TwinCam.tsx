@@ -1,6 +1,5 @@
 // "What the miner's camera sees": the same twin world rendered from the lens, at the Camera Module 3 Wide
 // field of view, with the vision pipeline's annotations drawn on top (ArUco quads, plant boxes, status).
-// NDVI mode renders the plants in false colour over a dark background, like the NoIR + blue-gel NDVI view.
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -8,21 +7,17 @@ import { rigLayout } from "../../config";
 import type { PlantStatus } from "../../contracts";
 import { speciesName } from "../../species";
 import { useTwin } from "../../store";
-import { Haze } from "./Effects";
-import { markerCorners, PLANT_LAYER, PLANT_MAX_H, Rig, RIG, slotPosition } from "./Rig";
+import { markerCorners, PLANT_MAX_H, Rig, RIG, slotPosition } from "./Rig";
 import { Atmosphere, CAMERA_VFOV, Floor, LENS_WORLD, Lights, Studio } from "./Stage";
 
-export type CamMode = "rgb" | "ndvi";
-
 const FPS = 15;
-const COLORS: Record<PlantStatus, string> = { present: "#a6d17e", suspect: "#df6a4f", missing: "#d9a441", removed: "#9aa5a0" };
+const COLORS: Record<PlantStatus, string> = { present: "#3fb950", suspect: "#f85149", missing: "#d29922", removed: "#6e7681" };
 
 interface Box { tag: number; x0: number; y0: number; x1: number; y1: number }
 
 /** Renders at a fixed rate and draws the detection overlay right after each frame. */
-function CameraRender({ mode, overlay, boxes }: { mode: CamMode; overlay: React.RefObject<HTMLCanvasElement>; boxes: React.MutableRefObject<Box[]> }) {
-  const { gl, scene, camera, invalidate, size } = useThree();
-  const dark = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0a0f2e", fog: false }), []);
+function CameraRender({ overlay, boxes }: { overlay: React.RefObject<HTMLCanvasElement>; boxes: React.MutableRefObject<Box[]> }) {
+  const { camera, invalidate, size } = useThree();
   const v = useMemo(() => new THREE.Vector3(), []);
   const corners = useMemo(() => rigLayout.plants.map((rp) => ({ rp, marker: markerCorners(rp.slot), base: slotPosition(rp.slot) })), []);
   const jitter = useRef({ at: 0, seed: 1 });
@@ -30,32 +25,11 @@ function CameraRender({ mode, overlay, boxes }: { mode: CamMode; overlay: React.
   useEffect(() => {
     camera.position.copy(LENS_WORLD);
     camera.lookAt(LENS_WORLD.x, LENS_WORLD.y, 0);
-    camera.layers.enable(PLANT_LAYER);
     const id = setInterval(() => invalidate(), 1000 / FPS);
     return () => clearInterval(id);
   }, [camera, invalidate]);
 
   useFrame((state) => {
-    // ---- render ----
-    if (mode === "ndvi") {
-      const plants: THREE.Object3D[] = [];
-      scene.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.layers.isEnabled(PLANT_LAYER)) plants.push(o); });
-      const vis = plants.map((o) => o.visible);
-      plants.forEach((o) => (o.visible = false));
-      scene.overrideMaterial = dark;
-      gl.autoClear = true;
-      gl.render(scene, camera);
-      scene.overrideMaterial = null;
-      plants.forEach((o, i) => (o.visible = vis[i]));
-      camera.layers.set(PLANT_LAYER);
-      gl.autoClear = false;
-      gl.render(scene, camera);
-      gl.autoClear = true;
-      camera.layers.enableAll();
-    } else {
-      gl.render(scene, camera);
-    }
-
     // ---- detection overlay (what aircoin_vision.detect draws) ----
     const cv = overlay.current;
     if (!cv) return;
@@ -82,8 +56,7 @@ function CameraRender({ mode, overlay, boxes }: { mode: CamMode; overlay: React.
     for (const { rp, marker, base } of corners) {
       const p = tel?.plants.find((x) => x.tag_id === rp.tag_id);
       const status: PlantStatus = p?.status ?? "missing";
-      const phys = st.physical[rp.tag_id];
-      const potHere = phys ? phys.kind !== "removed" : status !== "missing" && status !== "removed";
+      const potHere = status !== "missing" && status !== "removed";
       const sel = st.selectedPlant === rp.tag_id;
       const jx = Math.sin(js + rp.tag_id * 7.1) * 0.8;
       const jy = Math.cos(js + rp.tag_id * 3.3) * 0.8;
@@ -97,11 +70,11 @@ function CameraRender({ mode, overlay, boxes }: { mode: CamMode; overlay: React.
       const y0 = Math.min(pts[0][1], pts[1][1]) + jy;
       const y1 = Math.max(pts[0][1], pts[1][1]) + jy;
       out.push({ tag: rp.tag_id, x0, y0, x1, y1 });
-      const col = mode === "ndvi" ? "#ffffff" : COLORS[status];
+      const col = COLORS[status];
       g.strokeStyle = col;
       g.fillStyle = col;
       g.lineWidth = sel ? 2.5 : 1.4;
-      if (potHere && status !== "missing" && status !== "removed") {
+      if (potHere) {
         g.setLineDash([]);
         g.strokeRect(x0, y0, x1 - x0, y1 - y0);
         // ArUco quad + first-corner marker, as cv2.aruco.drawDetectedMarkers does
@@ -115,19 +88,17 @@ function CameraRender({ mode, overlay, boxes }: { mode: CamMode; overlay: React.
         g.fillRect(q[0][0] + jx - 2, q[0][1] + jy - 2, 4, 4);
         g.fillStyle = col;
         const wide = x1 - x0 > 150;
-        const text = mode === "ndvi"
-          ? `#${rp.tag_id} ${(p?.alive_score ?? 0).toFixed(2)}`
-          : status === "suspect" ? `#${rp.tag_id} FAKE?` : wide ? `#${rp.tag_id} ${speciesName(rp.species).toLowerCase()} ${(p?.species_conf ?? 0).toFixed(2)}` : `#${rp.tag_id} ${(p?.species_conf ?? 0).toFixed(2)}`;
+        const text = status === "suspect" ? `#${rp.tag_id} SUSPECT` : wide ? `#${rp.tag_id} ${speciesName(rp.species).toLowerCase()} ${(p?.species_conf ?? 0).toFixed(2)}` : `#${rp.tag_id} ${(p?.species_conf ?? 0).toFixed(2)}`;
         const tw = Math.min(g.measureText(text).width + 8, x1 - x0);
         g.fillRect(x0, y0, tw, fs + 5);
-        g.fillStyle = mode === "ndvi" ? "#000" : status === "suspect" ? "#fff" : "#04130b";
+        g.fillStyle = status === "suspect" ? "#fff" : "#04130b";
         g.fillText(text, x0 + 4, y0 + fs + 1, tw - 6);
       } else {
         // expected slot with no marker in view
         g.setLineDash([5, 4]);
         g.strokeRect(x0, y0, x1 - x0, y1 - y0);
         g.setLineDash([]);
-        const label = !potHere && status === "present" ? `#${rp.tag_id} lost` : `#${rp.tag_id} ${status.toUpperCase()}`;
+        const label = `#${rp.tag_id} ${status.toUpperCase()}`;
         g.fillText(label, x0 + 4, y1 - 6, x1 - x0 - 8);
       }
       if (sel) {
@@ -139,20 +110,19 @@ function CameraRender({ mode, overlay, boxes }: { mode: CamMode; overlay: React.
       }
     }
     boxes.current = out;
-  }, 1);
+  });
   return null;
 }
 
-function CamScene({ mode }: { mode: CamMode }) {
+function CamScene() {
   const selected = useTwin((s) => s.selectedPlant);
   return (
     <>
-      <Atmosphere background={mode === "ndvi" ? "#05081c" : undefined} />
+      <Atmosphere />
       <Studio />
       <Lights shadowSize={1024} />
-      <Floor reflect={false} />
-      <Rig vision={false} labels={false} ndvi={mode === "ndvi"} selected={selected} />
-      {mode === "rgb" && <Haze density={0.35} />}
+      <Floor />
+      <Rig vision={false} labels={false} selected={selected} />
     </>
   );
 }
@@ -171,18 +141,16 @@ function useClock() {
 }
 
 /** The miner camera view: same world as the twin, seen through the lens. */
-export function TwinCam({ mode }: { mode: CamMode }) {
+export function TwinCam() {
   const overlay = useRef<HTMLCanvasElement>(null);
   const boxes = useRef<Box[]>([]);
   const clock = useClock();
   const tel = useTwin((s) => s.telemetry);
-  const physical = useTwin((s) => s.physical);
   const selectPlant = useTwin((s) => s.selectPlant);
   const selected = useTwin((s) => s.selectedPlant);
   const seen = rigLayout.plants.filter((rp) => {
     const st = tel?.plants.find((p) => p.tag_id === rp.tag_id)?.status;
-    const ph = physical[rp.tag_id];
-    return (ph ? ph.kind !== "removed" : true) && st !== "missing" && st !== "removed";
+    return st !== "missing" && st !== "removed";
   }).length;
 
   const click = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -194,7 +162,7 @@ export function TwinCam({ mode }: { mode: CamMode }) {
   };
 
   return (
-    <div className={`twincam ${mode}`}>
+    <div className="twincam">
       <div className="twincam-frame">
         <Canvas
           frameloop="demand"
@@ -203,19 +171,16 @@ export function TwinCam({ mode }: { mode: CamMode }) {
           gl={{ antialias: true, toneMapping: THREE.AgXToneMapping, powerPreference: "high-performance" }}
           camera={{ fov: CAMERA_VFOV, near: 0.1, far: 90, position: LENS_WORLD.toArray() }}
         >
-          <CamScene mode={mode} />
-          <CameraRender mode={mode} overlay={overlay} boxes={boxes} />
+          <CamScene />
+          <CameraRender overlay={overlay} boxes={boxes} />
         </Canvas>
         <canvas ref={overlay} className="twincam-overlay" onClick={click} />
       </div>
       <div className="osd">
-        <div className="osd-tl"><span className="rec">● REC</span> CAM0 · IMX708 NoIR Wide{mode === "ndvi" ? " · NDVI" : ""}</div>
+        <div className="osd-tl"><span className="rec">● REC</span> CAM0 · IMX708 NoIR Wide</div>
         <div className="osd-tr"><span ref={clock} /></div>
         <div className="osd-bl">tags {seen}/{rigLayout.plants.length} · 1.0 Hz · 2304×1296</div>
         <div className="osd-br">{tel?.miner_id ?? "miner"} · epoch {tel?.current_epoch.epoch ?? "—"}</div>
-        {mode === "ndvi" && (
-          <div className="ndvi-bar"><span>NDVI</span><i /><span>0</span><span>1</span></div>
-        )}
       </div>
     </div>
   );

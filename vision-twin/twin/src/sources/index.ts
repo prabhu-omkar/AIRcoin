@@ -1,20 +1,12 @@
 // Data sources. Live = MQTT (C2) + chain-market API (C4). Mock = the built-in generator, either shared
 // through the mock hub (scripts/mock-hub.ts, so twin and dashboard agree) or running locally in this tab.
 import { config } from "../config";
-import { useTwin, type Tamper } from "../store";
+import { useTwin } from "../store";
 import { startLive } from "./live";
-import { MockMiner, type MockOutput, type Scenario } from "./mock";
+import { MockMiner, type MockOutput } from "./mock";
 
-/** Messages on the hub's event stream: mock outputs plus physical tamper state. */
-export type HubMessage =
-  | MockOutput
-  | { kind: "physical"; payload: { tag: number; kind?: Tamper; at: number } }
-  | { kind: "hello"; payload: { scenario: Scenario } };
-
-export type HubCommand =
-  | { type: "tamper"; tag: number; kind?: Tamper }
-  | { type: "scenario"; scenario: Scenario }
-  | { type: "reject" };
+/** Messages on the hub's event stream: the same outputs the local mock produces. */
+export type HubMessage = MockOutput;
 
 export function apply(out: HubMessage) {
   const s = useTwin.getState();
@@ -24,13 +16,8 @@ export function apply(out: HubMessage) {
     case "balance": return s.onBalance(out.payload);
     case "mints": return s.onMints(out.payload);
     case "chain": return s.onChainEvent(out.payload);
-    case "physical": return s.setPhysical(out.payload.tag, out.payload.kind, out.payload.at);
-    case "hello": return;
   }
 }
-
-/** Where mock commands go: the hub, or the local MockMiner. */
-let send: ((c: HubCommand) => void) | undefined;
 
 function startLocalMock(): () => void {
   const miner = new MockMiner(config.minerId, Date.now());
@@ -39,17 +26,7 @@ function startLocalMock(): () => void {
   miner.snapshot().forEach(apply);
   miner.tick(Date.now()).forEach(apply);
   const timer = setInterval(() => miner.tick(Date.now()).forEach(apply), 1000);
-  send = (c) => {
-    if (c.type === "tamper") {
-      miner.setPlant(c.tag, c.kind, Date.now());
-      useTwin.getState().setPhysical(c.tag, c.kind);
-    } else if (c.type === "scenario") miner.setScenario(c.scenario);
-    else miner.rejectNextEpoch();
-  };
-  return () => {
-    clearInterval(timer);
-    send = undefined;
-  };
+  return () => clearInterval(timer);
 }
 
 function startHub(base: string): () => void {
@@ -69,13 +46,7 @@ function startHub(base: string): () => void {
       console.warn("bad hub message", err);
     }
   };
-  send = (c) => {
-    fetch(`${base}/command`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(c) }).catch(() => undefined);
-  };
-  return () => {
-    es.close();
-    send = undefined;
-  };
+  return () => es.close();
 }
 
 export function startSource(): () => void {
@@ -90,7 +61,6 @@ export function startSource(): () => void {
     : Promise.resolve(false);
   useHub.then((hub) => {
     if (cancelled) return;
-    useTwin.setState({ mockShared: hub });
     stop = hub ? startHub(base) : startLocalMock();
   });
   return () => {
@@ -99,14 +69,3 @@ export function startSource(): () => void {
   };
 }
 
-/** Mock demo controls (no-ops in live mode). */
-export const mockControls = {
-  tamper: (tag: number, kind: Tamper | undefined) => send?.({ type: "tamper", tag, kind }),
-  setScenario: (scenario: Scenario) => send?.({ type: "scenario", scenario }),
-  rejectNext: () => send?.({ type: "reject" }),
-};
-
-/** Mock demo: physically tamper with a pot. The twin animates it now; the mock miner flags it on its own schedule. */
-export function tamperPlant(tag: number, kind: Tamper | undefined) {
-  mockControls.tamper(tag, kind);
-}

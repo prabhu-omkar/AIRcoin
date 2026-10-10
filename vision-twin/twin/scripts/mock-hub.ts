@@ -1,18 +1,15 @@
 // Shared mock data for the twin and the dashboard (mock mode only).
 // One MockMiner, fanned out over server-sent events, so both apps show the same plants, sensors and mints,
-// and a pot tampered with in the twin shows up in the owner dashboard too. No dependencies beyond Node.
+// No dependencies beyond Node.
 //
 //   npx vite-node scripts/mock-hub.ts          (npm run dev starts it with both apps)
 //
-//   GET  /events    SSE stream of mock C2/C4 outputs + physical tamper state
-//   POST /command   {"type":"tamper","tag":7,"kind":"removed"} | {"type":"scenario","scenario":"festival_smog"} | {"type":"reject"}
+//   GET  /events    SSE stream of mock C2/C4 outputs
 //   GET  /health
 import http from "node:http";
-import { rigLayout } from "../src/config";
 import type { EpochSummary, Telemetry } from "../src/contracts";
-import type { HubCommand, HubMessage } from "../src/sources";
+import type { HubMessage } from "../src/sources";
 import { MockMiner, type MockOutput } from "../src/sources/mock";
-import type { Tamper } from "../src/store";
 
 const PORT = Number(process.env.HUB_PORT ?? 5175);
 // HUB_MODE=bridge: no mock; relay real C2 (miner-core over plain MQTT) to the browsers instead.
@@ -22,7 +19,6 @@ const MINER_ID = process.env.MINER_ID ?? "miner-001";
 
 const miner = new MockMiner(MINER_ID, Date.now()); // unused in bridge mode
 const clients = new Set<http.ServerResponse>();
-const physical = new Map<number, { kind: Tamper; at: number }>();
 let lastTelemetry: Telemetry | undefined;
 const epochs: EpochSummary[] = [];
 let latestC4: MockOutput[] = miner.snapshot();
@@ -74,20 +70,6 @@ if (BRIDGE) {
   setInterval(tick, 1000);
 }
 
-function command(c: HubCommand) {
-  if (c.type === "tamper") {
-    if (!rigLayout.plants.some((p) => p.tag_id === c.tag)) return false;
-    const at = Date.now();
-    miner.setPlant(c.tag, c.kind, at);
-    if (c.kind) physical.set(c.tag, { kind: c.kind, at });
-    else physical.delete(c.tag);
-    broadcast({ kind: "physical", payload: { tag: c.tag, kind: c.kind, at } });
-  } else if (c.type === "scenario") miner.setScenario(c.scenario);
-  else if (c.type === "reject") miner.rejectNextEpoch();
-  else return false;
-  return true;
-}
-
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type", "access-control-allow-methods": "GET, POST, OPTIONS" };
 
 http
@@ -97,30 +79,14 @@ http
     if (req.url === "/events") {
       res.writeHead(200, { ...cors, "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
       const send = (m: HubMessage) => res.write(`data: ${JSON.stringify(m)}\n\n`);
-      send({ kind: "hello", payload: { scenario: miner.scenario } });
       latestC4.forEach(send);
       [...epochs].reverse().forEach((e) => send({ kind: "epoch", payload: e }));
       if (lastTelemetry) send({ kind: "telemetry", payload: lastTelemetry });
-      physical.forEach((v, tag) => send({ kind: "physical", payload: { tag, ...v } }));
       clients.add(res);
       const ping = setInterval(() => res.write(": ping\n\n"), 15_000);
       req.on("close", () => {
         clearInterval(ping);
         clients.delete(res);
-      });
-      return;
-    }
-    if (req.url === "/command" && req.method === "POST") {
-      let body = "";
-      req.on("data", (d) => (body += d));
-      req.on("end", () => {
-        let ok = false;
-        try {
-          ok = command(JSON.parse(body) as HubCommand);
-        } catch {
-          ok = false;
-        }
-        res.writeHead(ok ? 200 : 400, { ...cors, "content-type": "application/json" }).end(JSON.stringify({ ok }));
       });
       return;
     }

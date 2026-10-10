@@ -2,7 +2,6 @@
 // Local +z is the camera's viewing direction. When the Blender glTF is ready, a part's body
 // can be swapped for its .glb node; PARTS (ids, positions, readings) stay the same.
 import { Html, RoundedBox } from "@react-three/drei";
-import { Select } from "@react-three/postprocessing";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
@@ -18,7 +17,6 @@ export interface PartDef {
   hardware: string;
   role: string;
   pos: Vec3; // assembled, miner-local
-  exploded: Vec3; // offset added when exploded
   readings: (t?: Telemetry) => [string, string][];
 }
 
@@ -27,12 +25,12 @@ const fmt = (v: number | undefined, d = 1, unit = "") => (v === undefined ? "—
 export const PARTS: PartDef[] = [
   {
     id: "pi", name: "Raspberry Pi", hardware: "Raspberry Pi 4 (4 GB) / Pi 5", role: "Runs vision, estimation and signing",
-    pos: [-0.2, -0.17, -0.12], exploded: [0, 0.55, -0.6],
+    pos: [-0.2, -0.17, -0.12],
     readings: (t) => [["CPU temp", fmt(t?.device?.cpu_temp_c, 1, " °C")], ["CPU", fmt(t?.device?.cpu_pct, 0, " %")], ["Memory", fmt(t?.device?.mem_pct, 0, " %")], ["Uplink", t?.uplink?.online === false ? "offline" : t ? "online" : "—"]],
   },
   {
     id: "camera", name: "Camera", hardware: "Pi Camera Module 3 NoIR Wide + blue gel filter", role: "Reads stickers, sizes plants, NDVI liveness",
-    pos: [0, 0.66, 0.5], exploded: [0, 1.25, 0.15],
+    pos: [0, 0.66, 0.5],
     readings: (t) => {
       const seen = t?.plants.filter((p) => p.status === "present" || p.status === "suspect").length;
       return [["Plants seen", t ? `${seen}/${t.plants.length}` : "—"], ["Suspect", t ? String(t.plants.filter((p) => p.status === "suspect").length) : "—"]];
@@ -40,27 +38,27 @@ export const PARTS: PartDef[] = [
   },
   {
     id: "gps", name: "GPS", hardware: "u-blox NEO-6M / NEO-M8N (UART)", role: "Fixes location for anti-cheat and local AQI",
-    pos: [-0.5, 0.53, -0.38], exploded: [-0.8, 1.05, -0.5],
+    pos: [-0.5, 0.53, -0.38],
     readings: (t) => [["Fix", t?.gps.fix ?? "—"], ["Satellites", t?.gps.satellites !== undefined ? String(t.gps.satellites) : "—"], ["Lat, lon", t ? `${t.gps.lat.toFixed(5)}, ${t.gps.lon.toFixed(5)}` : "—"]],
   },
   {
     id: "pms", name: "Particulate sensor", hardware: "PMS5003", role: "PM2.5 / PM10 (simulated in the demo)",
-    pos: [0.58, -0.135, -0.3], exploded: [0.95, 0.65, -0.1],
+    pos: [0.58, -0.135, -0.3],
     readings: (t) => [["PM2.5", fmt(t?.sensors.pm25_ugm3, 0, " µg/m³")], ["PM10", fmt(t?.sensors.pm10_ugm3, 0, " µg/m³")], ["AQI", fmt(t?.aqi, 0)]],
   },
   {
     id: "mq135", name: "Gas / VOC sensor", hardware: "MQ-135", role: "VOCs and NO₂ (simulated in the demo)",
-    pos: [-0.55, -0.22, 0.38], exploded: [-0.95, 0.65, 0.1],
+    pos: [-0.55, -0.22, 0.38],
     readings: (t) => [["VOC index", fmt(t?.sensors.voc_index, 0)], ["NO₂", fmt(t?.sensors.no2_ppb, 0, " ppb")], ["CO", fmt(t?.sensors.co_ppm, 2, " ppm")]],
   },
   {
     id: "scd40", name: "CO₂ sensor", hardware: "SCD40", role: "CO₂ (simulated in the demo)",
-    pos: [0.18, -0.22, 0.4], exploded: [0.2, 0.8, 0.5],
+    pos: [0.18, -0.22, 0.4],
     readings: (t) => [["CO₂", fmt(t?.sensors.co2_ppm, 0, " ppm")]],
   },
   {
     id: "bme280", name: "Climate sensor", hardware: "BME280", role: "Temperature, humidity, pressure",
-    pos: [0.6, -0.22, 0.42], exploded: [0.95, 0.7, 0.35],
+    pos: [0.6, -0.22, 0.42],
     readings: (t) => [["Temp", fmt(t?.sensors.temp_c, 1, " °C")], ["Humidity", fmt(t?.sensors.humidity_pct, 0, " %")], ["Pressure", fmt(t?.sensors.pressure_hpa, 0, " hPa")]],
   },
 ];
@@ -335,26 +333,18 @@ function Bodies({ id, t }: { id: string; t?: Telemetry }) {
   }
 }
 
-function Part({ def, exploded, selected, onSelect, t, children }: { def: PartDef; exploded: boolean; selected: boolean; onSelect: (id: string) => void; t?: Telemetry; children: ReactNode }) {
-  const ref = useRef<THREE.Group>(null);
+function Part({ def, selected, onSelect, t, children }: { def: PartDef; selected: boolean; onSelect: (id: string) => void; t?: Telemetry; children: ReactNode }) {
   const [hover, setHover] = useState(false);
-  const target = useMemo(() => new THREE.Vector3(...def.pos), [def.pos]);
-  const explodedTarget = useMemo(() => new THREE.Vector3(...def.pos).add(new THREE.Vector3(...def.exploded)), [def]);
-  useFrame((_, dt) => {
-    if (!ref.current) return;
-    ref.current.position.lerp(exploded ? explodedTarget : target, Math.min(1, dt * 3.5));
-  });
   const reading = def.readings(t)[0];
   return (
     <group
-      ref={ref}
       position={def.pos}
       onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onSelect(def.id); }}
       onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { setHover(false); document.body.style.cursor = ""; }}
     >
-      <Select enabled={hover || selected}>{children}</Select>
-      {(exploded || hover || selected) && (
+      {children}
+      {(hover || selected) && (
         <Html position={[0, 0.22, 0]} center style={{ pointerEvents: "none" }} zIndexRange={[20, 10]}>
           <div className={`part-tag ${selected ? "sel" : ""}`}>
             <b>{def.name}</b>
@@ -390,14 +380,8 @@ function Ribbon({ points, width }: { points: THREE.Vector3[]; width: number }) {
 const RIBBON_PATH = [new THREE.Vector3(-0.155, -0.1, 0.05), new THREE.Vector3(-0.155, 0.1, 0.1), new THREE.Vector3(-0.05, 0.3, 0.32), new THREE.Vector3(0, 0.44, 0.44), new THREE.Vector3(0, 0.56, 0.48)];
 const WIRE_COLORS = ["#e53935", "#212121", "#fdd835", "#43a047", "#1e88e5", "#fb8c00", "#f5f5f5", "#8e24aa"];
 
-/** Dupont jumper wires from the GPIO header to each sensor (hidden while exploded). */
-function Wiring({ exploded }: { exploded: boolean }) {
-  const [show, setShow] = useState(!exploded);
-  useEffect(() => {
-    if (exploded) return setShow(false);
-    const id = setTimeout(() => setShow(true), 900);
-    return () => clearTimeout(id);
-  }, [exploded]);
+/** Dupont jumper wires from the GPIO header to each sensor. */
+function Wiring() {
   const wires = useMemo(() => {
     const pi = new THREE.Vector3(...PARTS[0].pos);
     const header = (i: number) => pi.clone().add(new THREE.Vector3(-0.29 + i * 0.0254, 0.08, -0.245));
@@ -417,7 +401,6 @@ function Wiring({ exploded }: { exploded: boolean }) {
       return { color: WIRE_COLORS[i % WIRE_COLORS.length], curve: new THREE.CatmullRomCurve3([start, start.clone().add(new THREE.Vector3(0, 0.08, 0)), mid, end.clone().add(new THREE.Vector3(0, 0.08, 0)), end]) };
     });
   }, []);
-  if (!show) return null;
   return (
     <group>
       {wires.map((w, i) => (
@@ -457,28 +440,20 @@ function ExhaustFan({ cpu }: { cpu: number }) {
   );
 }
 
-function Enclosure({ exploded, online }: { exploded: boolean; online: boolean }) {
+function Enclosure({ online }: { online: boolean }) {
   const m = mats();
-  const lid = useRef<THREE.Mesh>(null);
   const shell = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#cfeee2", transparent: true, opacity: 0.1, roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03, depthWrite: false, envMapIntensity: 1.5, side: THREE.DoubleSide }), []);
   const lidMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#13221d", transparent: true, opacity: 0.42, roughness: 0.06, clearcoat: 1, depthWrite: false, envMapIntensity: 1.6 }), []);
-  const strip = useMemo(() => new THREE.MeshStandardMaterial({ color: "#111", emissive: new THREE.Color("#a6d17e"), emissiveIntensity: 3, toneMapped: false }), []);
+  const strip = useMemo(() => new THREE.MeshStandardMaterial({ color: "#111", emissive: new THREE.Color("#3fb950"), emissiveIntensity: 3, toneMapped: false }), []);
   const plate = useMemo(() => new THREE.MeshStandardMaterial({ map: labelTexture("nameplate", "#0f1513", "#e6efe9", [["AIRcoin", 64, "800"], ["MINER · PoUW · v1", 30, "500"]], 512, 192), roughness: 0.35, metalness: 0.4 }), []);
-  useFrame(({ clock }, dt) => {
-    const k = Math.min(1, dt * 3.5);
-    if (lid.current) lid.current.position.y += ((exploded ? 2.1 : 0.47) - lid.current.position.y) * k;
-    lidMat.opacity += ((exploded ? 0.12 : 0.42) - lidMat.opacity) * k;
-    shell.opacity += ((exploded ? 0.0 : 0.1) - shell.opacity) * k;
-    strip.emissive.set(online ? "#a6d17e" : "#d9a441");
-    strip.emissiveIntensity = 2 + Math.sin(clock.elapsedTime * 2) * 0.8;
-  });
+  strip.emissive.set(online ? "#3fb950" : "#d29922");
   return (
     <group>
       <RoundedBox args={[1.92, 0.12, 1.42]} radius={0.04} smoothness={4} position={[0, -0.32, 0]} material={m.housing} castShadow receiveShadow />
       <RoundedBox args={[1.9, 0.72, 1.4]} radius={0.035} smoothness={3} position={[0, 0.1, 0]} material={shell} />
       {/* aluminium corner posts */}
       {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Box key={`${sx}${sz}`} pos={[sx * 0.93, 0.1, sz * 0.68]} size={[0.045, 0.72, 0.045]} m={m.alu} />))}
-      <RoundedBox ref={lid} args={[1.96, 0.05, 1.46]} radius={0.02} smoothness={3} position={[0, 0.47, 0]} material={lidMat} />
+      <RoundedBox args={[1.96, 0.05, 1.46]} radius={0.02} smoothness={3} position={[0, 0.47, 0]} material={lidMat} />
       {/* rear nameplate and status strip (rear faces the viewer in the rig) */}
       <mesh position={[0, -0.32, -0.716]} rotation={[0, Math.PI, 0]} material={plate}>
         <planeGeometry args={[0.6, 0.1]} />
@@ -496,15 +471,15 @@ function Enclosure({ exploded, online }: { exploded: boolean; online: boolean })
   );
 }
 
-export function Miner({ exploded, selected, onSelect }: { exploded: boolean; selected?: string; onSelect: (id: string) => void }) {
+export function Miner({ selected, onSelect }: { selected?: string; onSelect: (id: string) => void }) {
   const t = useTwin((s) => s.telemetry);
   return (
     <group>
-      <Enclosure exploded={exploded} online={t?.uplink?.online !== false} />
+      <Enclosure online={t?.uplink?.online !== false} />
       <ExhaustFan cpu={t?.device?.cpu_pct ?? 30} />
-      <Wiring exploded={exploded} />
+      <Wiring />
       {PARTS.map((def) => (
-        <Part key={def.id} def={def} exploded={exploded} selected={selected === def.id} onSelect={onSelect} t={t}>
+        <Part key={def.id} def={def} selected={selected === def.id} onSelect={onSelect} t={t}>
           <Bodies id={def.id} t={t} />
         </Part>
       ))}

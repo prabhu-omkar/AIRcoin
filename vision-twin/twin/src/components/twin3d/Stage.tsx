@@ -1,9 +1,8 @@
 // Shared scene setup used by both the twin canvas and the miner camera canvas, so they show the same world.
-import { Environment, Lightformer, MeshReflectorMaterial, RoundedBox } from "@react-three/drei";
+import { Environment, Lightformer, RoundedBox } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { useTwin } from "../../store";
 import { sharedTime } from "./materials";
 import { LENS_LOCAL } from "./Miner";
 import { RACK_H } from "./Rig";
@@ -16,33 +15,21 @@ export const LENS_WORLD = LENS_LOCAL.clone().applyAxisAngle(new THREE.Vector3(0,
 export const CAMERA_VFOV = 67;
 export const CAMERA_ASPECT = 2304 / 1296;
 
-const FOG_CLEAN = new THREE.Color("#0a1210");
-const FOG_SMOG = new THREE.Color("#2a2117");
+const BG = new THREE.Color("#09090b");
 
-/** AQI-driven fog/background. The main canvas also advances the shared shader clock (`drive`). */
-export function Atmosphere({ drive = false, background }: { drive?: boolean; background?: string }) {
-  const aqi = useTwin((s) => s.telemetry?.aqi ?? 120);
+/** Background and depth fog. The main canvas also advances the shared shader clock (`drive`). */
+export function Atmosphere({ drive = false }: { drive?: boolean }) {
   const { scene } = useThree();
-  const fog = useMemo(() => new THREE.FogExp2(FOG_CLEAN.clone(), 0.02), []);
-  const bg = useMemo(() => FOG_CLEAN.clone(), []);
-  const tmp = useMemo(() => new THREE.Color(), []);
   useEffect(() => {
-    scene.fog = fog;
-    scene.background = bg;
+    scene.fog = new THREE.FogExp2(BG, 0.016);
+    scene.background = BG;
     return () => {
       scene.fog = null;
       scene.background = null;
     };
-  }, [scene, fog, bg]);
+  }, [scene]);
   useFrame((_, dt) => {
     if (drive) sharedTime.value += Math.min(dt, 0.1);
-    const lv = THREE.MathUtils.clamp(aqi / 420, 0, 1);
-    if (background) tmp.set(background);
-    else tmp.copy(FOG_CLEAN).lerp(FOG_SMOG, lv);
-    const k = background ? 1 : Math.min(1, dt * 0.8);
-    fog.color.lerp(tmp, k);
-    bg.lerp(tmp, k);
-    fog.density += (0.012 + lv * 0.028 - fog.density) * Math.min(1, dt * 0.8);
   });
   return null;
 }
@@ -85,15 +72,11 @@ export function Tripod() {
   );
 }
 
-export function Floor({ reflect }: { reflect: boolean }) {
+export function Floor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 5]} receiveShadow>
       <planeGeometry args={[90, 90]} />
-      {reflect ? (
-        <MeshReflectorMaterial blur={[400, 120]} resolution={512} mixBlur={1} mixStrength={6} roughness={0.85} depthScale={1.1} minDepthThreshold={0.4} maxDepthThreshold={1.3} color="#0e1513" metalness={0.55} mirror={0} />
-      ) : (
-        <meshStandardMaterial color="#111816" roughness={0.75} metalness={0.25} />
-      )}
+      <meshStandardMaterial color="#141417" roughness={0.85} />
     </mesh>
   );
 }
@@ -131,7 +114,6 @@ export function Studio() {
       <Lightformer form="rect" intensity={1.6} position={[-9, 3, 4]} rotation-y={Math.PI / 2} scale={[12, 2, 1]} color="#bff5e0" />
       <Lightformer form="rect" intensity={1.2} position={[9, 3, 6]} rotation-y={-Math.PI / 2} scale={[12, 2, 1]} />
       <Lightformer form="ring" intensity={2} position={[4, 4, 14]} scale={3} color="#e8fff6" />
-      <Lightformer form="rect" intensity={0.6} position={[0, 2, -8]} scale={[20, 4, 1]} color="#a6d17e" />
-    </Environment>
+          </Environment>
   );
 }
