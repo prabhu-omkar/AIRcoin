@@ -35,3 +35,4 @@ broadcast/
 keys/
 *.sqlite
 *.db
+.demo/

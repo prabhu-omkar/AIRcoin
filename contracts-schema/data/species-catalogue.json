@@ -1,7 +1,7 @@
 {
   "v": 1,
-  "catalogue_version": "0.1.0",
-  "status": "draft",
+  "catalogue_version": "1.0.0",
+  "status": "frozen",
   "is_estimate": true,
   "air_unit": {
     "definition": "1 AIR = the health damage avoided by removing 1 mg of PM2.5 (1 mg PM2.5-equivalent).",
@@ -14,49 +14,49 @@
       "weight": 1.0,
       "damage_cost_eur_per_kg": 38.7,
       "concentration_unit": "ug/m3",
-      "ref_concentration": null
+      "ref_concentration": 35
     },
     "pm10": {
       "name": "PM10",
       "weight": 0.69,
       "damage_cost_eur_per_kg": 26.6,
       "concentration_unit": "ug/m3",
-      "ref_concentration": null
+      "ref_concentration": 50
     },
     "no2": {
       "name": "NOx (NO2)",
       "weight": 0.38,
       "damage_cost_eur_per_kg": 14.8,
       "concentration_unit": "ppb",
-      "ref_concentration": null
+      "ref_concentration": 25
     },
     "so2": {
       "name": "SO2",
       "weight": 0.3,
       "damage_cost_eur_per_kg": 11.5,
       "concentration_unit": "ppb",
-      "ref_concentration": null
+      "ref_concentration": 10
     },
     "voc": {
       "name": "VOCs (benzene, formaldehyde and others)",
       "weight": 0.03,
       "damage_cost_eur_per_kg": 1.15,
       "concentration_unit": "voc_index",
-      "ref_concentration": null
+      "ref_concentration": 100
     },
     "co2": {
       "name": "CO2",
       "weight": 0.0015,
       "damage_cost_eur_per_kg": 0.057,
       "concentration_unit": "ppm",
-      "ref_concentration": null
+      "ref_concentration": 420
     },
     "co": {
       "name": "CO",
       "weight": 0.0014,
       "damage_cost_eur_per_kg": 0.0526,
       "concentration_unit": "ppm",
-      "ref_concentration": null
+      "ref_concentration": 1
     }
   },
   "multiplier_levels": {
@@ -65,18 +65,18 @@
     "low": 0.5
   },
   "base_rates_mg_per_m2_h": {
-    "pm25": null,
-    "pm10": null,
-    "no2": null,
-    "so2": null,
-    "voc": null,
-    "co2": null,
-    "co": null
+    "pm25": 0.25,
+    "pm10": 1.0,
+    "no2": 0.17,
+    "so2": 0.47,
+    "voc": 0.5,
+    "co2": 300.0,
+    "co": 0.04
   },
-  "concentration_factor_cap": null,
+  "concentration_factor_cap": 5,
   "caps": {
-    "per_plant_air_per_epoch": null,
-    "per_miner_air_per_epoch": null
+    "per_plant_air_per_epoch": 0.01,
+    "per_miner_air_per_epoch": 0.2
   },
   "species": [
     {

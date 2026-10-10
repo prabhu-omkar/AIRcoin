@@ -89,11 +89,11 @@ The schemas are plain JSON Schema 2020-12, so any validator works: `jsonschema` 
 
 ## Species catalogue status
 
-`data/species-catalogue.json` is **draft v0.1.0**:
+`data/species-catalogue.json` is **frozen v1.0.0**:
 
 - Species, scientific names, placement, main targets and evidence come straight from PRD 2.3. Pollutant weights and damage costs come from PRD 2.6.
 - `multipliers` are a mechanical first pass: a pollutant named in the species' main targets is `high`, everything else `low`. **Shreyas to review on Day 1.**
-- `base_rates_mg_per_m2_h`, `ref_concentration`, `concentration_factor_cap` and `caps` are `null` until Shreyas seeds them from the literature. The schema rejects `null`s once `status` is `frozen` (calibration table v1, Gate 2).
+- `base_rates_mg_per_m2_h`, `ref_concentration`, `concentration_factor_cap` and `caps` are the team-approved literature-seeded estimates documented in `miner-core/docs/catalogue-v0-proposal.md`.
 - Entries with `evidence.status: "to_confirm"` still need a paper (PRD 10.4).
 
 ## Change process

@@ -16,3 +16,15 @@ python contracts-schema/scripts/validate.py
 ```
 
 Project context and team rules: [`CLAUDE.md`](CLAUDE.md). Full spec: the PRD PDF in this folder.
+
+## Local integrated demo
+
+On Windows, one command starts MQTT, the local chain, deployment/seed, validator, and the
+miner with its built-in plant fallback:
+
+```bat
+scripts\demo.cmd start
+```
+
+Open `http://localhost:8090/health` for the red/green service page. Operational details and
+recovery commands are in [`docs/demo-runbook.md`](docs/demo-runbook.md).

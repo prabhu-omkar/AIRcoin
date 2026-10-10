@@ -1,0 +1,12 @@
+[project]
+name = "aircoin-miner-core"
+version = "0.1.0"
+description = "AIRcoin Workstream B: miner daemon, PoUW estimator, signer and uplink"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["minerd", "simulator", "controller", "mock"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

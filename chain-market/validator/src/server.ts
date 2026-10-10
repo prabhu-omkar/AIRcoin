@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import canonicalize from "canonicalize";
+import { ethers } from "ethers";
 import { Validator, Attestation } from "./validator";
 
 const PORT = parseInt(process.env.PORT || "3001", 10);
@@ -20,6 +22,15 @@ const registryPath = path.join(
   "examples",
   "valid",
   "registry.json"
+);
+const cataloguePath = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "contracts-schema",
+  "data",
+  "species-catalogue.json"
 );
 
 if (!fs.existsSync(deploymentsPath)) {
@@ -58,7 +69,11 @@ const ADMIN_KEY =
   process.env.ADMIN_KEY ||
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-const validator = new Validator(RPC_URL, ADMIN_KEY, deployments, registryData);
+const catalogue = JSON.parse(fs.readFileSync(cataloguePath, "utf-8"));
+const encodedCatalogue = canonicalize(catalogue);
+if (!encodedCatalogue) throw new Error("Failed to canonicalize species catalogue");
+const calibrationHash = ethers.keccak256(ethers.toUtf8Bytes(encodedCatalogue));
+const validator = new Validator(RPC_URL, ADMIN_KEY, deployments, registryData, calibrationHash);
 
 // ── Express app ──
 
@@ -76,6 +91,11 @@ app.post("/v1/attestations", async (req, res) => {
     const response = await validator.validate(attestation);
 
     if (response.status === "rejected") {
+      // Chain/RPC failures are transient. A 5xx tells miner-core to retain and
+      // retry the signed epoch instead of recording a permanent rejection.
+      if (response.reason_code === "chain_error") {
+        return res.status(503).json(response);
+      }
       const httpCode = response.reason_code === "epoch_already_minted" ? 409 : 422;
       return res.status(httpCode).json(response);
     }
