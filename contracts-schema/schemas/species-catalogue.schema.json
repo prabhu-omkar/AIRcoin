@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aircoin.example/schemas/v1/species-catalogue.schema.json",
+  "title": "Species catalogue and calibration table",
+  "description": "The 20 prescribed species (PRD 2.3), the AIR unit weights (PRD 2.6) and the coefficients the estimator uses (PRD 2.4/2.5). Numbers are owned by B (miner-core); A reads ids, names and reference images. keccak256 of the canonical JSON is sent as calibration_hash in every C3 attestation.\n\nCoefficient for species s and pollutant p, in mg removed per m2 of leaf per hour at the reference concentration:\n  k[s][p] = coefficient_overrides[s][p] if present, else base_rates_mg_per_m2_h[p] * multiplier_levels[species.multipliers[p]]",
+  "type": "object",
+  "required": ["v", "catalogue_version", "status", "is_estimate", "air_unit", "pollutants", "multiplier_levels", "base_rates_mg_per_m2_h", "caps", "species"],
+  "properties": {
+    "v": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "catalogue_version": {
+      "description": "Semver of the numbers in this file. Bump on any change; the calibration_hash changes with it.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "status": {
+      "description": "draft = numbers may still be null or change; frozen = calibration table v1 (Gate 2).",
+      "type": "string",
+      "enum": ["draft", "frozen"]
+    },
+    "is_estimate": {
+      "description": "True while coefficients come from literature rather than enclosure calibration. The UI must label values as estimates when true.",
+      "type": "boolean"
+    },
+    "air_unit": {
+      "type": "object",
+      "required": ["definition", "reference_pollutant", "source"],
+      "properties": {
+        "definition": { "type": "string" },
+        "reference_pollutant": { "const": "pm25" },
+        "source": { "type": "string" },
+        "source_url": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
+    },
+    "pollutants": {
+      "description": "One entry per pollutant key in common.schema.json.",
+      "type": "object",
+      "propertyNames": { "$ref": "common.schema.json#/$defs/pollutant" },
+      "required": ["pm25", "pm10", "no2", "so2", "voc", "co2", "co"],
+      "additionalProperties": { "$ref": "#/$defs/pollutant" }
+    },
+    "multiplier_levels": {
+      "type": "object",
+      "required": ["high", "medium", "low"],
+      "properties": {
+        "high": { "type": "number", "minimum": 0 },
+        "medium": { "type": "number", "minimum": 0 },
+        "low": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "base_rates_mg_per_m2_h": {
+      "description": "Generic removal rate per pollutant before the species multiplier. null = not set yet (only allowed while status is draft).",
+      "type": "object",
+      "propertyNames": { "$ref": "common.schema.json#/$defs/pollutant" },
+      "required": ["pm25", "pm10", "no2", "so2", "voc", "co2", "co"],
+      "additionalProperties": { "type": ["number", "null"], "minimum": 0 }
+    },
+    "concentration_factor_cap": {
+      "description": "Upper bound of f(C/C_ref) in the estimation model.",
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "caps": {
+      "description": "Plausibility caps used by the estimator and re-checked by the validator. null = not set yet.",
+      "type": "object",
+      "required": ["per_plant_air_per_epoch", "per_miner_air_per_epoch"],
+      "properties": {
+        "per_plant_air_per_epoch": { "type": ["number", "null"], "minimum": 0 },
+        "per_miner_air_per_epoch": { "type": ["number", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "species": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/species" }
+    }
+  },
+  "if": { "properties": { "status": { "const": "frozen" } } },
+  "then": {
+    "properties": {
+      "base_rates_mg_per_m2_h": { "additionalProperties": { "type": "number" } },
+      "concentration_factor_cap": { "type": "number" },
+      "caps": {
+        "properties": {
+          "per_plant_air_per_epoch": { "type": "number" },
+          "per_miner_air_per_epoch": { "type": "number" }
+        }
+      }
+    },
+    "required": ["concentration_factor_cap"]
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "level": { "type": "string", "enum": ["high", "medium", "low"] },
+    "pollutant": {
+      "type": "object",
+      "required": ["name", "weight", "damage_cost_eur_per_kg", "concentration_unit", "ref_concentration"],
+      "properties": {
+        "name": { "type": "string" },
+        "weight": {
+          "description": "AIR per mg removed (PM2.5 = 1).",
+          "type": "number",
+          "minimum": 0
+        },
+        "damage_cost_eur_per_kg": {
+          "description": "CE Delft Environmental Prices Handbook, central EU value, EUR2015/kg.",
+          "type": "number",
+          "minimum": 0
+        },
+        "concentration_unit": {
+          "description": "Unit of the matching sensor reading.",
+          "type": "string",
+          "enum": ["ug/m3", "ppb", "ppm", "voc_index"]
+        },
+        "ref_concentration": {
+          "description": "C_ref in the estimation model, in concentration_unit. null = not set yet.",
+          "type": ["number", "null"],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "species": {
+      "type": "object",
+      "required": ["id", "number", "common_name", "scientific_name", "placement", "main_targets", "multipliers", "evidence", "reference_images", "toxic"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/species_id" },
+        "number": {
+          "description": "Row number in PRD 2.3 (1-20).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "common_name": { "type": "string" },
+        "local_names": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scientific_name": { "type": "string" },
+        "placement": {
+          "type": "string",
+          "enum": ["indoor", "indoor_or_balcony", "balcony", "outdoor", "outdoor_sapling"]
+        },
+        "main_targets": {
+          "description": "Pollutants this species is known for, as written in the PRD.",
+          "type": "string"
+        },
+        "multipliers": {
+          "description": "Species strength per pollutant (High 1.5 / Medium 1.0 / Low 0.5).",
+          "type": "object",
+          "propertyNames": { "$ref": "common.schema.json#/$defs/pollutant" },
+          "required": ["pm25", "pm10", "no2", "so2", "voc", "co2", "co"],
+          "additionalProperties": { "$ref": "#/$defs/level" }
+        },
+        "coefficient_overrides": {
+          "description": "Measured k values (mg/m2 leaf/h) that replace base_rate * multiplier, e.g. from enclosure calibration.",
+          "type": "object",
+          "propertyNames": { "$ref": "common.schema.json#/$defs/pollutant" },
+          "additionalProperties": { "type": "number", "minimum": 0 }
+        },
+        "evidence": {
+          "type": "object",
+          "required": ["summary", "status"],
+          "properties": {
+            "summary": { "type": "string" },
+            "status": {
+              "description": "cited = source identified; to_confirm = PRD says 'confirm a paper'.",
+              "type": "string",
+              "enum": ["cited", "to_confirm"]
+            },
+            "urls": {
+              "type": "array",
+              "items": { "type": "string", "format": "uri" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "reference_images": {
+          "description": "Repo-relative paths to reference photos (filled by vision-twin).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "toxic": {
+          "description": "True if the plant is toxic to children or pets; the UI shows a warning.",
+          "type": "boolean"
+        },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

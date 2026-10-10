@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "miner_id": "miner-002",
+  "epoch": 29863320,
+  "status": "rejected",
+  "reason_code": "sticker_claimed_by_other_miner",
+  "reason": "Sticker 3 is registered to miner-001"
+}

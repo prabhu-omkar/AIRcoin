@@ -1,0 +1,329 @@
+{
+  "v": 1,
+  "miner_id": "miner-001",
+  "ts": 1791799259000,
+  "frame_hash": "0x71c51a2233f18594987cc1219e3ebaf230278200cd320c124180f47988a3a4dc",
+  "frame_size": {
+    "w": 1280,
+    "h": 720
+  },
+  "plants": [
+    {
+      "tag_id": 0,
+      "species": "snake_plant",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 310.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        40,
+        30,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 1,
+      "species": "peace_lily",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 317.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        290,
+        30,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 2,
+      "species": "bamboo_palm",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 324.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        540,
+        30,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 3,
+      "species": "red_edged_dracaena",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 331.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        790,
+        30,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 4,
+      "species": "janet_craig_dracaena",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 338.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        1040,
+        30,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 5,
+      "species": "english_ivy",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 345.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        40,
+        200,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 6,
+      "species": "chinese_evergreen",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 352.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        290,
+        200,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 7,
+      "species": "florists_chrysanthemum",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 0.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": null,
+      "status": "missing",
+      "last_seen_ts": 1791799244000
+    },
+    {
+      "tag_id": 8,
+      "species": "weeping_fig",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 366.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        790,
+        200,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 9,
+      "species": "money_plant",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 373.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        1040,
+        200,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 10,
+      "species": "spider_plant",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 380.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        40,
+        370,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 11,
+      "species": "aloe_vera",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 387.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        290,
+        370,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 12,
+      "species": "areca_palm",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 394.0,
+      "alive_score": 0.12,
+      "ndvi": 0.02,
+      "bbox": [
+        540,
+        370,
+        180,
+        150
+      ],
+      "status": "suspect",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 13,
+      "species": "boston_fern",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 401.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        790,
+        370,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 14,
+      "species": "tulsi",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 408.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        1040,
+        370,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 15,
+      "species": "hibiscus",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 415.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        40,
+        540,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 16,
+      "species": "neem",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 422.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        290,
+        540,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 17,
+      "species": "shisham",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 429.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        540,
+        540,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 18,
+      "species": "bougainvillea",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 436.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        790,
+        540,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    },
+    {
+      "tag_id": 19,
+      "species": "yellow_oleander",
+      "species_conf": 0.91,
+      "leaf_area_cm2": 443.0,
+      "alive_score": 0.86,
+      "ndvi": 0.41,
+      "bbox": [
+        1040,
+        540,
+        180,
+        150
+      ],
+      "status": "present",
+      "last_seen_ts": 1791799259000
+    }
+  ],
+  "unknown_tag_ids": [],
+  "source": "pi_camera"
+}

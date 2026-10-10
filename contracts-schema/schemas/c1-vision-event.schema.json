@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aircoin.example/schemas/v1/c1-vision-event.schema.json",
+  "title": "C1 · Vision event (A -> B)",
+  "description": "Published by vision-twin on MQTT topic miner/{miner_id}/vision about once per second (QoS 0). One message describes every registered tag the pipeline knows about in the latest analysed frame.",
+  "type": "object",
+  "required": ["v", "miner_id", "ts", "frame_hash", "plants"],
+  "properties": {
+    "v": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "miner_id": { "$ref": "common.schema.json#/$defs/miner_id" },
+    "ts": {
+      "description": "Capture time of the analysed frame.",
+      "$ref": "common.schema.json#/$defs/timestamp_ms"
+    },
+    "frame_hash": {
+      "description": "sha256 of the raw frame bytes, 0x-prefixed. Goes into the evidence hash; identical hashes over time mean a frozen camera.",
+      "$ref": "common.schema.json#/$defs/bytes32_hex"
+    },
+    "frame_size": {
+      "description": "Frame dimensions in pixels, so bbox values can be interpreted.",
+      "type": "object",
+      "required": ["w", "h"],
+      "properties": {
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "plants": {
+      "description": "One entry per registered sticker of this miner (normally 20), including ones not currently seen (status missing/removed).",
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/plant" }
+    },
+    "unknown_tag_ids": {
+      "description": "Marker IDs seen in the frame that are not in this miner's registered sticker set.",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/tag_id" },
+      "uniqueItems": true
+    },
+    "source": {
+      "description": "What produced the event: the Pi camera, the laptop fallback, a recorded clip, or the mock emitter.",
+      "type": "string",
+      "enum": ["pi_camera", "laptop_camera", "recorded", "mock"]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "plant": {
+      "type": "object",
+      "required": ["tag_id", "species", "species_conf", "leaf_area_cm2", "alive_score", "bbox", "status"],
+      "properties": {
+        "tag_id": { "$ref": "common.schema.json#/$defs/tag_id" },
+        "species": {
+          "description": "Species enrolled for this tag (or 'unknown' if not enrolled).",
+          "$ref": "common.schema.json#/$defs/species_id_or_unknown"
+        },
+        "species_conf": {
+          "description": "Plant-match score 0-1: similarity between the live crop and the enrolled feature vector. Low = plant swapped.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "leaf_area_cm2": {
+          "description": "Visible leaf area, smoothed, converted to cm2 using the known marker size. 0 when not seen.",
+          "type": "number",
+          "minimum": 0
+        },
+        "alive_score": {
+          "description": "Liveness 0-1 (NDVI primary, match/texture fallback). Low = plastic or dead plant.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ndvi": {
+          "description": "Optional raw mean NDVI of the plant crop (-1 to 1), for the twin's NDVI view.",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "bbox": {
+          "description": "Plant bounding box [x, y, w, h] in pixels of the analysed frame; null when the tag is not seen.",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 0 },
+              "minItems": 4,
+              "maxItems": 4
+            },
+            { "type": "null" }
+          ]
+        },
+        "status": { "$ref": "common.schema.json#/$defs/plant_status" },
+        "last_seen_ts": {
+          "description": "Last time this tag was detected.",
+          "$ref": "common.schema.json#/$defs/timestamp_ms"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

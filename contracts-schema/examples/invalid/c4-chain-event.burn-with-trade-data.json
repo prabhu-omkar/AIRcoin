@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "burn",
+  "tx_hash": "0xcf28bfa882dbf80901fef0a7597c7ced59ed3b8a98da8bc5610bccf4f7f68642",
+  "log_index": 3,
+  "block_number": 18234,
+  "ts": 1791799264000,
+  "data": {
+    "listing_id": 4,
+    "seller": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+    "buyer": "0x85b0ad1884ce982053e025b3baca13b830ed3be5",
+    "amount_air": "1",
+    "price_tinr": "1"
+  }
+}

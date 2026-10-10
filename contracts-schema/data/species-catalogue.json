@@ -1,0 +1,547 @@
+{
+  "v": 1,
+  "catalogue_version": "0.1.0",
+  "status": "draft",
+  "is_estimate": true,
+  "air_unit": {
+    "definition": "1 AIR = the health damage avoided by removing 1 mg of PM2.5 (1 mg PM2.5-equivalent).",
+    "reference_pollutant": "pm25",
+    "source": "CE Delft, Environmental Prices Handbook (EU28 version), Table 1, central values, EUR2015 per kg"
+  },
+  "pollutants": {
+    "pm25": {
+      "name": "PM2.5",
+      "weight": 1.0,
+      "damage_cost_eur_per_kg": 38.7,
+      "concentration_unit": "ug/m3",
+      "ref_concentration": null
+    },
+    "pm10": {
+      "name": "PM10",
+      "weight": 0.69,
+      "damage_cost_eur_per_kg": 26.6,
+      "concentration_unit": "ug/m3",
+      "ref_concentration": null
+    },
+    "no2": {
+      "name": "NOx (NO2)",
+      "weight": 0.38,
+      "damage_cost_eur_per_kg": 14.8,
+      "concentration_unit": "ppb",
+      "ref_concentration": null
+    },
+    "so2": {
+      "name": "SO2",
+      "weight": 0.3,
+      "damage_cost_eur_per_kg": 11.5,
+      "concentration_unit": "ppb",
+      "ref_concentration": null
+    },
+    "voc": {
+      "name": "VOCs (benzene, formaldehyde and others)",
+      "weight": 0.03,
+      "damage_cost_eur_per_kg": 1.15,
+      "concentration_unit": "voc_index",
+      "ref_concentration": null
+    },
+    "co2": {
+      "name": "CO2",
+      "weight": 0.0015,
+      "damage_cost_eur_per_kg": 0.057,
+      "concentration_unit": "ppm",
+      "ref_concentration": null
+    },
+    "co": {
+      "name": "CO",
+      "weight": 0.0014,
+      "damage_cost_eur_per_kg": 0.0526,
+      "concentration_unit": "ppm",
+      "ref_concentration": null
+    }
+  },
+  "multiplier_levels": {
+    "high": 1.5,
+    "medium": 1.0,
+    "low": 0.5
+  },
+  "base_rates_mg_per_m2_h": {
+    "pm25": null,
+    "pm10": null,
+    "no2": null,
+    "so2": null,
+    "voc": null,
+    "co2": null,
+    "co": null
+  },
+  "concentration_factor_cap": null,
+  "caps": {
+    "per_plant_air_per_epoch": null,
+    "per_miner_air_per_epoch": null
+  },
+  "species": [
+    {
+      "id": "snake_plant",
+      "number": 1,
+      "common_name": "Snake plant",
+      "scientific_name": "Dracaena trifasciata",
+      "placement": "indoor",
+      "main_targets": "Benzene, formaldehyde, TCE, xylene; CO2 at night",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "high",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "peace_lily",
+      "number": 2,
+      "common_name": "Peace lily",
+      "scientific_name": "Spathiphyllum wallisii",
+      "placement": "indoor",
+      "main_targets": "Benzene, TCE, formaldehyde, ammonia",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "bamboo_palm",
+      "number": 3,
+      "common_name": "Bamboo palm",
+      "scientific_name": "Chamaedorea seifrizii",
+      "placement": "indoor",
+      "main_targets": "Formaldehyde, benzene, TCE",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "red_edged_dracaena",
+      "number": 4,
+      "common_name": "Red-edged dracaena",
+      "scientific_name": "Dracaena marginata",
+      "placement": "indoor",
+      "main_targets": "Benzene, TCE, formaldehyde, xylene",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "janet_craig_dracaena",
+      "number": 5,
+      "common_name": "Janet Craig dracaena",
+      "scientific_name": "Dracaena fragrans 'Janet Craig'",
+      "placement": "indoor",
+      "main_targets": "Formaldehyde, benzene, TCE",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "english_ivy",
+      "number": 6,
+      "common_name": "English ivy",
+      "scientific_name": "Hedera helix",
+      "placement": "indoor",
+      "main_targets": "Benzene, formaldehyde, TCE",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "chinese_evergreen",
+      "number": 7,
+      "common_name": "Chinese evergreen",
+      "scientific_name": "Aglaonema modestum",
+      "placement": "indoor",
+      "main_targets": "Benzene, formaldehyde",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "florists_chrysanthemum",
+      "number": 8,
+      "common_name": "Florist's chrysanthemum",
+      "scientific_name": "Chrysanthemum morifolium",
+      "placement": "indoor_or_balcony",
+      "main_targets": "Benzene, formaldehyde, ammonia",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "weeping_fig",
+      "number": 9,
+      "common_name": "Weeping fig",
+      "scientific_name": "Ficus benjamina",
+      "placement": "indoor",
+      "main_targets": "Formaldehyde, xylene, toluene",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "NASA Clean Air Study (Wolverton et al., 1989)",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "money_plant",
+      "number": 10,
+      "common_name": "Money plant",
+      "scientific_name": "Epipremnum aureum",
+      "placement": "indoor",
+      "main_targets": "Formaldehyde, benzene",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "Widely cited; confirm a paper",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "spider_plant",
+      "number": 11,
+      "common_name": "Spider plant",
+      "scientific_name": "Chlorophytum comosum",
+      "placement": "indoor",
+      "main_targets": "Formaldehyde, CO",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "high"
+      },
+      "evidence": {
+        "summary": "Widely cited; confirm a paper",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "aloe_vera",
+      "number": 12,
+      "common_name": "Aloe vera",
+      "scientific_name": "Aloe barbadensis",
+      "placement": "indoor_or_balcony",
+      "main_targets": "Formaldehyde; CO2 at night",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "high",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "Widely cited; confirm a paper",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "areca_palm",
+      "number": 13,
+      "common_name": "Areca palm",
+      "scientific_name": "Dypsis lutescens",
+      "placement": "indoor",
+      "main_targets": "CO2 (large leaf area)",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "low",
+        "co2": "high",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "Widely cited; confirm a paper",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "boston_fern",
+      "number": 14,
+      "common_name": "Boston fern",
+      "scientific_name": "Nephrolepis exaltata",
+      "placement": "indoor",
+      "main_targets": "Formaldehyde",
+      "multipliers": {
+        "pm25": "low",
+        "pm10": "low",
+        "no2": "low",
+        "so2": "low",
+        "voc": "high",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "Widely cited; confirm a paper",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "tulsi",
+      "number": 15,
+      "common_name": "Tulsi",
+      "scientific_name": "Ocimum tenuiflorum",
+      "placement": "balcony",
+      "main_targets": "PM (rough, hairy leaves)",
+      "multipliers": {
+        "pm25": "high",
+        "pm10": "high",
+        "no2": "low",
+        "so2": "low",
+        "voc": "low",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "Widely cited; confirm a paper",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "hibiscus",
+      "number": 16,
+      "common_name": "Hibiscus",
+      "scientific_name": "Hibiscus rosa-sinensis",
+      "placement": "balcony",
+      "main_targets": "PM, NO2, SO2",
+      "multipliers": {
+        "pm25": "high",
+        "pm10": "high",
+        "no2": "high",
+        "so2": "high",
+        "voc": "low",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "Indian air pollution tolerance index (APTI) studies; confirm",
+        "status": "to_confirm"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "neem",
+      "number": 17,
+      "common_name": "Neem",
+      "scientific_name": "Azadirachta indica",
+      "placement": "outdoor_sapling",
+      "main_targets": "PM, NO2, SO2",
+      "multipliers": {
+        "pm25": "high",
+        "pm10": "high",
+        "no2": "high",
+        "so2": "high",
+        "voc": "low",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "BHU Varanasi 2023: low sensitivity",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "shisham",
+      "number": 18,
+      "common_name": "Shisham",
+      "scientific_name": "Dalbergia sissoo",
+      "placement": "outdoor_sapling",
+      "main_targets": "PM, NO2, SO2",
+      "multipliers": {
+        "pm25": "high",
+        "pm10": "high",
+        "no2": "high",
+        "so2": "high",
+        "voc": "low",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "BHU Varanasi 2023: least sensitive tree",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "bougainvillea",
+      "number": 19,
+      "common_name": "Bougainvillea",
+      "scientific_name": "Bougainvillea spectabilis",
+      "placement": "outdoor",
+      "main_targets": "PM, roadside gases",
+      "multipliers": {
+        "pm25": "high",
+        "pm10": "high",
+        "no2": "high",
+        "so2": "high",
+        "voc": "low",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "BHU Varanasi 2023: second least sensitive shrub",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": false
+    },
+    {
+      "id": "yellow_oleander",
+      "number": 20,
+      "common_name": "Yellow oleander",
+      "local_names": [
+        "pela kaner"
+      ],
+      "scientific_name": "Cascabela thevetia",
+      "placement": "outdoor",
+      "main_targets": "PM, roadside gases",
+      "multipliers": {
+        "pm25": "high",
+        "pm10": "high",
+        "no2": "high",
+        "so2": "high",
+        "voc": "low",
+        "co2": "low",
+        "co": "low"
+      },
+      "evidence": {
+        "summary": "BHU Varanasi 2023: least sensitive shrub",
+        "status": "cited"
+      },
+      "reference_images": [],
+      "toxic": true,
+      "notes": "Toxic: keep away from children and pets."
+    }
+  ]
+}

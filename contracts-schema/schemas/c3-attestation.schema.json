@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aircoin.example/schemas/v1/c3-attestation.schema.json",
+  "title": "C3 · Signed attestation (B -> C)",
+  "description": "Request body of HTTPS POST /v1/attestations, sent by miner-core once per closed epoch (retried from an offline queue). See contracts-schema/README.md for how evidence_hash and signature are computed.",
+  "type": "object",
+  "required": ["v", "miner_id", "epoch", "start", "end", "gps", "sensor_summary", "plants", "amount", "calibration_hash", "evidence_hash", "signature"],
+  "properties": {
+    "v": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "miner_id": { "$ref": "common.schema.json#/$defs/miner_id" },
+    "epoch": { "$ref": "common.schema.json#/$defs/epoch" },
+    "start": {
+      "description": "Epoch start, Unix ms. Must equal epoch * epoch_length_ms.",
+      "$ref": "common.schema.json#/$defs/timestamp_ms"
+    },
+    "end": {
+      "description": "Epoch end, Unix ms (exclusive).",
+      "$ref": "common.schema.json#/$defs/timestamp_ms"
+    },
+    "gps": { "$ref": "common.schema.json#/$defs/gps" },
+    "sensor_summary": { "$ref": "common.schema.json#/$defs/sensor_summary" },
+    "plants": {
+      "description": "Plant states for the epoch. Every tag_id must belong to this miner's registered sticker set.",
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["tag_id", "species", "status", "leaf_area_cm2", "health", "removed_mg", "air"],
+        "properties": {
+          "tag_id": { "$ref": "common.schema.json#/$defs/tag_id" },
+          "species": { "$ref": "common.schema.json#/$defs/species_id_or_unknown" },
+          "status": { "$ref": "common.schema.json#/$defs/plant_status" },
+          "leaf_area_cm2": { "type": "number", "minimum": 0 },
+          "health": { "type": "number", "minimum": 0, "maximum": 1 },
+          "removed_mg": { "$ref": "common.schema.json#/$defs/per_pollutant_mg" },
+          "air": { "type": "number", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "frame_hashes": {
+      "description": "sha256 of the frames used this epoch (from C1). Included so the validator can recompute evidence_hash.",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/bytes32_hex" }
+    },
+    "flags": {
+      "description": "Device-side anti-cheat flags raised this epoch (informational for the validator and admin portal).",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/anticheat_flag" }
+    },
+    "amount": {
+      "description": "Claimed AIR for the epoch in base units (18 decimals). This exact value is signed and minted.",
+      "$ref": "common.schema.json#/$defs/token_amount"
+    },
+    "calibration_hash": {
+      "description": "keccak256 of the canonical species-catalogue JSON used for the estimate (PRD 8.1 #5).",
+      "$ref": "common.schema.json#/$defs/bytes32_hex"
+    },
+    "evidence_hash": { "$ref": "common.schema.json#/$defs/bytes32_hex" },
+    "signature": {
+      "description": "Device-key secp256k1 signature over the mint digest (README: Signing).",
+      "$ref": "common.schema.json#/$defs/signature_hex"
+    }
+  },
+  "additionalProperties": false
+}

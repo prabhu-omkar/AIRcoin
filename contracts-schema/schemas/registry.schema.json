@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aircoin.example/schemas/v1/registry.schema.json",
+  "title": "Miner and sticker registry",
+  "description": "Off-chain mirror of MinerRegistry (PRD 4.1 shared data). Owned jointly: B writes device keys, C registers on-chain, A reads sticker IDs. Cross-miner uniqueness of sticker_ids is checked by scripts/validate.py and enforced on-chain.",
+  "type": "object",
+  "required": ["v", "miners"],
+  "properties": {
+    "v": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "chain_id": {
+      "description": "EVM chain the on-chain registry lives on (80002 = Polygon Amoy, 31337 = local Hardhat).",
+      "type": "integer"
+    },
+    "registry_address": { "$ref": "common.schema.json#/$defs/eth_address" },
+    "miners": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/miner" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "miner_status": {
+      "description": "pending = application approved but not yet on-chain; active = can mint; suspended = admin paused; revoked = permanently removed.",
+      "type": "string",
+      "enum": ["pending", "active", "suspended", "revoked"]
+    },
+    "location": {
+      "description": "Registered install location and the anti-cheat geofence around it.",
+      "type": "object",
+      "required": ["lat", "lon", "geohash", "geofence_m"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 },
+        "geohash": {
+          "description": "Geohash of lat/lon (precision 7-9), as passed to registerMiner.",
+          "type": "string",
+          "pattern": "^[0-9b-hjkmnp-z]{5,12}$"
+        },
+        "geofence_m": {
+          "description": "Max distance from the registered spot before gps_out_of_geofence fires (PRD: 50 m).",
+          "type": "number",
+          "minimum": 1,
+          "default": 50
+        },
+        "label": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "miner": {
+      "type": "object",
+      "required": ["miner_id", "device_address", "device_public_key", "owner_wallet", "sticker_ids", "sticker_set_hash", "location", "status"],
+      "properties": {
+        "miner_id": { "$ref": "common.schema.json#/$defs/miner_id" },
+        "device_address": {
+          "description": "Ethereum address derived from the device public key; what ecrecover returns for a valid attestation.",
+          "$ref": "common.schema.json#/$defs/eth_address"
+        },
+        "device_public_key": {
+          "description": "secp256k1 public key, 0x-prefixed, uncompressed (65 bytes, 0x04...) or compressed (33 bytes, 0x02/0x03...).",
+          "type": "string",
+          "pattern": "^0x(04[0-9a-fA-F]{128}|0[23][0-9a-fA-F]{64})$"
+        },
+        "owner_wallet": {
+          "description": "Wallet that receives minted AIR.",
+          "$ref": "common.schema.json#/$defs/eth_address"
+        },
+        "sticker_ids": {
+          "description": "The 20 ArUco IDs shipped with this miner. Each ID belongs to exactly one miner.",
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/tag_id" },
+          "minItems": 20,
+          "maxItems": 20,
+          "uniqueItems": true
+        },
+        "sticker_set_hash": {
+          "description": "keccak256(abi.encodePacked(uint16[] sticker_ids sorted ascending)), as passed to registerMiner.",
+          "$ref": "common.schema.json#/$defs/bytes32_hex"
+        },
+        "location": { "$ref": "#/$defs/location" },
+        "status": { "$ref": "#/$defs/miner_status" },
+        "registered_at": { "$ref": "common.schema.json#/$defs/timestamp_ms" },
+        "registration_tx": { "$ref": "common.schema.json#/$defs/tx_hash" },
+        "label": {
+          "description": "Display name, e.g. 'Demo rig' or 'Virtual miner B'.",
+          "type": "string"
+        },
+        "virtual": {
+          "description": "True for a simulated miner (e.g. the second miner used in the sticker-reuse demo).",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "v": 1,
+  "chain_id": 31337,
+  "registry_address": "0x872491a30d60d598962de6e7b834ab76b2aa65fb",
+  "miners": [
+    {
+      "miner_id": "miner-001",
+      "label": "Demo rig",
+      "device_address": "0x03204de92e11fc8c528139be419065920eb83dbf",
+      "device_public_key": "0x046bab8f1f39af91a6536fa53516b4a8bc3413b1abfe617fec8379de6b05ac1941a555dc984a968e7b4d066b65f9c81f497b383ba55ef152c3d1bb2d65c83a8300",
+      "owner_wallet": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+      "sticker_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "sticker_set_hash": "0x75280c76d5d8759f198065a7da510ff8c8e147a070c6485c523414f9cddda5e0",
+      "location": {
+        "lat": 12.9716,
+        "lon": 77.5946,
+        "geohash": "tdr1v9qtj",
+        "geofence_m": 50,
+        "label": "Hackathon venue"
+      },
+      "status": "active",
+      "registered_at": 1791795600000,
+      "registration_tx": "0xb7be9725b2398dee9881627ea4f8c9926b5a7c004e58c1a75cd93d8f6fc69367",
+      "virtual": false
+    },
+    {
+      "miner_id": "miner-002",
+      "label": "Virtual miner B",
+      "device_address": "0x588605bf5362e8b7f170c8b2926c4061ab09a7d9",
+      "device_public_key": "0x04d9c9ea09eee98ff32b6ef47a57b012c761c2854c828e94cd2d733caecb88d4006aba6c174888c82d630831bfcfda7910a23559f361093c6d5f9c4eda0c651277",
+      "owner_wallet": "0x15321b2a448f1eb660bbe224ec373b7b533c4159",
+      "sticker_ids": [
+        3,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "sticker_set_hash": "0x4cabdb177f6678051bc0f9c59553650bb89dbaed585447f11210d59748c2d8eb",
+      "location": {
+        "lat": 12.9352,
+        "lon": 77.6245,
+        "geohash": "tdr1w6u3j",
+        "geofence_m": 50
+      },
+      "status": "active",
+      "registered_at": 1791796200000,
+      "registration_tx": "0xab766ea4a141f86eeab55048e44399c4de1d7db2ba057d5d62d2414716e348dc",
+      "virtual": true
+    }
+  ]
+}

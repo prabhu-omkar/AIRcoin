@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aircoin.example/schemas/v1/c3-attestation-response.schema.json",
+  "title": "C3 · Attestation response (C -> B)",
+  "description": "Response body of POST /v1/attestations. HTTP 200 for accepted/pending, 422 for rejected, 409 when the epoch was already minted (status rejected, reason_code epoch_already_minted). The miner treats any 4xx as final and any 5xx/network error as 'retry later'.",
+  "type": "object",
+  "required": ["v", "miner_id", "epoch", "status"],
+  "properties": {
+    "v": { "$ref": "common.schema.json#/$defs/schema_version" },
+    "miner_id": { "$ref": "common.schema.json#/$defs/miner_id" },
+    "epoch": { "$ref": "common.schema.json#/$defs/epoch" },
+    "status": {
+      "description": "accepted = mint transaction confirmed; pending = verified and mint transaction sent but not yet confirmed; rejected = will never mint.",
+      "type": "string",
+      "enum": ["accepted", "pending", "rejected"]
+    },
+    "tx_hash": { "$ref": "common.schema.json#/$defs/tx_hash" },
+    "amount": {
+      "description": "Amount minted (base units). Equals the claimed amount when accepted.",
+      "$ref": "common.schema.json#/$defs/token_amount"
+    },
+    "reason_code": { "$ref": "common.schema.json#/$defs/rejection_reason_code" },
+    "reason": {
+      "description": "Human-readable reason, shown on the admin portal and in the twin's anti-cheat log.",
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "rejected" } } },
+      "then": { "required": ["reason_code", "reason"] }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["accepted", "pending"] } } },
+      "then": { "required": ["tx_hash"] }
+    }
+  ],
+  "additionalProperties": false
+}

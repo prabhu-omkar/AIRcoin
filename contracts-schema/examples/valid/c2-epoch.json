@@ -1,0 +1,358 @@
+{
+  "v": 1,
+  "miner_id": "miner-001",
+  "epoch": 29863320,
+  "start_ms": 1791799200000,
+  "end_ms": 1791799260000,
+  "scenario": "festival_smog",
+  "sensor_summary": {
+    "samples": 60,
+    "aqi": 388,
+    "pm25_ugm3": {
+      "mean": 180.1,
+      "min": 171.0,
+      "max": 190.2
+    },
+    "pm10_ugm3": {
+      "mean": 262.0,
+      "min": 250.3,
+      "max": 275.9
+    },
+    "co2_ppm": {
+      "mean": 610.5,
+      "min": 598.0,
+      "max": 624.0
+    },
+    "voc_index": {
+      "mean": 236.0,
+      "min": 221.0,
+      "max": 251.0
+    },
+    "no2_ppb": {
+      "mean": 57.9,
+      "min": 52.0,
+      "max": 63.1
+    },
+    "so2_ppb": {
+      "mean": 11.2,
+      "min": 10.1,
+      "max": 12.6
+    },
+    "co_ppm": {
+      "mean": 1.9,
+      "min": 1.7,
+      "max": 2.1
+    },
+    "temp_c": {
+      "mean": 27.2,
+      "min": 27.0,
+      "max": 27.4
+    },
+    "humidity_pct": {
+      "mean": 64.1,
+      "min": 63.5,
+      "max": 64.8
+    }
+  },
+  "plants": [
+    {
+      "tag_id": 0,
+      "species": "snake_plant",
+      "status": "present",
+      "leaf_area_cm2": 310.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 1,
+      "species": "peace_lily",
+      "status": "present",
+      "leaf_area_cm2": 317.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 2,
+      "species": "bamboo_palm",
+      "status": "present",
+      "leaf_area_cm2": 324.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 3,
+      "species": "red_edged_dracaena",
+      "status": "present",
+      "leaf_area_cm2": 331.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 4,
+      "species": "janet_craig_dracaena",
+      "status": "present",
+      "leaf_area_cm2": 338.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 5,
+      "species": "english_ivy",
+      "status": "present",
+      "leaf_area_cm2": 345.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 6,
+      "species": "chinese_evergreen",
+      "status": "present",
+      "leaf_area_cm2": 352.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 7,
+      "species": "florists_chrysanthemum",
+      "status": "missing",
+      "leaf_area_cm2": 0.0,
+      "health": 0.0,
+      "removed_mg": {},
+      "air": 0
+    },
+    {
+      "tag_id": 8,
+      "species": "weeping_fig",
+      "status": "present",
+      "leaf_area_cm2": 366.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 9,
+      "species": "money_plant",
+      "status": "present",
+      "leaf_area_cm2": 373.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 10,
+      "species": "spider_plant",
+      "status": "present",
+      "leaf_area_cm2": 380.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 11,
+      "species": "aloe_vera",
+      "status": "present",
+      "leaf_area_cm2": 387.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 12,
+      "species": "areca_palm",
+      "status": "suspect",
+      "leaf_area_cm2": 394.0,
+      "health": 0.0,
+      "removed_mg": {},
+      "air": 0
+    },
+    {
+      "tag_id": 13,
+      "species": "boston_fern",
+      "status": "present",
+      "leaf_area_cm2": 401.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 14,
+      "species": "tulsi",
+      "status": "present",
+      "leaf_area_cm2": 408.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 15,
+      "species": "hibiscus",
+      "status": "present",
+      "leaf_area_cm2": 415.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 16,
+      "species": "neem",
+      "status": "present",
+      "leaf_area_cm2": 422.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 17,
+      "species": "shisham",
+      "status": "present",
+      "leaf_area_cm2": 429.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 18,
+      "species": "bougainvillea",
+      "status": "present",
+      "leaf_area_cm2": 436.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    },
+    {
+      "tag_id": 19,
+      "species": "yellow_oleander",
+      "status": "present",
+      "leaf_area_cm2": 443.0,
+      "health": 0.86,
+      "removed_mg": {
+        "pm25": 0.00052,
+        "pm10": 0.00071,
+        "voc": 0.0021,
+        "co2": 0.31
+      },
+      "air": 0.001538
+    }
+  ],
+  "by_pollutant_mg": {
+    "pm25": 0.00936,
+    "pm10": 0.01278,
+    "voc": 0.0378,
+    "co2": 5.58
+  },
+  "total_air": 0.027684,
+  "attestation": {
+    "status": "accepted",
+    "evidence_hash": "0xc0bd49585d03da599e97092962060e592dd9b0dcab23229260bd38c599b9f431",
+    "amount": "27684000000000000",
+    "tx_hash": "0x0a797b3c574efa1b50a3ac271bf9a621b3fa8b7a416038902e034af50d5d8e8c"
+  },
+  "flags": [
+    {
+      "code": "plant_missing",
+      "severity": "warn",
+      "ts": 1791799254000,
+      "tag_id": 7,
+      "message": "Tag 7 unseen for 15 s"
+    },
+    {
+      "code": "low_liveness",
+      "severity": "critical",
+      "ts": 1791799231000,
+      "tag_id": 12,
+      "message": "alive_score 0.12 (possible fake plant)"
+    }
+  ]
+}

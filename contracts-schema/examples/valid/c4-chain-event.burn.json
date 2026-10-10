@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "type": "burn",
+  "tx_hash": "0xcf28bfa882dbf80901fef0a7597c7ced59ed3b8a98da8bc5610bccf4f7f68642",
+  "log_index": 3,
+  "block_number": 18234,
+  "ts": 1791799264000,
+  "data": {
+    "company": "0x85b0ad1884ce982053e025b3baca13b830ed3be5",
+    "company_name": "Demo Steel Works",
+    "period": "2026",
+    "amount": "1000000000000000000",
+    "obligation": "5000000000000000000",
+    "burned_to_date": "3000000000000000000"
+  }
+}

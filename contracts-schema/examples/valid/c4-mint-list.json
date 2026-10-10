@@ -1,0 +1,37 @@
+{
+  "v": 1,
+  "miner_id": "miner-001",
+  "items": [
+    {
+      "miner_id": "miner-001",
+      "epoch": 29863320,
+      "amount": "27684000000000000",
+      "to": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+      "evidence_hash": "0xc0bd49585d03da599e97092962060e592dd9b0dcab23229260bd38c599b9f431",
+      "tx_hash": "0x0a797b3c574efa1b50a3ac271bf9a621b3fa8b7a416038902e034af50d5d8e8c",
+      "block_number": 18234,
+      "ts": 1791799264000
+    },
+    {
+      "miner_id": "miner-001",
+      "epoch": 29863319,
+      "amount": "27684000000000000",
+      "to": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+      "evidence_hash": "0x195189a957c6f617031f0b87fcfdbb704df0b9ab5e2fe73760810d8f26c0f1a4",
+      "tx_hash": "0x85b0886303f6991079a5b3b498ff89789762ac975de6ddc6091e6273dcbc17a6",
+      "block_number": 18204,
+      "ts": 1791799204000
+    },
+    {
+      "miner_id": "miner-001",
+      "epoch": 29863318,
+      "amount": "27684000000000000",
+      "to": "0x391887cbcf922e19d672df700739c4a3c74e35ee",
+      "evidence_hash": "0x0cda6dd36608b0f25c1bffc4258932004ef7e499929e8476976f80ef6cc85ec1",
+      "tx_hash": "0xa7f152a844dea0674269bb7d9e7a795e723c36e4ad3f15c562540a8ab48f1bbf",
+      "block_number": 18174,
+      "ts": 1791799144000
+    }
+  ],
+  "next_before_epoch": 29863318
+}
