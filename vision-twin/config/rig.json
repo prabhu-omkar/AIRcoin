@@ -1,0 +1,40 @@
+{
+  "miner_id": "miner-001",
+  "aruco_dictionary": "DICT_4X4_100",
+  "marker_size_mm": 40,
+  "grid": { "rows": 4, "cols": 5 },
+  "crop": {
+    "_comment": "Plant crop relative to the sticker, in marker widths: width centred on the marker, height measured upwards from the marker's top edge.",
+    "width_markers": 5.0,
+    "height_markers": 4.5,
+    "gap_markers": 0.2
+  },
+  "camera": {
+    "source": "picam",
+    "width": 2304,
+    "height": 1296
+  },
+  "mqtt_url": "mqtt://localhost:1883",
+  "plants": [
+    { "tag_id": 0,  "slot": 0,  "species": "snake_plant" },
+    { "tag_id": 1,  "slot": 1,  "species": "peace_lily" },
+    { "tag_id": 2,  "slot": 2,  "species": "bamboo_palm" },
+    { "tag_id": 3,  "slot": 3,  "species": "red_edged_dracaena" },
+    { "tag_id": 4,  "slot": 4,  "species": "janet_craig_dracaena" },
+    { "tag_id": 5,  "slot": 5,  "species": "english_ivy" },
+    { "tag_id": 6,  "slot": 6,  "species": "chinese_evergreen" },
+    { "tag_id": 7,  "slot": 7,  "species": "florists_chrysanthemum" },
+    { "tag_id": 8,  "slot": 8,  "species": "weeping_fig" },
+    { "tag_id": 9,  "slot": 9,  "species": "money_plant" },
+    { "tag_id": 10, "slot": 10, "species": "spider_plant" },
+    { "tag_id": 11, "slot": 11, "species": "aloe_vera" },
+    { "tag_id": 12, "slot": 12, "species": "areca_palm" },
+    { "tag_id": 13, "slot": 13, "species": "boston_fern" },
+    { "tag_id": 14, "slot": 14, "species": "tulsi" },
+    { "tag_id": 15, "slot": 15, "species": "hibiscus" },
+    { "tag_id": 16, "slot": 16, "species": "neem" },
+    { "tag_id": 17, "slot": 17, "species": "shisham" },
+    { "tag_id": 18, "slot": 18, "species": "bougainvillea" },
+    { "tag_id": 19, "slot": 19, "species": "yellow_oleander" }
+  ]
+}

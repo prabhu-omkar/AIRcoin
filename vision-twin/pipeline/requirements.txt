@@ -1,0 +1,8 @@
+# Vision pipeline (Pi or laptop). On the Pi, also: sudo apt install python3-picamera2
+numpy>=1.24
+opencv-contrib-python-headless>=4.8
+paho-mqtt>=2.0
+# Optional: MobileNetV3 embeddings for enrolment / plant match (falls back to colour histograms without it)
+# torch torchvision
+# Optional: GPS check in hwcheck.py
+# pyserial
