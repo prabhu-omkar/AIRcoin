@@ -102,9 +102,9 @@ export const CitizenPortal: React.FC = () => {
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Balance</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">{airBalance} AIR</div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Balance</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">{airBalance} AIR</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
               ≈ {(parseFloat(airBalance) * 1000).toFixed(0)} mg PM2.5-eq
             </div>
           </CardContent>
@@ -112,31 +112,31 @@ export const CitizenPortal: React.FC = () => {
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Treasury</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">₹{tinrBalance}</div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Rupee Stablecoin (tINR)</div>
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Treasury</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">₹{tinrBalance}</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Rupee Stablecoin (tINR)</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Hardware Node</div>
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Hardware Node</div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="font-mono text-base font-medium text-zinc-100">miner-001</span>
+              <span className="font-mono text-base font-medium text-foreground">miner-001</span>
               <Badge variant="emerald">ACTIVE</Badge>
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">20 Registered Plants</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">20 Registered Plants</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Geofence</div>
-            <div className="font-mono text-xs text-zinc-200 mt-1 flex items-center gap-1.5">
-              <MapPin className="h-3 w-3 text-zinc-400" />
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Geofence</div>
+            <div className="font-mono text-xs text-foreground mt-1 flex items-center gap-1.5">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
               <span>12.9716, 77.5946</span>
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Radius: 50m (tdr1v9qtj)</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Radius: 50m (tdr1v9qtj)</div>
           </CardContent>
         </Card>
       </div>
@@ -146,7 +146,7 @@ export const CitizenPortal: React.FC = () => {
         <Card className="col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle>
-              <Cpu className="h-4 w-4 text-zinc-400" />
+              <Cpu className="h-4 w-4 text-muted-foreground" />
               <span>Registered Hardware & Location</span>
             </CardTitle>
             <div className="flex gap-2">
@@ -158,21 +158,21 @@ export const CitizenPortal: React.FC = () => {
           </CardHeader>
           <CardContent className="pt-3">
             <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-              <div className="rounded border border-zinc-800 bg-zinc-950 p-3 space-y-1">
-                <div className="text-[10px] uppercase text-zinc-400">Device Address</div>
-                <div className="text-zinc-200 truncate">0x61D11eC15342C7ea815362684375244da20112C6</div>
+              <div className="rounded border border-border bg-card p-3 space-y-1">
+                <div className="text-[10px] uppercase text-muted-foreground">Device Address</div>
+                <div className="text-foreground truncate">0x61D11eC15342C7ea815362684375244da20112C6</div>
               </div>
-              <div className="rounded border border-zinc-800 bg-zinc-950 p-3 space-y-1">
-                <div className="text-[10px] uppercase text-zinc-400">Owner Wallet</div>
-                <div className="text-zinc-200 truncate">{currentWallet.address}</div>
+              <div className="rounded border border-border bg-card p-3 space-y-1">
+                <div className="text-[10px] uppercase text-muted-foreground">Owner Wallet</div>
+                <div className="text-foreground truncate">{currentWallet.address}</div>
               </div>
-              <div className="rounded border border-zinc-800 bg-zinc-950 p-3 space-y-1">
-                <div className="text-[10px] uppercase text-zinc-400">ArUco Tag Range</div>
-                <div className="text-zinc-200">Tags #0 – #19 (20 Sensors)</div>
+              <div className="rounded border border-border bg-card p-3 space-y-1">
+                <div className="text-[10px] uppercase text-muted-foreground">ArUco Tag Range</div>
+                <div className="text-foreground">Tags #0 – #19 (20 Sensors)</div>
               </div>
-              <div className="rounded border border-zinc-800 bg-zinc-950 p-3 space-y-1">
-                <div className="text-[10px] uppercase text-zinc-400">Telemetry Stream</div>
-                <div className="text-emerald-400">C2 MQTT 1.0 msg/s</div>
+              <div className="rounded border border-border bg-card p-3 space-y-1">
+                <div className="text-[10px] uppercase text-muted-foreground">Telemetry Stream</div>
+                <div className="text-emerald-600">C2 MQTT 1.0 msg/s</div>
               </div>
             </div>
           </CardContent>
@@ -182,21 +182,21 @@ export const CitizenPortal: React.FC = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>
-              <Radio className="h-4 w-4 text-zinc-400" />
+              <Radio className="h-4 w-4 text-muted-foreground" />
               <span>Hardware Fleet</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-3">
-            <p className="text-xs text-zinc-400 leading-normal">
+            <p className="text-xs text-muted-foreground leading-normal">
               Apply to provision additional camera rigs with tamper-evident ArUco stickers verified by CPCB.
             </p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowApplyModal(true)}
-              className="w-full gap-1 border-zinc-800 text-xs"
+              className="w-full gap-1 border-border text-xs"
             >
-              <Plus className="h-3.5 w-3.5 text-zinc-400" />
+              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
               Apply for Hardware Rig
             </Button>
           </CardContent>
@@ -207,10 +207,10 @@ export const CitizenPortal: React.FC = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle>
-            <ShieldCheck className="h-4 w-4 text-zinc-400" />
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
             <span>Epoch Mint Ledger</span>
           </CardTitle>
-          <span className="text-[11px] font-mono text-zinc-400">Verified On-Chain</span>
+          <span className="text-[11px] font-mono text-muted-foreground">Verified On-Chain</span>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -227,19 +227,19 @@ export const CitizenPortal: React.FC = () => {
             <TableBody>
               {mints.map((m, idx) => (
                 <TableRow key={idx}>
-                  <TableCell className="font-mono font-medium text-zinc-100">
+                  <TableCell className="font-mono font-medium text-foreground">
                     #{m.epoch}
                   </TableCell>
-                  <TableCell className="font-mono text-zinc-100">
+                  <TableCell className="font-mono text-foreground">
                     {(parseFloat(m.amount) / 1e18).toFixed(6)} AIR
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-zinc-400">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
                     {m.evidence_hash.slice(0, 10)}...{m.evidence_hash.slice(-6)}
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-zinc-400">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
                     {m.tx_hash.slice(0, 8)}...{m.tx_hash.slice(-6)}
                   </TableCell>
-                  <TableCell className="text-[11px] text-zinc-400">
+                  <TableCell className="text-[11px] text-muted-foreground">
                     {new Date(m.ts).toLocaleTimeString()}
                   </TableCell>
                   <TableCell className="text-right">
@@ -260,7 +260,7 @@ export const CitizenPortal: React.FC = () => {
           </DialogHeader>
           <form onSubmit={handleCreateListing} className="space-y-4">
             <div>
-              <label className="text-[11px] font-mono uppercase text-zinc-400 block mb-1">
+              <label className="text-[11px] font-mono uppercase text-muted-foreground block mb-1">
                 Amount (AIR)
               </label>
               <Input
@@ -274,7 +274,7 @@ export const CitizenPortal: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-[11px] font-mono uppercase text-zinc-400 block mb-1">
+              <label className="text-[11px] font-mono uppercase text-muted-foreground block mb-1">
                 Total Price (tINR)
               </label>
               <Input
@@ -286,7 +286,7 @@ export const CitizenPortal: React.FC = () => {
                 required
               />
             </div>
-            <div className="text-[11px] font-mono text-zinc-400">
+            <div className="text-[11px] font-mono text-muted-foreground">
               Unit Rate: ₹{(parseFloat(sellPrice) / (parseFloat(sellAmount) || 1)).toFixed(2)} per AIR
             </div>
             <DialogFooter>
@@ -309,7 +309,7 @@ export const CitizenPortal: React.FC = () => {
           </DialogHeader>
           <form onSubmit={handleApply} className="space-y-4">
             <div>
-              <label className="text-[11px] font-mono uppercase text-zinc-400 block mb-1">
+              <label className="text-[11px] font-mono uppercase text-muted-foreground block mb-1">
                 Site Name
               </label>
               <Input
@@ -320,7 +320,7 @@ export const CitizenPortal: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-[11px] font-mono uppercase text-zinc-400 block mb-1">
+              <label className="text-[11px] font-mono uppercase text-muted-foreground block mb-1">
                 Installation Location
               </label>
               <Input

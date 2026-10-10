@@ -7,7 +7,7 @@ import { rigLayout } from "../../config";
 import type { PlantStatus } from "../../contracts";
 import { speciesName } from "../../species";
 import { useTwin } from "../../store";
-import { markerCorners, PLANT_MAX_H, Rig, RIG, slotPosition } from "./Rig";
+import { markerCorners, PLANT_LAYER, PLANT_MAX_H, Rig, RIG, slotPosition } from "./Rig";
 import { Atmosphere, CAMERA_VFOV, Floor, LENS_WORLD, Lights, Studio } from "./Stage";
 
 const FPS = 15;
@@ -16,8 +16,9 @@ const COLORS: Record<PlantStatus, string> = { present: "#3fb950", suspect: "#f85
 interface Box { tag: number; x0: number; y0: number; x1: number; y1: number }
 
 /** Renders at a fixed rate and draws the detection overlay right after each frame. */
-function CameraRender({ overlay, boxes }: { overlay: React.RefObject<HTMLCanvasElement>; boxes: React.MutableRefObject<Box[]> }) {
-  const { camera, invalidate, size } = useThree();
+function CameraRender({ ndvi, overlay, boxes }: { ndvi: boolean; overlay: React.RefObject<HTMLCanvasElement>; boxes: React.MutableRefObject<Box[]> }) {
+  const { gl, scene, camera, invalidate, size } = useThree();
+  const dark = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0b1530" }), []);
   const v = useMemo(() => new THREE.Vector3(), []);
   const corners = useMemo(() => rigLayout.plants.map((rp) => ({ rp, marker: markerCorners(rp.slot), base: slotPosition(rp.slot) })), []);
   const jitter = useRef({ at: 0, seed: 1 });
@@ -30,6 +31,24 @@ function CameraRender({ overlay, boxes }: { overlay: React.RefObject<HTMLCanvasE
   }, [camera, invalidate]);
 
   useFrame((state) => {
+    // ---- render: NDVI = everything dark, then only the plants in false colour ----
+    if (ndvi) {
+      const plants: THREE.Object3D[] = [];
+      scene.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.layers.isEnabled(PLANT_LAYER)) plants.push(o); });
+      plants.forEach((o) => (o.visible = false));
+      scene.overrideMaterial = dark;
+      gl.render(scene, camera);
+      scene.overrideMaterial = null;
+      plants.forEach((o) => (o.visible = true));
+      camera.layers.set(PLANT_LAYER);
+      gl.autoClear = false;
+      gl.render(scene, camera);
+      gl.autoClear = true;
+      camera.layers.enableAll();
+    } else {
+      gl.render(scene, camera);
+    }
+
     // ---- detection overlay (what aircoin_vision.detect draws) ----
     const cv = overlay.current;
     if (!cv) return;
@@ -110,11 +129,11 @@ function CameraRender({ overlay, boxes }: { overlay: React.RefObject<HTMLCanvasE
       }
     }
     boxes.current = out;
-  });
+  }, 1);
   return null;
 }
 
-function CamScene() {
+function CamScene({ ndvi }: { ndvi: boolean }) {
   const selected = useTwin((s) => s.selectedPlant);
   return (
     <>
@@ -122,7 +141,7 @@ function CamScene() {
       <Studio />
       <Lights shadowSize={1024} />
       <Floor />
-      <Rig vision={false} labels={false} selected={selected} />
+      <Rig vision={false} labels={false} selected={selected} ndvi={ndvi} />
     </>
   );
 }
@@ -141,7 +160,8 @@ function useClock() {
 }
 
 /** The miner camera view: same world as the twin, seen through the lens. */
-export function TwinCam() {
+/** mode "live" = the lens view; "ndvi" = plant health in false colour (blue = no living tissue). */
+export function TwinCam({ mode = "live" }: { mode?: "live" | "ndvi" }) {
   const overlay = useRef<HTMLCanvasElement>(null);
   const boxes = useRef<Box[]>([]);
   const clock = useClock();
@@ -171,13 +191,13 @@ export function TwinCam() {
           gl={{ antialias: true, toneMapping: THREE.AgXToneMapping, powerPreference: "high-performance" }}
           camera={{ fov: CAMERA_VFOV, near: 0.1, far: 90, position: LENS_WORLD.toArray() }}
         >
-          <CamScene />
-          <CameraRender overlay={overlay} boxes={boxes} />
+          <CamScene ndvi={mode === "ndvi"} />
+          <CameraRender ndvi={mode === "ndvi"} overlay={overlay} boxes={boxes} />
         </Canvas>
         <canvas ref={overlay} className="twincam-overlay" onClick={click} />
       </div>
       <div className="osd">
-        <div className="osd-tl"><span className="rec">● REC</span> CAM0 · IMX708 NoIR Wide</div>
+        <div className="osd-tl"><span className="rec">● REC</span> CAM0 · IMX708 NoIR Wide{mode === "ndvi" ? " · NDVI" : ""}</div>
         <div className="osd-tr"><span ref={clock} /></div>
         <div className="osd-bl">tags {seen}/{rigLayout.plants.length} · 1.0 Hz · 2304×1296</div>
         <div className="osd-br">{tel?.miner_id ?? "miner"} · epoch {tel?.current_epoch.epoch ?? "—"}</div>

@@ -120,41 +120,41 @@ export const MarketplaceView: React.FC = () => {
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Active Orders</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Active Orders</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {listings.filter((l) => l.status === "active").length} Orders
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Escrowed by Contract</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Escrowed by Contract</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Reference Rate</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Reference Rate</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               ₹500.00 / AIR
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">1 AIR = 1 mg PM2.5-eq</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">1 AIR = 1 mg PM2.5-eq</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Available AIR</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Available AIR</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {airBalance} AIR
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Wallet Holding</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Wallet Holding</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Available tINR</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Available tINR</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               ₹{tinrBalance}
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Treasury Holding</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Treasury Holding</div>
           </CardContent>
         </Card>
       </div>
@@ -163,7 +163,7 @@ export const MarketplaceView: React.FC = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle>
-            <ShoppingBag className="h-4 w-4 text-zinc-400" />
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             <span>Spot Order Book</span>
           </CardTitle>
           <Button size="sm" onClick={() => setShowCreateModal(true)} className="gap-1.5">
@@ -192,17 +192,17 @@ export const MarketplaceView: React.FC = () => {
 
                 return (
                   <TableRow key={l.id}>
-                    <TableCell className="font-mono font-medium text-zinc-100">#{l.id}</TableCell>
-                    <TableCell className="font-mono text-[11px] text-zinc-400">
+                    <TableCell className="font-mono font-medium text-foreground">#{l.id}</TableCell>
+                    <TableCell className="font-mono text-[11px] text-muted-foreground">
                       {l.seller.slice(0, 8)}...{l.seller.slice(-6)} {isMyListing && "(You)"}
                     </TableCell>
-                    <TableCell className="font-mono text-zinc-100 font-medium">
+                    <TableCell className="font-mono text-foreground font-medium">
                       {airAmount.toFixed(4)} AIR
                     </TableCell>
-                    <TableCell className="font-mono text-zinc-100">
+                    <TableCell className="font-mono text-foreground">
                       ₹{tinrPrice.toFixed(2)}
                     </TableCell>
-                    <TableCell className="font-mono text-zinc-400 text-[11px]">
+                    <TableCell className="font-mono text-muted-foreground text-[11px]">
                       ₹{unitPrice} / AIR
                     </TableCell>
                     <TableCell className="text-right">
@@ -231,7 +231,7 @@ export const MarketplaceView: React.FC = () => {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>
-            <ArrowDownUp className="h-4 w-4 text-zinc-400" />
+            <ArrowDownUp className="h-4 w-4 text-muted-foreground" />
             <span>Settlement Ledger</span>
           </CardTitle>
         </CardHeader>
@@ -250,22 +250,22 @@ export const MarketplaceView: React.FC = () => {
             <TableBody>
               {trades.map((t, idx) => (
                 <TableRow key={idx}>
-                  <TableCell className="font-mono text-[11px] text-zinc-400">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
                     {t.seller.slice(0, 8)}...{t.seller.slice(-4)}
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-zinc-400">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
                     {t.buyer.slice(0, 8)}...{t.buyer.slice(-4)}
                   </TableCell>
-                  <TableCell className="font-mono text-zinc-100 font-medium">
+                  <TableCell className="font-mono text-foreground font-medium">
                     {(parseFloat(t.amount_air) / 1e18).toFixed(4)} AIR
                   </TableCell>
-                  <TableCell className="font-mono text-zinc-100">
+                  <TableCell className="font-mono text-foreground">
                     ₹{(parseFloat(t.price_tinr) / 1e18).toFixed(2)}
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-zinc-400">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
                     {t.tx_hash.slice(0, 10)}...{t.tx_hash.slice(-6)}
                   </TableCell>
-                  <TableCell className="text-right text-[11px] text-zinc-400">
+                  <TableCell className="text-right text-[11px] text-muted-foreground">
                     {new Date(t.ts).toLocaleTimeString()}
                   </TableCell>
                 </TableRow>
@@ -283,7 +283,7 @@ export const MarketplaceView: React.FC = () => {
           </DialogHeader>
           <form onSubmit={handleCreateListing} className="space-y-4">
             <div>
-              <label className="text-[11px] font-mono uppercase text-zinc-400 block mb-1">
+              <label className="text-[11px] font-mono uppercase text-muted-foreground block mb-1">
                 Amount (AIR)
               </label>
               <Input
@@ -297,7 +297,7 @@ export const MarketplaceView: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-[11px] font-mono uppercase text-zinc-400 block mb-1">
+              <label className="text-[11px] font-mono uppercase text-muted-foreground block mb-1">
                 Total Price (tINR)
               </label>
               <Input

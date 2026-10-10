@@ -71,8 +71,8 @@ function makeShared() {
   const soil = new THREE.MeshStandardMaterial({ color: "#3b2a1e", roughness: 1, map: noiseTexture("soil", "#9a8a7a", 0.6) });
   soil.map!.repeat.set(2, 2);
   const wood = new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.7 });
-  const steel = new THREE.MeshStandardMaterial({ color: "#1b1f22", roughness: 0.45, metalness: 0.8 });
-  const back = new THREE.MeshStandardMaterial({ color: "#3a4541", roughness: 0.9, map: noiseTexture("back", "#cfd6d2", 0.08) });
+  const steel = new THREE.MeshStandardMaterial({ color: "#2b3036", roughness: 0.4, metalness: 0.75 });
+  const back = new THREE.MeshStandardMaterial({ color: "#b8c0c6", roughness: 0.9, map: noiseTexture("back", "#cfd6d2", 0.08) });
   const growLight = new THREE.MeshStandardMaterial({ color: "#000", emissive: new THREE.Color("#fff3df"), emissiveIntensity: 3.2, toneMapped: false });
   const ledHousing = new THREE.MeshStandardMaterial({ color: "#2a2e31", metalness: 0.7, roughness: 0.35 });
   const scar = new THREE.MeshStandardMaterial({ color: "#20160f", roughness: 1, transparent: true, opacity: 0.55, depthWrite: false });
@@ -137,15 +137,26 @@ function sizeScale(p: TelemetryPlant | undefined, height: number): number {
 const MOVE_S = 1.1;
 const LIFT = 2.6;
 
+/** Plants also sit on this layer so the camera's NDVI view can render them in a separate pass. */
+export const PLANT_LAYER = 1;
+const NDVI_LOW = new THREE.Color("#2340a0");
+const NDVI_MID = new THREE.Color("#e8d33a");
+const NDVI_HIGH = new THREE.Color("#2fbf4a");
+/** NDVI false colour: blue = no living tissue (plastic), yellow = weak, green = healthy. */
+function ndviColour(alive: number, out: THREE.Color) {
+  return alive < 0.5 ? out.copy(NDVI_LOW).lerp(NDVI_MID, alive * 2) : out.copy(NDVI_MID).lerp(NDVI_HIGH, (alive - 0.5) * 2);
+}
+
 interface SlotProps {
   rp: RigPlant;
   vision: boolean;
   selected: boolean;
   labels: boolean;
+  ndvi: boolean;
   onSelect?: (tag: number) => void;
 }
 
-function PlantSlot({ rp, vision, selected, labels, onSelect }: SlotProps) {
+function PlantSlot({ rp, vision, selected, labels, ndvi, onSelect }: SlotProps) {
   const m = useShared();
   const p = useTwin((s) => s.telemetry?.plants.find((x) => x.tag_id === rp.tag_id));
   const status: PlantStatus = p?.status ?? "missing";
@@ -153,6 +164,7 @@ function PlantSlot({ rp, vision, selected, labels, onSelect }: SlotProps) {
   const pos = useMemo(() => slotPosition(rp.slot), [rp.slot]);
   const model = useMemo(() => buildPlant(rp.species, rp.tag_id + 1, RIG.potR), [rp.species, rp.tag_id]);
   const mat = useMemo(() => makePlantMaterial(), []);
+  const ndviMat = useMemo(() => new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), []);
   const ghostMat = useMemo(() => new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }), []);
   const ledMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#111", emissive: STATUS_COLOR.present.clone(), emissiveIntensity: 2, toneMapped: false }), []);
   const ringMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#f4f4f5", transparent: true, opacity: 0, depthWrite: false }), []);
@@ -193,6 +205,7 @@ function PlantSlot({ rp, vision, selected, labels, onSelect }: SlotProps) {
     u.uSat.value += ((status === "suspect" && alive < 0.4 ? 0.3 : 0.55 + 0.45 * alive) - u.uSat.value) * k;
     mat.emissive.setRGB(0.9, 0.2, 0.18);
     mat.emissiveIntensity += ((status === "suspect" ? 0.18 : 0) - mat.emissiveIntensity) * k;
+    ndviColour(status === "suspect" ? Math.min(alive, 0.15) : alive, ndviMat.color);
     ghostMat.opacity += ((lost ? 0.1 : 0) - ghostMat.opacity) * k;
     ghostMat.color.copy(STATUS_COLOR[status]);
     if (ghostRef.current) ghostRef.current.visible = ghostMat.opacity > 0.01;
@@ -219,7 +232,7 @@ function PlantSlot({ rp, vision, selected, labels, onSelect }: SlotProps) {
         <mesh geometry={potGeometry} material={m.terracotta} castShadow receiveShadow />
         <mesh geometry={soilGeometry} material={m.soil} receiveShadow />
         <mesh geometry={stickerGeometry} position={[0, STICKER.y, STICKER.z]} rotation={[STICKER.tilt, 0, 0]} material={stickerMat} />
-        <mesh geometry={model.geometry} material={mat} position={[0, -0.04, 0]} scale={scale} castShadow />
+        <mesh geometry={model.geometry} material={ndvi ? ndviMat : mat} position={[0, -0.04, 0]} scale={scale} castShadow ref={(o) => o?.layers.enable(PLANT_LAYER)} />
       </group>
       {lost && <mesh geometry={scarGeometry} position={[0, -RIG.potH + 0.008, 0]} material={m.scar} />}
       <group ref={ghostRef} visible={false}>
@@ -242,12 +255,12 @@ function PlantSlot({ rp, vision, selected, labels, onSelect }: SlotProps) {
   );
 }
 
-export function Rig({ vision, selected, onSelect, labels = true }: { vision: boolean; selected?: number; onSelect?: (tag: number) => void; labels?: boolean }) {
+export function Rig({ vision, selected, onSelect, labels = true, ndvi = false }: { vision: boolean; selected?: number; onSelect?: (tag: number) => void; labels?: boolean; ndvi?: boolean }) {
   return (
     <group>
       <Shelf />
       {rigLayout.plants.map((rp) => (
-        <PlantSlot key={rp.tag_id} rp={rp} vision={vision} selected={selected === rp.tag_id} onSelect={onSelect} labels={labels} />
+        <PlantSlot key={rp.tag_id} rp={rp} vision={vision} selected={selected === rp.tag_id} onSelect={onSelect} labels={labels} ndvi={ndvi} />
       ))}
     </group>
   );

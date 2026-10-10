@@ -175,39 +175,39 @@ export const AdminPortal: React.FC = () => {
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Authority</div>
-            <div className="font-medium text-sm text-zinc-100 mt-1">CPCB Regulatory Admin</div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Fleet Oversight</div>
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Authority</div>
+            <div className="font-medium text-sm text-foreground mt-1">CPCB Regulatory Admin</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Fleet Oversight</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Minted Supply</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Minted Supply</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {networkTotals.minted} AIR
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Camera-Verified</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Camera-Verified</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Compliance Burns</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Compliance Burns</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {networkTotals.burned} AIR
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Retired by Industry</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Retired by Industry</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Monitored Fleet</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Monitored Fleet</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {miners.length} Nodes
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
               {pendingApps.length} pending review
             </div>
           </CardContent>
@@ -219,7 +219,7 @@ export const AdminPortal: React.FC = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>
-              <Landmark className="h-4 w-4 text-zinc-400" />
+              <Landmark className="h-4 w-4 text-muted-foreground" />
               <span>Pending Hardware Applications</span>
             </CardTitle>
           </CardHeader>
@@ -238,12 +238,12 @@ export const AdminPortal: React.FC = () => {
               <TableBody>
                 {pendingApps.map((app) => (
                   <TableRow key={app.id}>
-                    <TableCell className="font-mono font-medium text-zinc-100">{app.id}</TableCell>
-                    <TableCell className="text-zinc-200">{app.applicantName}</TableCell>
-                    <TableCell className="font-mono text-[11px] text-zinc-400">
+                    <TableCell className="font-mono font-medium text-foreground">{app.id}</TableCell>
+                    <TableCell className="text-foreground">{app.applicantName}</TableCell>
+                    <TableCell className="font-mono text-[11px] text-muted-foreground">
                       {app.ownerWallet.slice(0, 10)}...{app.ownerWallet.slice(-6)}
                     </TableCell>
-                    <TableCell className="text-zinc-300 text-xs">{app.locationLabel}</TableCell>
+                    <TableCell className="text-foreground/80 text-xs">{app.locationLabel}</TableCell>
                     <TableCell className="font-mono">{app.plantCount}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="sm" onClick={() => handleApproveApp(app)} className="h-6 px-2 text-[10px]">
@@ -272,7 +272,7 @@ export const AdminPortal: React.FC = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>
-              <Layers className="h-4 w-4 text-zinc-400" />
+              <Layers className="h-4 w-4 text-muted-foreground" />
               <span>Registered Fleet Nodes</span>
             </CardTitle>
           </CardHeader>
@@ -280,11 +280,11 @@ export const AdminPortal: React.FC = () => {
             {miners.map((m) => (
               <div
                 key={m.id}
-                className="rounded border border-zinc-800 bg-zinc-950 p-3 text-xs font-mono space-y-1.5"
+                className="rounded border border-border bg-card p-3 text-xs font-mono space-y-1.5"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-100">{m.id}</span>
+                    <span className="font-semibold text-foreground">{m.id}</span>
                     <Badge variant={m.status === "active" ? "emerald" : "destructive"}>
                       {m.status.toUpperCase()}
                     </Badge>
@@ -298,7 +298,7 @@ export const AdminPortal: React.FC = () => {
                     {m.status === "active" ? "Suspend" : "Reactivate"}
                   </Button>
                 </div>
-                <div className="text-[11px] text-zinc-400 flex justify-between">
+                <div className="text-[11px] text-muted-foreground flex justify-between">
                   <span>Device: {m.deviceAddress.slice(0, 10)}...</span>
                   <span>Geohash: {m.geohash}</span>
                 </div>
@@ -306,8 +306,8 @@ export const AdminPortal: React.FC = () => {
             ))}
 
             {/* Set Obligation Mini-Form */}
-            <form onSubmit={handleSetObligation} className="pt-3 border-t border-zinc-800/80 space-y-2">
-              <div className="text-xs font-medium text-zinc-200">Set Statutory Quota</div>
+            <form onSubmit={handleSetObligation} className="pt-3 border-t border-border/80 space-y-2">
+              <div className="text-xs font-medium text-foreground">Set Statutory Quota</div>
               <div className="grid grid-cols-2 gap-2">
                 <Input
                   placeholder="Period (e.g. 2026)"
@@ -333,7 +333,7 @@ export const AdminPortal: React.FC = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>
-              <ShieldAlert className="h-4 w-4 text-zinc-400" />
+              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
               <span>Validator Fraud Audit Log</span>
             </CardTitle>
           </CardHeader>
@@ -350,14 +350,14 @@ export const AdminPortal: React.FC = () => {
               <TableBody>
                 {rejections.map((r, idx) => (
                   <TableRow key={idx}>
-                    <TableCell className="font-mono text-zinc-100 font-medium">{r.miner_id}</TableCell>
+                    <TableCell className="font-mono text-foreground font-medium">{r.miner_id}</TableCell>
                     <TableCell>
                       <Badge variant="destructive">{r.reason_code}</Badge>
                     </TableCell>
-                    <TableCell className="text-[11px] text-zinc-300 truncate max-w-[180px]" title={r.reason}>
+                    <TableCell className="text-[11px] text-foreground/80 truncate max-w-[180px]" title={r.reason}>
                       {r.reason}
                     </TableCell>
-                    <TableCell className="text-right text-[10px] font-mono text-zinc-400">
+                    <TableCell className="text-right text-[10px] font-mono text-muted-foreground">
                       {new Date(r.created_at).toLocaleTimeString()}
                     </TableCell>
                   </TableRow>

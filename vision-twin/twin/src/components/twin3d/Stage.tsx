@@ -15,13 +15,13 @@ export const LENS_WORLD = LENS_LOCAL.clone().applyAxisAngle(new THREE.Vector3(0,
 export const CAMERA_VFOV = 67;
 export const CAMERA_ASPECT = 2304 / 1296;
 
-const BG = new THREE.Color("#09090b");
+const BG = new THREE.Color("#e9edf1"); // light studio backdrop
 
 /** Background and depth fog. The main canvas also advances the shared shader clock (`drive`). */
 export function Atmosphere({ drive = false }: { drive?: boolean }) {
   const { scene } = useThree();
   useEffect(() => {
-    scene.fog = new THREE.FogExp2(BG, 0.016);
+    scene.fog = new THREE.FogExp2(BG, 0.012);
     scene.background = BG;
     return () => {
       scene.fog = null;
@@ -76,7 +76,7 @@ export function Floor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 5]} receiveShadow>
       <planeGeometry args={[90, 90]} />
-      <meshStandardMaterial color="#141417" roughness={0.85} />
+      <meshStandardMaterial color="#d4d9de" roughness={0.92} />
     </mesh>
   );
 }
@@ -84,11 +84,11 @@ export function Floor() {
 export function Lights({ shadowSize = 2048 }: { shadowSize?: number }) {
   return (
     <>
-      <hemisphereLight args={["#d8efe4", "#0b120f", 0.35]} />
+      <hemisphereLight args={["#ffffff", "#b9c0c7", 0.9]} />
       <directionalLight
         position={[9, 16, 16]}
-        intensity={2.4}
-        color="#fff4e6"
+        intensity={2.2}
+        color="#fff8ef"
         castShadow
         shadow-mapSize={[shadowSize, shadowSize]}
         shadow-bias={-0.0003}
@@ -100,7 +100,7 @@ export function Lights({ shadowSize = 2048 }: { shadowSize?: number }) {
         shadow-camera-near={1}
         shadow-camera-far={50}
       />
-      <directionalLight position={[-10, 6, -6]} intensity={0.9} color="#7fe0c0" />
+      <directionalLight position={[-10, 8, 12]} intensity={0.7} color="#eef4ff" />
       <spotLight position={[0, 13, 14]} angle={0.5} penumbra={0.8} intensity={60} distance={32} color="#e8fff4" />
       <pointLight position={[MINER_POS.x - 1.5, MINER_POS.y + 1.5, MINER_POS.z + 1.5]} intensity={4} distance={6} color="#cfe" />
     </>

@@ -1,32 +1,31 @@
 /*
- * AIRcoin UI tokens, matching chain-market's web platform (zinc neutrals on near-black, Inter + JetBrains Mono)
- * so the twin, the owner dashboard, the wallet and the market read as one product.
- * Colour carries meaning only: green healthy, amber missing, red suspect.
+ * AIRcoin product theme, shared with chain-market's platform: light slate neutrals, one deep-teal accent,
+ * Geist + Geist Mono. Status colours carry meaning only: green healthy, amber missing, red suspect.
  */
 :root {
-  --bg: #09090b;
-  --surface: #0f0f12;
-  --surface-2: #18181b;
-  --surface-3: #202024;
-  --line: #222226;
-  --line-2: #2e2e33;
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --faint: #71717a;
-  --accent: #f4f4f5;
-  --accent-ink: #09090b;
-  --ok: #3fb950;
-  --warn: #d29922;
-  --bad: #f85149;
-  --idle: #52525b;
-  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --r-lg: 8px;
-  --r-md: 6px;
-  --r-sm: 4px;
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #f1f4f7;
+  --surface-3: #e8edf2;
+  --line: #e1e6ec;
+  --line-2: #d3dae2;
+  --text: #17202b;
+  --muted: #56616f;
+  --faint: #7d8794;
+  --accent: #127066;
+  --accent-ink: #ffffff;
+  --ok: #1a7f37;
+  --warn: #b7791f;
+  --bad: #cf3a33;
+  --idle: #9aa4b0;
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r-lg: 10px;
+  --r-md: 7px;
+  --r-sm: 5px;
   --z-overlay: 2;
   --z-header: 3;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -47,7 +46,7 @@ header.bar {
   display: flex; align-items: center; gap: 28px; padding: 0 20px; height: 58px; flex: none;
   border-bottom: 1px solid var(--line); background: var(--bg); position: relative; z-index: var(--z-header);
 }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ok); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--accent); }
 .brand-name { color: var(--text); font: 600 16px/1 var(--font); letter-spacing: -0.2px; }
 .brand-sep { width: 1px; height: 18px; background: var(--line-2); }
 .brand-sub { color: var(--muted); font: 500 12px var(--mono); }
@@ -112,14 +111,14 @@ button {
 button:hover { background: var(--surface-3); border-color: #464d43; }
 button:active { transform: translateY(1px); }
 button:disabled { opacity: 0.4; cursor: default; }
-button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+button.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 button.quiet { background: transparent; border-color: transparent; color: var(--muted); padding: 5px 6px; }
 button.quiet:hover { color: var(--text); background: var(--surface-2); }
 select { font: 500 12.5px var(--font); color: var(--text); background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 4px 6px; }
 .seg { display: inline-flex; padding: 2px; gap: 2px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--r-md); }
 .seg button { border: none; background: transparent; color: var(--muted); border-radius: 5px; padding: 3px 10px; }
 .seg button:hover { color: var(--text); background: var(--surface-3); }
-.seg button.active { background: var(--text); color: var(--bg); }
+.seg button.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(23, 32, 43, 0.12); }
 .seg.small button { padding: 2px 9px; font-size: 12px; }
 .hint { color: var(--faint); font-size: 12px; }
 .legend { display: flex; gap: 14px; font: 400 11.5px var(--mono); color: var(--muted); }
@@ -184,7 +183,7 @@ select { font: 500 12.5px var(--font); color: var(--text); background: var(--sur
 .epoch-line em.accepted { color: var(--ok); }
 .epoch-line em.rejected { color: var(--bad); }
 .progress { height: 2px; background: var(--line-2); overflow: hidden; margin: 6px 0 0; }
-.progress > div { height: 100%; background: var(--muted); transition: width 0.9s linear; }
+.progress > div { height: 100%; background: var(--accent); transition: width 0.9s linear; }
 table.mints { width: 100%; border-collapse: collapse; margin-top: 12px; font: 400 12px var(--mono); }
 .mints th { text-align: left; font: 400 11px var(--font); color: var(--faint); padding: 0 0 4px; border-bottom: 1px solid var(--line); }
 .mints th:last-child, .mints td:last-child { text-align: right; }
@@ -206,25 +205,25 @@ table.mints { width: 100%; border-collapse: collapse; margin-top: 12px; font: 40
 
 /* ---------- twin overlays ---------- */
 .overlay { position: absolute; z-index: var(--z-overlay); }
-.twin-stage { position: absolute; inset: 0; background: #0b0d0b; }
+.twin-stage { position: absolute; inset: 0; background: var(--bg); }
 .twin-stage canvas { touch-action: none; }
 .twin-toolbar { left: 12px; top: 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.twin-toolbar > button { background: rgba(19, 22, 18, 0.88); }
-.twin-toolbar > button.active { background: var(--text); }
-.twin-toolbar .seg { background: rgba(19, 22, 18, 0.88); }
+.twin-toolbar > button { background: rgba(255, 255, 255, 0.92); }
+.twin-toolbar > button.active { background: var(--accent); }
+.twin-toolbar .seg { background: rgba(255, 255, 255, 0.92); }
 .twin-toolbar .icon { padding: 4px 9px; }
 .twin-hud { left: 12px; bottom: 12px; right: 12px; display: flex; gap: 6px; align-items: center; font-size: 12px; pointer-events: none; }
-.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: var(--r-md); background: rgba(19, 22, 18, 0.88); border: 1px solid var(--line-2); color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.92); border: 1px solid var(--line-2); color: var(--muted); }
 .chip b { color: var(--text); font: 500 12px var(--mono); }
 .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--idle); display: inline-block; }
 .chip .dot.online { background: var(--ok); }
 .chip .dot.connecting { background: var(--warn); }
-.twin-hud .hint { margin-left: auto; background: rgba(19, 22, 18, 0.7); padding: 4px 9px; border-radius: var(--r-md); }
+.twin-hud .hint { margin-left: auto; background: rgba(255, 255, 255, 0.8); padding: 4px 9px; border-radius: var(--r-md); }
 
 .part-card {
   right: 12px; top: 12px; width: 260px; max-height: calc(100% - 24px); overflow: auto; background: var(--surface); border: 1px solid var(--line-2);
   border-radius: var(--r-lg); padding: 14px 14px 12px; font-size: 12.5px;
-  box-shadow: 0 18px 40px rgba(4, 6, 3, 0.55); animation: cardIn 0.22s ease-out;
+  box-shadow: 0 10px 30px rgba(23, 32, 43, 0.12); animation: cardIn 0.22s ease-out;
 }
 @keyframes cardIn { from { opacity: 0; transform: translateY(-4px); } }
 .part-card h3 { margin: 3px 0 4px; font: 600 15px/1.3 var(--font); display: flex; align-items: center; gap: 8px; padding-right: 22px; }
@@ -242,7 +241,7 @@ table.mints { width: 100%; border-collapse: collapse; margin-top: 12px; font: 40
 /* labels rendered inside the 3D scene */
 .part-tag {
   display: flex; flex-direction: column; gap: 1px; padding: 5px 9px; border-radius: var(--r-md); white-space: nowrap;
-  background: rgba(19, 22, 18, 0.92); border: 1px solid var(--line-2); font-size: 11px; color: var(--muted); transform: translateY(-6px);
+  background: rgba(255, 255, 255, 0.95); border: 1px solid var(--line-2); font-size: 11px; color: var(--muted); transform: translateY(-6px);
 }
 .part-tag b { color: var(--text); font-weight: 500; font-size: 12px; }
 .part-tag em { font-style: normal; font-family: var(--mono); color: var(--text); }
@@ -274,8 +273,8 @@ table.mints { width: 100%; border-collapse: collapse; margin-top: 12px; font: 40
 
 /* ---------- map ---------- */
 .map { height: 100%; min-height: 140px; }
-.leaflet-container { background: #161a15; font: 12px var(--font); }
-.leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(0.8) contrast(0.9); }
+.leaflet-container { background: var(--surface-2); font: 12px var(--font); }
+.leaflet-tile-pane { filter: grayscale(0.6) contrast(0.95); }
 
 * { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
 
@@ -310,33 +309,31 @@ table.mints { width: 100%; border-collapse: collapse; margin-top: 12px; font: 40
 
 
 /* ---------- twin app (judges) ---------- */
-.twin-app { position: fixed; inset: 0; background: #0b0d0b; overflow: hidden; }
+.twin-app { position: fixed; inset: 0; background: var(--bg); overflow: hidden; }
 .twin-app > header.bar {
   position: absolute; left: 0; right: 0; top: 0; border-bottom: none;
-  background: linear-gradient(180deg, rgba(11, 13, 11, 0.92), rgba(11, 13, 11, 0.55) 70%, transparent);
+  background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
 }
-.twin-app .metrics > div { border-color: rgba(255, 255, 255, 0.07); }
 .brand-app { font: 500 13px var(--font); color: var(--muted); }
 .twin-app .part-card { top: 70px; right: 16px; max-height: calc(100% - 300px); }
 .twin-app .twin-hud { left: 16px; right: auto; bottom: 16px; }
 .pip {
   position: absolute; right: 16px; bottom: 16px; z-index: var(--z-overlay); width: min(440px, 34vw);
   background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); overflow: hidden;
-  box-shadow: 0 18px 40px rgba(4, 6, 3, 0.55);
+  box-shadow: 0 10px 30px rgba(23, 32, 43, 0.12);
 }
 .pip header { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border-bottom: 1px solid var(--line); }
 .pip-title { font-weight: 500; font-size: 12.5px; margin-right: auto; }
 .pip-body { position: relative; aspect-ratio: 16 / 9; background: #050605; container-type: size; }
 .toasts { position: absolute; left: 16px; bottom: 56px; z-index: var(--z-overlay); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: 6px; width: min(380px, 40vw); pointer-events: none; }
 .toasts li {
-  display: grid; grid-template-columns: 62px 1fr; gap: 8px; align-items: baseline; padding: 8px 12px;
-  background: rgba(19, 22, 18, 0.94); border: 1px solid var(--line-2); border-left: 2px solid var(--idle); border-radius: var(--r-md);
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.96); border: 1px solid var(--line-2); border-left: 2px solid var(--idle); border-radius: var(--r-md);
   font-size: 12.5px; animation: cardIn 0.25s ease-out; text-wrap: pretty;
 }
 .toasts li.critical { border-left-color: var(--bad); }
 .toasts li.critical .toast-kind { color: var(--bad); }
 .toasts li.warn { border-left-color: var(--warn); }
-.toasts li.warn .toast-kind { color: var(--warn); }
 
 .twin-app .twin-toolbar { top: 70px; left: 16px; }
 .live-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--bad); }

@@ -97,7 +97,7 @@ export function MinerModel() {
   return (
     <div className="twin-stage">
       <Canvas
-        shadows
+        shadows="soft"
         dpr={[1, 1.75]}
         camera={{ position: SHOTS.rig.pos.toArray(), fov: 38, near: 0.1, far: 140 }}
         onPointerDown={(e) => (downAt.current = [e.clientX, e.clientY])}

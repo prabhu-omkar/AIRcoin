@@ -156,11 +156,11 @@ export const CompanyPortal: React.FC = () => {
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Entity</div>
-            <div className="font-medium text-sm text-zinc-100 truncate mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Entity</div>
+            <div className="font-medium text-sm text-foreground truncate mt-1">
               {currentWallet.companyName || "Apex Steel Works Ltd"}
             </div>
-            <div className="text-[11px] font-mono text-zinc-400 truncate mt-0.5">
+            <div className="text-[11px] font-mono text-muted-foreground truncate mt-0.5">
               {currentWallet.address.slice(0, 10)}...
             </div>
           </CardContent>
@@ -168,21 +168,21 @@ export const CompanyPortal: React.FC = () => {
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Statutory Quota</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Statutory Quota</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {totalObligation.toFixed(2)} AIR
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">Period {obligationPeriod}</div>
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">Period {obligationPeriod}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Retired to Date</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Retired to Date</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {burnedToDate.toFixed(2)} AIR
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
+            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
               ≈ {(burnedToDate * 1000).toFixed(0)} mg PM2.5 neutralized
             </div>
           </CardContent>
@@ -190,15 +190,15 @@ export const CompanyPortal: React.FC = () => {
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-[11px] font-mono uppercase text-zinc-400">Fulfillment</div>
-            <div className="font-mono text-xl font-semibold text-zinc-100 mt-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Fulfillment</div>
+            <div className="font-mono text-xl font-semibold text-foreground mt-1">
               {percentageFulfilled}%
             </div>
             <div className="text-[11px] font-mono mt-0.5">
               {remainingShortfall > 0 ? (
-                <span className="text-zinc-400">{remainingShortfall.toFixed(2)} AIR shortfall</span>
+                <span className="text-muted-foreground">{remainingShortfall.toFixed(2)} AIR shortfall</span>
               ) : (
-                <span className="text-emerald-400">Fully Compliant</span>
+                <span className="text-emerald-600">Fully Compliant</span>
               )}
             </div>
           </CardContent>
@@ -210,39 +210,39 @@ export const CompanyPortal: React.FC = () => {
         <Card className="col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle>
-              <Building2 className="h-4 w-4 text-zinc-400" />
+              <Building2 className="h-4 w-4 text-muted-foreground" />
               <span>Statutory Compliance Progress</span>
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCertModalOpen(true)}
-              className="gap-1 border-zinc-800 text-xs"
+              className="gap-1 border-border text-xs"
             >
-              <Award className="h-3.5 w-3.5 text-zinc-400" />
+              <Award className="h-3.5 w-3.5 text-muted-foreground" />
               View Certificate
             </Button>
           </CardHeader>
           <CardContent className="space-y-4 pt-3">
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-mono">
-                <span className="text-zinc-400">Retired: {burnedToDate.toFixed(2)} AIR</span>
-                <span className="text-zinc-400">Target: {totalObligation.toFixed(2)} AIR</span>
+                <span className="text-muted-foreground">Retired: {burnedToDate.toFixed(2)} AIR</span>
+                <span className="text-muted-foreground">Target: {totalObligation.toFixed(2)} AIR</span>
               </div>
-              <div className="h-2 w-full rounded bg-zinc-900 border border-zinc-850 overflow-hidden">
+              <div className="h-2 w-full rounded bg-muted border border-border overflow-hidden">
                 <div
-                  className="h-full bg-zinc-100 transition-all duration-300"
+                  className="h-full bg-primary transition-all duration-300"
                   style={{ width: `${percentageFulfilled}%` }}
                 />
               </div>
             </div>
 
             {/* Direct Burn Form */}
-            <form onSubmit={handleBurn} className="border-t border-zinc-800/80 pt-4 space-y-3">
-              <div className="text-xs font-medium text-zinc-200">Retire AIR from Wallet</div>
+            <form onSubmit={handleBurn} className="border-t border-border/80 pt-4 space-y-3">
+              <div className="text-xs font-medium text-foreground">Retire AIR from Wallet</div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-zinc-400 block mb-1">
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground block mb-1">
                     Compliance Period
                   </label>
                   <Input
@@ -253,7 +253,7 @@ export const CompanyPortal: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono uppercase text-zinc-400 block mb-1">
+                  <label className="text-[10px] font-mono uppercase text-muted-foreground block mb-1">
                     Amount to Retire (AIR)
                   </label>
                   <Input
@@ -267,7 +267,7 @@ export const CompanyPortal: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-between items-center pt-1">
-                <span className="text-[11px] font-mono text-zinc-400">
+                <span className="text-[11px] font-mono text-muted-foreground">
                   Wallet: {airBalance} AIR
                 </span>
                 <Button type="submit" size="sm" disabled={isBurning}>
@@ -282,22 +282,22 @@ export const CompanyPortal: React.FC = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>
-              <ShieldCheck className="h-4 w-4 text-zinc-400" />
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
               <span>Atomic Buy & Burn</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-3 text-xs">
-            <p className="text-zinc-400 leading-normal">
+            <p className="text-muted-foreground leading-normal">
               Acquires the lowest active marketplace listing and retires the credits in a single automated step.
             </p>
-            <div className="rounded border border-zinc-800 bg-zinc-950 p-3 space-y-1.5 font-mono text-[11px]">
+            <div className="rounded border border-border bg-card p-3 space-y-1.5 font-mono text-[11px]">
               <div className="flex justify-between">
-                <span className="text-zinc-400">Lot:</span>
-                <span className="text-zinc-200">1.0 AIR</span>
+                <span className="text-muted-foreground">Lot:</span>
+                <span className="text-foreground">1.0 AIR</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-400">Treasury:</span>
-                <span className="text-zinc-200">₹{tinrBalance}</span>
+                <span className="text-muted-foreground">Treasury:</span>
+                <span className="text-foreground">₹{tinrBalance}</span>
               </div>
             </div>
             <Button
@@ -315,7 +315,7 @@ export const CompanyPortal: React.FC = () => {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>
-            <Award className="h-4 w-4 text-zinc-400" />
+            <Award className="h-4 w-4 text-muted-foreground" />
             <span>Retirement Audit Ledger</span>
           </CardTitle>
         </CardHeader>
@@ -334,15 +334,15 @@ export const CompanyPortal: React.FC = () => {
             <TableBody>
               {burns.map((b, idx) => (
                 <TableRow key={idx}>
-                  <TableCell className="font-mono text-zinc-100">{b.period}</TableCell>
-                  <TableCell className="text-zinc-300">{b.company_name || "Apex Steel Works"}</TableCell>
-                  <TableCell className="font-mono text-zinc-100">
+                  <TableCell className="font-mono text-foreground">{b.period}</TableCell>
+                  <TableCell className="text-foreground/80">{b.company_name || "Apex Steel Works"}</TableCell>
+                  <TableCell className="font-mono text-foreground">
                     {(parseFloat(b.amount) / 1e18).toFixed(4)} AIR
                   </TableCell>
-                  <TableCell className="font-mono text-zinc-400">
+                  <TableCell className="font-mono text-muted-foreground">
                     {(parseFloat(b.burned_to_date) / 1e18).toFixed(4)} AIR
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-zinc-400">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
                     {b.tx_hash.slice(0, 10)}...{b.tx_hash.slice(-6)}
                   </TableCell>
                   <TableCell className="text-right">
