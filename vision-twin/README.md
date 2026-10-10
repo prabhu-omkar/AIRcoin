@@ -103,7 +103,15 @@ Example: `http://localhost:5173/?source=live&mqtt=ws://192.168.1.20:9001&feed=ht
 - Anti-cheat log.
 - GPS map with the 50 m geofence (map tiles need internet; the pin works without).
 
-The 3D model is v1, built from primitives in `twin/src/components/MinerModel.tsx`. When the Blender glTF is ready, replace each part's body with the matching `.glb` node. The part IDs and readings stay as they are.
+The 3D twin (`twin/src/components/MinerModel.tsx` + `twin/src/components/twin3d/`) is fully procedural, so it needs no assets and works offline:
+
+- **Rig view:** the miner on its tripod watching the 4 × 5 plant rack. Each of the 20 plants is generated per species (snake plant, palms, fern, ivy, flowering shrubs and so on), sways in the wind, and follows live C2 status: a faded wireframe ghost when missing or removed, greyed out and pulsing red when suspect. Shelf LEDs and vision brackets use the same colours. A scan line sweeps the camera's field of view at the inference rate. PM2.5 haze and fog density follow the AQI, haze particles are absorbed at the plants, and green motes rise from healthy ones.
+- **Device view:** a real-scale Pi 4 (ports, GPIO, heatsink, activity LED), Camera Module 3 with blue gel and ribbon cable, NEO-6M GPS, PMS5003, MQ-135, SCD40 and BME280, with jumper wiring and a fan that spins with CPU load. *Explode* separates the parts and labels each one with a live reading. Click a part for full readings, or click a plant for its card (in mock mode the card can remove, fake, swap or restore it).
+- **Tampering (mock mode):** the plant card (or a grid slot) can remove the pot, put in a plastic plant, swap the plant, or restore it. The change animates in the scene straight away (pot lifted off the shelf, plant pulled out and replaced, soil puff), with a countdown until the miner flags it: missing at 10 s, removed at 60 s, suspect at 3 s. Plant selection is shared between the grid, the twin and the camera.
+- **Miner camera panel:** *Twin cam* renders the same twin world from the miner's lens, using the Camera Module 3 Wide field of view (67° vertical, 16:9). The vision overlay is drawn on top: ArUco quads, plant boxes, confidence and status, the same as `aircoin_vision.detect`. *NDVI* shows plants in false colour (a plastic plant shows up dark). *Live* shows the real MJPEG feed when the twin is opened with `?feed=`.
+- Each C4 mint spawns an AIR coin over the miner. Post-processing: N8AO, bloom, outline on hover, AgX tone mapping. If the frame rate drops, AO and floor reflections switch off.
+
+When the Blender glTF is ready, replace a part's body in `twin3d/Miner.tsx` with the matching `.glb` node. The part IDs and readings stay as they are.
 
 ## Contracts
 

@@ -2,6 +2,9 @@
 import { create } from "zustand";
 import type { AnticheatFlag, Balance, ChainEvent, EpochSummary, Mint, Telemetry } from "./contracts";
 
+/** What physically happened to a pot (mock demo only): drives the twin's animation before the camera flags it. */
+export type Tamper = "removed" | "fake" | "swap";
+
 export type LinkState = "connecting" | "online" | "offline" | "error";
 
 export interface LogEntry {
@@ -21,6 +24,8 @@ export interface HistoryPoint {
 
 interface TwinState {
   source: "mock" | "live";
+  /** mock only: data comes from the shared mock hub (true) or a mock inside this tab (false) */
+  mockShared?: boolean;
   links: { c2: LinkState; c4: LinkState };
   telemetry?: Telemetry;
   lastTelemetryAt?: number;
@@ -29,6 +34,10 @@ interface TwinState {
   balance?: Balance;
   mints: Mint[]; // newest first
   log: LogEntry[]; // newest first
+  selectedPlant?: number;
+  physical: Record<number, { kind: Tamper; at: number } | undefined>;
+  selectPlant: (tag: number | undefined) => void;
+  setPhysical: (tag: number, kind: Tamper | undefined, at?: number) => void;
   setLink: (key: "c2" | "c4", state: LinkState) => void;
   onTelemetry: (t: Telemetry) => void;
   onEpoch: (e: EpochSummary) => void;
@@ -57,6 +66,10 @@ export const useTwin = create<TwinState>((set, get) => ({
   epochs: [],
   mints: [],
   log: [],
+  physical: {},
+
+  selectPlant: (tag) => set({ selectedPlant: tag }),
+  setPhysical: (tag, kind, at) => set((s) => ({ physical: { ...s.physical, [tag]: kind ? { kind, at: at ?? Date.now() } : undefined } })),
 
   setLink: (key, state) => set((s) => ({ links: { ...s.links, [key]: state } })),
 

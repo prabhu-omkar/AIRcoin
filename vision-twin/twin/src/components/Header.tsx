@@ -1,47 +1,88 @@
 import { useEffect, useState } from "react";
 import { config } from "../config";
-import { mockMiner } from "../sources";
+import { fromBaseUnits } from "../contracts";
+import { mockControls } from "../sources";
 import { SCENARIO_NAMES, type Scenario } from "../sources/mock";
 import { useTwin, type LinkState } from "../store";
 
-function Link({ name, state }: { name: string; state: LinkState }) {
-  return <span className="pill"><span className={`dot ${state}`} />{name}</span>;
+/** Indian NAQI bands. */
+function aqiBand(aqi: number): [string, string] {
+  if (aqi <= 50) return ["Good", "ok"];
+  if (aqi <= 100) return ["Satisfactory", "ok"];
+  if (aqi <= 200) return ["Moderate", "warn"];
+  if (aqi <= 300) return ["Poor", "warn"];
+  if (aqi <= 400) return ["Very poor", "bad"];
+  return ["Severe", "bad"];
 }
 
-export function Header() {
+function Link({ name, state }: { name: string; state: LinkState }) {
+  return <span className={`link ${state}`} title={`${name}: ${state}`}><i />{name}</span>;
+}
+
+/** App header. `app` picks the subtitle; the twin renders it as an overlay on the 3D scene. */
+export function Header({ app }: { app: "twin" | "dashboard" }) {
   const links = useTwin((s) => s.links);
   const source = useTwin((s) => s.source);
   const lastAt = useTwin((s) => s.lastTelemetryAt);
-  const scenario = useTwin((s) => s.telemetry?.scenario);
-  const [, setNow] = useState(0);
+  const t = useTwin((s) => s.telemetry);
+  const balance = useTwin((s) => s.balance);
+  const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
   }, []);
-  const stale = lastAt !== undefined && Date.now() - lastAt > 5000;
+  const stale = lastAt !== undefined && now - lastAt > 5000;
+  const healthy = t?.plants.filter((p) => p.status === "present").length;
+  const flagged = t?.plants.filter((p) => p.status !== "present").length ?? 0;
+  const left = t ? Math.max(0, Math.ceil((t.current_epoch.end_ms - now) / 1000)) : undefined;
+  const [band, tone] = aqiBand(t?.aqi ?? 0);
 
   return (
-    <header className="bar">
+    <header className={`bar ${app}`}>
       <div className="brand">
-        <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden><circle cx="16" cy="16" r="15" fill="#13261d" /><path d="M16 6c-6 4-8 10-5 16 1 2 3 3 5 4 2-1 4-2 5-4 3-6 1-12-5-16z" fill="#3ddc84" /></svg>
-        AIRcoin <small>Digital twin · {config.minerId}</small>
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+          <path d="M12 2.5C6.5 6 4.6 11.2 6.8 16.4 8 19.2 9.8 20.6 12 21.5c2.2-.9 4-2.3 5.2-5.1C19.4 11.2 17.5 6 12 2.5Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M12 7v14.5" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+        <span className="brand-name">AIRcoin</span>
+        <span className="brand-sep" />
+        <span className="brand-app">{app === "twin" ? "Digital twin" : "Miner dashboard"}</span>
+        <span className="brand-sub">{config.minerId}</span>
       </div>
+
+      <dl className="metrics">
+        <div>
+          <dt>Air quality</dt>
+          <dd><b className={tone}>{t?.aqi ?? "—"}</b><span>{t ? band : ""}</span></dd>
+        </div>
+        <div>
+          <dt>Plants verified</dt>
+          <dd><b className={flagged ? "bad" : ""}>{healthy ?? "—"}</b><span>of {t?.plants.length ?? 20}{flagged ? ` · ${flagged} flagged` : ""}</span></dd>
+        </div>
+        <div>
+          <dt>Epoch closes in</dt>
+          <dd><b>{left !== undefined ? `0:${String(left).padStart(2, "0")}` : "—"}</b><span>+{(t?.current_epoch.running_air ?? 0).toFixed(4)} AIR</span></dd>
+        </div>
+        <div>
+          <dt>{app === "twin" ? "Minted to owner" : "Your balance"}</dt>
+          <dd><b>{balance ? fromBaseUnits(balance.air).toFixed(4) : "—"}</b><span>AIR</span></dd>
+        </div>
+      </dl>
+
       <div className="spacer" />
-      {source === "mock" && mockMiner && (
-        <span className="pill">
-          MOCK
-          <select
-            value={scenario}
-            onChange={(e) => mockMiner?.setScenario(e.target.value as Scenario)}
-            aria-label="Mock scenario"
-          >
+      {source === "mock" && (
+        <div className="mockbar">
+          <span className="flag">Mock data</span>
+          <select value={t?.scenario} onChange={(e) => mockControls.setScenario(e.target.value as Scenario)} aria-label="Mock scenario">
             {SCENARIO_NAMES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
           </select>
-          <button onClick={() => mockMiner?.rejectNextEpoch()} title="Next attestation is rejected (sticker reuse)">Reject next</button>
-        </span>
+          <button className="quiet" onClick={() => mockControls.rejectNext()} title="Next attestation is rejected (sticker reuse)">Reject next epoch</button>
+        </div>
       )}
-      <Link name="C2 telemetry" state={stale ? "offline" : links.c2} />
-      <Link name="C4 chain" state={links.c4} />
+      <div className="links">
+        <Link name="C2" state={stale ? "offline" : links.c2} />
+        <Link name="C4" state={links.c4} />
+      </div>
     </header>
   );
 }

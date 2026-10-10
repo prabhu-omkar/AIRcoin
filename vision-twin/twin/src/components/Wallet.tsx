@@ -41,26 +41,32 @@ export function Wallet() {
   }, [newest]);
 
   return (
-    <div className="panel" style={{ flex: "0 0 auto" }}>
-      <h2>Wallet · mints<span className="right hint">{balance ? `${balance.address.slice(0, 6)}…${balance.address.slice(-4)}` : ""}</span></h2>
+    <section className="panel wallet" style={{ flex: "0 0 auto" }}>
+      <h2>Wallet<span className="right meta">{balance ? `${balance.address.slice(0, 6)}…${balance.address.slice(-4)}` : ""}</span></h2>
       <div className="body">
-        <div className="balance">{air.toFixed(4)} <small>AIR</small></div>
-        <div className="kv" style={{ marginTop: 6 }}>
-          <span>Epoch {epoch?.epoch ?? "—"} so far</span><b>+{running.toFixed(5)} AIR</b>
-          <span>Last epoch</span>
-          <b>{latest ? `${latest.total_air.toFixed(5)} AIR · ${latest.attestation.status}` : "—"}</b>
+        <div className="balance">{air.toFixed(4)}<small>AIR</small></div>
+        <div className="epoch-line">
+          <span>Epoch {epoch?.epoch ?? "—"}</span>
+          <b>+{running.toFixed(5)}</b>
         </div>
         <div className="progress" title="epoch progress"><div style={{ width: `${progress * 100}%` }} /></div>
-        <ul className="mints">
-          {mints.slice(0, 5).map((m) => (
-            <li key={m.tx_hash} className={m.tx_hash === fresh ? "fresh" : ""}>
-              <span>epoch {m.epoch}</span>
-              <span style={{ color: "var(--accent)" }}>+{fromBaseUnits(m.amount).toFixed(5)}</span>
-            </li>
-          ))}
-          {!mints.length && <li className="empty">No mints yet</li>}
-        </ul>
+        <div className="epoch-line sub">
+          <span>Last epoch</span>
+          <span>{latest ? <>{latest.total_air.toFixed(5)} AIR · <em className={latest.attestation.status}>{latest.attestation.status}</em></> : "—"}</span>
+        </div>
+        <table className="mints">
+          <thead><tr><th>Epoch</th><th>Minted</th></tr></thead>
+          <tbody>
+            {mints.slice(0, 5).map((m) => (
+              <tr key={m.tx_hash} className={m.tx_hash === fresh ? "fresh" : ""}>
+                <td>{m.epoch}</td>
+                <td>+{fromBaseUnits(m.amount).toFixed(5)}</td>
+              </tr>
+            ))}
+            {!mints.length && <tr><td colSpan={2} className="empty">No mints yet</td></tr>}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </section>
   );
 }

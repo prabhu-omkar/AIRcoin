@@ -12,7 +12,9 @@
   "camera": {
     "source": "picam",
     "width": 2304,
-    "height": 1296
+    "height": 1296,
+    "liveness": "ndvi",
+    "_liveness": "ndvi = Camera Module 3 NoIR behind the blue gel (red channel is near-infrared); rgb = ordinary camera fallback"
   },
   "mqtt_url": "mqtt://localhost:1883",
   "plants": [

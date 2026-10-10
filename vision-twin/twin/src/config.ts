@@ -3,7 +3,7 @@
 import rig from "../../config/rig.json";
 
 const q = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-const env = import.meta.env;
+const env = (import.meta.env ?? {}) as Record<string, string | undefined>;
 
 function pick(param: string, envKey: string, fallback: string): string {
   return q.get(param) ?? (env[envKey] as string | undefined) ?? fallback;
@@ -13,8 +13,10 @@ export const config = {
   source: pick("source", "VITE_SOURCE", "mock") as "mock" | "live",
   minerId: pick("miner", "VITE_MINER_ID", rig.miner_id),
   mqttUrl: pick("mqtt", "VITE_MQTT_URL", "ws://localhost:9001"),
-  c4Url: pick("c4", "VITE_C4_URL", "http://localhost:8787"),
+  c4Url: pick("c4", "VITE_C4_URL", "http://localhost:3002"),
   feedUrl: pick("feed", "VITE_FEED_URL", ""),
+  /** Shared mock hub (scripts/mock-hub.ts) so the twin and the dashboard show the same mock data. "off" = local mock. */
+  hubUrl: pick("hub", "VITE_HUB_URL", "http://localhost:5175"),
 };
 
 export interface RigPlant {

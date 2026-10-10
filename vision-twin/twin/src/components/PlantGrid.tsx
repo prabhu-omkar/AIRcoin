@@ -1,72 +1,57 @@
-import { useState } from "react";
 import { rigLayout } from "../config";
 import { speciesName } from "../species";
 import { useTwin } from "../store";
-import { mockMiner } from "../sources";
-import type { PlantOverride } from "../sources/mock";
 
 const STATUS_LABEL = { present: "healthy", missing: "missing", removed: "removed", suspect: "suspect" } as const;
 
-/** Virtual 20-slot grid mirroring the physical rig: green healthy, grey missing, red suspect. */
+/** Virtual 20-slot grid mirroring the physical rig. Selecting a slot focuses it in the twin and the camera. */
 export function PlantGrid() {
   const telemetry = useTwin((s) => s.telemetry);
-  const isMock = useTwin((s) => s.source === "mock");
-  const [selected, setSelected] = useState<number | undefined>();
+  const physical = useTwin((s) => s.physical);
+  const selected = useTwin((s) => s.selectedPlant);
+  const selectPlant = useTwin((s) => s.selectPlant);
   const byTag = new Map(telemetry?.plants.map((p) => [p.tag_id, p]));
   const slots = Array.from({ length: rigLayout.rows * rigLayout.cols }, (_, i) => rigLayout.plants.find((p) => p.slot === i));
   const counts = { present: 0, missing: 0, removed: 0, suspect: 0 };
   telemetry?.plants.forEach((p) => counts[p.status]++);
 
-  const act = (o: PlantOverride | undefined) => {
-    if (selected === undefined || !mockMiner) return;
-    mockMiner.setPlant(selected, o, Date.now());
-    setSelected(undefined);
-  };
-
   return (
-    <div className="panel area-plants">
+    <section className="panel area-plants">
       <h2>
         Plants
         <span className="right legend">
-          <span style={{ "--c": "var(--ok)" } as React.CSSProperties}>{counts.present}</span>
-          <span style={{ "--c": "var(--idle)" } as React.CSSProperties}>{counts.missing + counts.removed}</span>
-          <span style={{ "--c": "var(--bad)" } as React.CSSProperties}>{counts.suspect}</span>
+          <span className="key ok">{counts.present} healthy</span>
+          <span className="key warn">{counts.missing + counts.removed} missing</span>
+          <span className="key bad">{counts.suspect} suspect</span>
         </span>
       </h2>
-      <div className="body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div className="plant-grid" style={{ gridTemplateColumns: `repeat(${rigLayout.cols}, 1fr)`, gridTemplateRows: `repeat(${rigLayout.rows}, 1fr)`, flex: 1 }}>
+      <div className="body">
+        <div className="plant-grid" style={{ gridTemplateColumns: `repeat(${rigLayout.cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rigLayout.rows}, minmax(0, 1fr))` }}>
           {slots.map((rp, i) => {
-            if (!rp) return <div key={`empty-${i}`} className="slot missing"><div className="tag">slot {i}</div><div className="name">empty</div></div>;
+            if (!rp) return <div key={`empty-${i}`} className="slot missing"><div className="slot-top"><span>slot {i}</span></div><div className="name">empty</div></div>;
             const p = byTag.get(rp.tag_id);
             const status = p?.status ?? "missing";
+            const lost = status === "missing" || status === "removed";
+            const pending = physical[rp.tag_id] && status === "present";
             return (
-              <div
+              <button
                 key={rp.tag_id}
-                className={`slot ${status} ${isMock ? "clickable" : ""} ${selected === rp.tag_id ? "selected" : ""}`}
+                className={`slot ${status} ${selected === rp.tag_id ? "selected" : ""} ${pending ? "pending" : ""}`}
                 title={`${speciesName(rp.species)} · tag ${rp.tag_id} · ${STATUS_LABEL[status]}`}
-                onClick={() => isMock && setSelected(selected === rp.tag_id ? undefined : rp.tag_id)}
+                onClick={() => selectPlant(selected === rp.tag_id ? undefined : rp.tag_id)}
               >
-                <div className="tag"><span>#{rp.tag_id}</span><span>{STATUS_LABEL[status]}</span></div>
-                <div className="name">{speciesName(rp.species)}</div>
-                <div className="meta" title="visible leaf area · alive score (NDVI)">
-                  {p && status !== "missing" && status !== "removed" ? (
-                    <><span>{Math.round(p.leaf_area_cm2)} cm²</span><span>♥ {p.alive_score.toFixed(2)}</span></>
-                  ) : <span>—</span>}
+                <div className="slot-top">
+                  <span>#{rp.tag_id}</span>
+                  <span className="meta">{pending ? "checking" : lost || status === "suspect" ? STATUS_LABEL[status] : `${Math.round(p?.leaf_area_cm2 ?? 0)}cm²`}</span>
+                  <i className={`status-dot ${status}`} />
                 </div>
-              </div>
+                <div className="name">{speciesName(rp.species)}</div>
+                <div className="bar"><i style={{ width: `${lost ? 0 : Math.round((p?.alive_score ?? 0) * 100)}%` }} /></div>
+              </button>
             );
           })}
         </div>
-        {isMock && selected !== undefined && (
-          <div className="mock-menu">
-            <span className="hint">Mock tag {selected}:</span>
-            <button onClick={() => act("removed")}>Remove</button>
-            <button onClick={() => act("fake")}>Fake plant</button>
-            <button onClick={() => act("swap")}>Swap plant</button>
-            <button onClick={() => act(undefined)}>Restore</button>
-          </div>
-        )}
       </div>
-    </div>
+    </section>
   );
 }

@@ -56,7 +56,7 @@ def main(argv=None):
     ap.add_argument("--rig", help="rig.json path")
     ap.add_argument("--tags", type=int, nargs="*", help="only these tags (default: all registered)")
     ap.add_argument("--frames", type=int, default=15, help="live sources: frames to try (keeps the best)")
-    ap.add_argument("--backend", default="auto", choices=["auto", "mobilenet", "colorhist"])
+    ap.add_argument("--backend", default="auto", choices=["auto", "mobilenet", "leafhist", "colorhist"])
     ap.add_argument("--out", help="output folder (default: data/enrolment/<miner_id>)")
     ap.add_argument("--check", action="store_true", help="compare with the saved enrolment instead of saving")
     args = ap.parse_args(argv)

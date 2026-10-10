@@ -1,24 +1,30 @@
 import { useTwin } from "../store";
 
+const SEVERITY = { critical: "Critical", warn: "Warning", info: "Info" } as const;
+
 export function AntiCheatLog() {
   const log = useTwin((s) => s.log);
   return (
-    <div className="panel" style={{ flex: 1 }}>
-      <h2>Anti-cheat log<span className="right hint">{log.length ? `${log.length} event${log.length > 1 ? "s" : ""}` : ""}</span></h2>
+    <section className="panel" style={{ flex: 1 }}>
+      <h2>Anti-cheat log<span className="right meta">{log.length ? `${log.length} event${log.length > 1 ? "s" : ""}` : ""}</span></h2>
       <div className="body">
         {log.length ? (
-          <ul className="log">
+          <ol className="log">
             {log.map((l) => (
-              <li key={l.id}>
+              <li key={l.id} className={l.severity}>
                 <time>{new Date(l.ts).toLocaleTimeString([], { hour12: false })}</time>
-                <span className={l.severity}>{l.source === "validator" ? "Validator: " : ""}{l.text}</span>
+                <span className="sev" title={SEVERITY[l.severity]} />
+                <span className="msg">{l.source === "validator" ? "Validator: " : ""}{l.text}</span>
               </li>
             ))}
-          </ul>
+          </ol>
         ) : (
-          <div className="empty">No anti-cheat events. All plants verified.</div>
+          <div className="empty-state">
+            <b>Nothing flagged</b>
+            <span>Remove a pot or put in a plastic plant from the plant card to see the miner catch it.</span>
+          </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

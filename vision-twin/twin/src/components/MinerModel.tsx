@@ -1,253 +1,244 @@
-// 3D miner, v1: built from primitives so it works today. When the Blender glTF is ready,
-// swap each <Part> body for the matching node of the .glb; PARTS (ids, positions, readings) stay the same.
-import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
-import { Html, OrbitControls, RoundedBox } from "@react-three/drei";
-import { Fragment, useMemo, useRef, useState, type ReactNode } from "react";
+// Digital twin: the miner on its tripod watching the 20-plant rack, all driven live by C2/C4.
+// Scene pieces live in ./twin3d; this file wires the canvas, camera, post-processing and overlays.
+import { CameraControls, PerformanceMonitor } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Bloom, EffectComposer, N8AO, Outline, Selection, ToneMapping, Vignette } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import type { Telemetry } from "../contracts";
+import { rigLayout } from "../config";
+import { tamperPlant } from "../sources";
+import { speciesInfo, speciesName } from "../species";
 import { useTwin } from "../store";
+import { CleanAir, Haze, MintCoins, VisionCone } from "./twin3d/Effects";
+import { Miner, PARTS } from "./twin3d/Miner";
+import { Rig, slotPosition } from "./twin3d/Rig";
+import { Atmosphere, Floor, LENS_WORLD, Lights, MINER_POS, MINER_ROT, Studio, Tripod } from "./twin3d/Stage";
 
-type Vec3 = [number, number, number];
+export { PARTS };
 
-interface PartDef {
-  id: string;
-  name: string;
-  hardware: string;
-  role: string;
-  pos: Vec3; // assembled
-  exploded: Vec3; // offset added when exploded
-  readings: (t?: Telemetry) => [string, string][];
+type View = "rig" | "device";
+type Shot = View | "exploded";
+
+const SHOTS: Record<Shot, { pos: THREE.Vector3; target: THREE.Vector3 }> = {
+  rig: { pos: new THREE.Vector3(9.5, 8.8, 25), target: new THREE.Vector3(0, 6.1, 2) },
+  device: { pos: MINER_POS.clone().add(new THREE.Vector3(-2.5, 1.35, -2.7)), target: MINER_POS.clone().add(new THREE.Vector3(0, 0.3, 0)) },
+  exploded: { pos: MINER_POS.clone().add(new THREE.Vector3(-3.4, 2.4, -4.0)), target: MINER_POS.clone().add(new THREE.Vector3(0, 0.75, 0)) },
+};
+
+/** Camera presets + gentle idle motion. User input pauses the idle motion for a few seconds. */
+function CameraRig({ shot, focus, spin }: { shot: Shot; focus?: number; spin: boolean }) {
+  const ref = useRef<CameraControls>(null);
+  const lastInput = useRef(-10);
+  const base = useRef(0);
+  const clock = useThree((s) => s.clock);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    if (focus !== undefined) {
+      const rp = rigLayout.plants.find((p) => p.tag_id === focus);
+      if (rp) {
+        const p = slotPosition(rp.slot);
+        // three-quarter view from in front, far enough to keep the neighbours for context
+        c.setLookAt(p.x + 2.2, p.y + 1.6, p.z + 7.2, p.x, p.y + 0.55, p.z, true);
+        return;
+      }
+    }
+    const v = SHOTS[shot];
+    base.current = Math.atan2(v.pos.x - v.target.x, v.pos.z - v.target.z);
+    c.setLookAt(v.pos.x, v.pos.y, v.pos.z, v.target.x, v.target.y, v.target.z, true);
+  }, [shot, focus]);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const mark = () => (lastInput.current = clock.elapsedTime);
+    c.addEventListener("controlstart", mark);
+    c.addEventListener("control", mark);
+    return () => {
+      c.removeEventListener("controlstart", mark);
+      c.removeEventListener("control", mark);
+    };
+  }, [clock]);
+  useFrame(({ clock }, dt) => {
+    const c = ref.current;
+    if (!c || !spin || focus !== undefined || c.active) return;
+    if (clock.elapsedTime - lastInput.current < 6) return;
+    if (shot !== "rig") c.azimuthAngle += dt * 0.15;
+    else c.azimuthAngle += (base.current + Math.sin(clock.elapsedTime * 0.1) * 0.35 - c.azimuthAngle) * Math.min(1, dt * 0.5);
+  });
+  return <CameraControls ref={ref} makeDefault minDistance={1.2} maxDistance={40} maxPolarAngle={Math.PI / 2 - 0.04} smoothTime={0.6} draggingSmoothTime={0.12} />;
 }
 
-const fmt = (v: number | undefined, d = 1, unit = "") => (v === undefined ? "—" : `${v.toFixed(d)}${unit}`);
-
-export const PARTS: PartDef[] = [
-  {
-    id: "pi", name: "Raspberry Pi", hardware: "Raspberry Pi 4 (4 GB) / Pi 5", role: "Runs vision, estimation and signing",
-    pos: [0, -0.18, 0], exploded: [0, 0.05, -0.15],
-    readings: (t) => [["CPU temp", fmt(t?.device?.cpu_temp_c, 1, " °C")], ["CPU", fmt(t?.device?.cpu_pct, 0, " %")], ["Memory", fmt(t?.device?.mem_pct, 0, " %")], ["Uplink", t?.uplink?.online === false ? "offline" : t ? "online" : "—"]],
-  },
-  {
-    id: "camera", name: "Camera", hardware: "Pi Camera Module 3 NoIR Wide + blue gel filter", role: "Reads stickers, sizes plants, NDVI liveness",
-    pos: [0, 0.32, 0.5], exploded: [0, 0.35, 0.45],
-    readings: (t) => {
-      const seen = t?.plants.filter((p) => p.status === "present" || p.status === "suspect").length;
-      return [["Plants seen", t ? `${seen}/${t.plants.length}` : "—"], ["Suspect", t ? String(t.plants.filter((p) => p.status === "suspect").length) : "—"]];
-    },
-  },
-  {
-    id: "gps", name: "GPS", hardware: "u-blox NEO-6M / NEO-M8N (UART)", role: "Fixes location for anti-cheat and local AQI",
-    pos: [-0.62, 0.3, -0.2], exploded: [-0.35, 0.5, -0.25],
-    readings: (t) => [["Fix", t?.gps.fix ?? "—"], ["Satellites", t?.gps.satellites !== undefined ? String(t.gps.satellites) : "—"], ["Lat, lon", t ? `${t.gps.lat.toFixed(5)}, ${t.gps.lon.toFixed(5)}` : "—"]],
-  },
-  {
-    id: "pms", name: "Particulate sensor", hardware: "PMS5003", role: "PM2.5 / PM10 (simulated in the demo)",
-    pos: [0.55, 0.06, -0.15], exploded: [0.45, 0.4, -0.3],
-    readings: (t) => [["PM2.5", fmt(t?.sensors.pm25_ugm3, 0, " µg/m³")], ["PM10", fmt(t?.sensors.pm10_ugm3, 0, " µg/m³")], ["AQI", fmt(t?.aqi, 0)]],
-  },
-  {
-    id: "mq135", name: "Gas / VOC sensor", hardware: "MQ-135", role: "VOCs and NO₂ (simulated in the demo)",
-    pos: [-0.35, 0.08, 0.25], exploded: [-0.45, 0.35, 0.3],
-    readings: (t) => [["VOC index", fmt(t?.sensors.voc_index, 0)], ["NO₂", fmt(t?.sensors.no2_ppb, 0, " ppb")], ["CO", fmt(t?.sensors.co_ppm, 2, " ppm")]],
-  },
-  {
-    id: "scd40", name: "CO₂ sensor", hardware: "SCD40", role: "CO₂ (simulated in the demo)",
-    pos: [0.25, 0.06, 0.3], exploded: [0.2, 0.5, 0.5],
-    readings: (t) => [["CO₂", fmt(t?.sensors.co2_ppm, 0, " ppm")]],
-  },
-  {
-    id: "bme280", name: "Climate sensor", hardware: "BME280", role: "Temperature, humidity, pressure",
-    pos: [0.62, 0.06, 0.3], exploded: [0.4, 0.45, 0.35],
-    readings: (t) => [["Temp", fmt(t?.sensors.temp_c, 1, " °C")], ["Humidity", fmt(t?.sensors.humidity_pct, 0, " %")], ["Pressure", fmt(t?.sensors.pressure_hpa, 0, " hPa")]],
-  },
-];
-
-function Part({ def, exploded, selected, onSelect, children }: { def: PartDef; exploded: boolean; selected: boolean; onSelect: (id: string) => void; children: ReactNode }) {
-  const ref = useRef<THREE.Group>(null);
-  const [hover, setHover] = useState(false);
-  const target = useMemo(() => new THREE.Vector3(...def.pos), [def.pos]);
-  const explodedTarget = useMemo(() => new THREE.Vector3(...def.pos).add(new THREE.Vector3(...def.exploded)), [def]);
-  useFrame((_, dt) => {
-    if (!ref.current) return;
-    ref.current.position.lerp(exploded ? explodedTarget : target, Math.min(1, dt * 4));
-    const s = selected || hover ? 1.06 : 1;
-    ref.current.scale.lerp(new THREE.Vector3(s, s, s), Math.min(1, dt * 8));
-  });
+function Scene({ view, exploded, vision, spin, part, plant, hq, onPart, onPlant }: {
+  view: View; exploded: boolean; vision: boolean; spin: boolean; part?: string; plant?: number; hq: boolean;
+  onPart: (id: string) => void; onPlant: (tag: number) => void;
+}) {
+  const coinOrigin = useMemo(() => MINER_POS.clone().add(new THREE.Vector3(0, 0.25, 0)), []);
+  const focused = plant !== undefined;
   return (
-    <group
-      ref={ref}
-      position={def.pos}
-      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onSelect(def.id); }}
-      onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = "pointer"; }}
-      onPointerOut={() => { setHover(false); document.body.style.cursor = ""; }}
-    >
-      {children}
-      {(selected || hover) && (
-        <Html position={[0, 0.2, 0]} center style={{ pointerEvents: "none" }}>
-          <div className="pill" style={{ color: "var(--text)" }}>{def.name}</div>
-        </Html>
+    <>
+      <Atmosphere drive />
+      <Studio />
+      <Lights />
+      <Floor reflect={hq} />
+      <Rig vision={vision && !focused && view === "rig"} selected={plant} onSelect={onPlant} />
+      <group position={MINER_POS} rotation={[0, MINER_ROT, 0]}>
+        <Miner exploded={exploded} selected={part} onSelect={onPart} />
+      </group>
+      <Tripod />
+      <VisionCone lens={LENS_WORLD} visible={vision && view === "rig" && !focused} />
+      <Haze />
+      <CleanAir />
+      <MintCoins origin={coinOrigin} />
+      <CameraRig shot={view === "device" && exploded ? "exploded" : view} focus={plant} spin={spin} />
+    </>
+  );
+}
+
+const STATUS_LABEL = { present: "healthy", missing: "missing", removed: "removed", suspect: "suspect" } as const;
+
+function PlantCard({ tag, onClose }: { tag: number; onClose: () => void }) {
+  const rp = rigLayout.plants.find((p) => p.tag_id === tag);
+  const p = useTwin((s) => s.telemetry?.plants.find((x) => x.tag_id === tag));
+  const phys = useTwin((s) => s.physical[tag]);
+  const isMock = useTwin((s) => s.source === "mock");
+  if (!rp) return null;
+  const info = speciesInfo(rp.species);
+  const status = p?.status ?? "missing";
+  const lost = status === "missing" || status === "removed";
+  const rows: [string, string][] = [
+    ["Detected", STATUS_LABEL[status]],
+    ["Leaf area", p && !lost ? `${Math.round(p.leaf_area_cm2)} cm²` : "—"],
+    ["Alive (NDVI)", p && !lost ? p.alive_score.toFixed(2) : "—"],
+    ["Species match", p?.species_conf !== undefined && !lost ? `${Math.round(p.species_conf * 100)} %` : "—"],
+    ["Removal rate", p ? `${p.rate_air_per_h.toFixed(3)} AIR/h` : "—"],
+  ];
+  return (
+    <div className="overlay part-card plant-card">
+      <button className="close" onClick={onClose} aria-label="Close">×</button>
+      <div className="eyebrow">Tag #{tag} · slot {rp.slot + 1}</div>
+      <h3><span className={`status-dot ${status}`} />{speciesName(rp.species)}</h3>
+      {info && <p><i>{info.scientific_name}</i> · {info.main_targets}</p>}
+      <div className="health"><div style={{ width: `${Math.round((lost ? 0 : p?.alive_score ?? 0) * 100)}%` }} className={status} /></div>
+      <div className="kv">{rows.map(([k, v]) => <Fragment key={k}><span>{k}</span><b>{v}</b></Fragment>)}</div>
+      {isMock && (
+        <>
+          <div className="eyebrow" style={{ marginTop: 12 }}>Demo · tamper with this pot</div>
+          <div className="tamper">
+            <button className={phys?.kind === "removed" ? "on" : ""} onClick={() => tamperPlant(tag, "removed")}>Remove pot</button>
+            <button className={phys?.kind === "fake" ? "on" : ""} onClick={() => tamperPlant(tag, "fake")}>Plastic plant</button>
+            <button className={phys?.kind === "swap" ? "on" : ""} onClick={() => tamperPlant(tag, "swap")}>Swap plant</button>
+            <button className="restore" disabled={!phys} onClick={() => tamperPlant(tag, undefined)}>Restore</button>
+          </div>
+        </>
       )}
-    </group>
-  );
-}
-
-function Board({ size, color }: { size: Vec3; color: string }) {
-  return (
-    <mesh castShadow>
-      <boxGeometry args={size} />
-      <meshStandardMaterial color={color} roughness={0.6} metalness={0.1} />
-    </mesh>
-  );
-}
-
-function Chip({ pos, size, color = "#1b1b1b", metal = 0.2 }: { pos: Vec3; size: Vec3; color?: string; metal?: number }) {
-  return (
-    <mesh position={pos} castShadow>
-      <boxGeometry args={size} />
-      <meshStandardMaterial color={color} roughness={0.4} metalness={metal} />
-    </mesh>
-  );
-}
-
-function Bodies({ id, live }: { id: string; live: boolean }) {
-  switch (id) {
-    case "pi":
-      return (
-        <group>
-          <Board size={[0.85, 0.03, 0.56]} color="#1f7a3e" />
-          <Chip pos={[-0.1, 0.03, 0]} size={[0.15, 0.03, 0.15]} color="#c9c9c9" metal={0.8} />
-          <Chip pos={[0.15, 0.03, -0.1]} size={[0.1, 0.02, 0.12]} />
-          <Chip pos={[0.36, 0.06, -0.15]} size={[0.14, 0.09, 0.16]} color="#b8bec4" metal={0.9} />
-          <Chip pos={[0.36, 0.06, 0.12]} size={[0.14, 0.09, 0.16]} color="#b8bec4" metal={0.9} />
-          <Chip pos={[-0.2, 0.025, -0.26]} size={[0.4, 0.04, 0.04]} color="#222" />
-        </group>
-      );
-    case "camera":
-      return (
-        <group>
-          <Board size={[0.25, 0.25, 0.02]} color="#1f7a3e" />
-          <mesh position={[0, 0, 0.05]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.06, 0.07, 0.08, 32]} />
-            <meshStandardMaterial color="#111" metalness={0.5} roughness={0.3} />
-          </mesh>
-          <mesh position={[0, 0, 0.092]}>
-            <circleGeometry args={[0.045, 32]} />
-            <meshStandardMaterial color="#2b4cff" emissive="#1730c0" emissiveIntensity={live ? 0.9 : 0.1} transparent opacity={0.85} />
-          </mesh>
-          <mesh position={[0, -0.25, -0.03]} castShadow>
-            <boxGeometry args={[0.04, 0.3, 0.04]} />
-            <meshStandardMaterial color="#555" metalness={0.6} roughness={0.4} />
-          </mesh>
-        </group>
-      );
-    case "gps":
-      return (
-        <group>
-          <Board size={[0.25, 0.02, 0.3]} color="#1d4fa3" />
-          <Chip pos={[0, 0.03, 0]} size={[0.18, 0.04, 0.18]} color="#d9c9a3" />
-          <Chip pos={[0, 0.055, 0]} size={[0.06, 0.01, 0.06]} color="#c0c0c0" metal={0.9} />
-        </group>
-      );
-    case "pms":
-      return <Chip pos={[0, 0, 0]} size={[0.38, 0.17, 0.3]} color="#b7bcc1" metal={0.85} />;
-    case "mq135":
-      return (
-        <group>
-          <Board size={[0.22, 0.02, 0.2]} color="#1d4fa3" />
-          <mesh position={[0, 0.07, 0]} castShadow>
-            <cylinderGeometry args={[0.07, 0.07, 0.12, 24]} />
-            <meshStandardMaterial color="#9aa1a8" metalness={0.7} roughness={0.5} wireframe={false} />
-          </mesh>
-        </group>
-      );
-    case "scd40":
-      return (
-        <group>
-          <Board size={[0.16, 0.02, 0.16]} color="#2d2d2d" />
-          <Chip pos={[0, 0.025, 0]} size={[0.08, 0.03, 0.08]} color="#c0c0c0" metal={0.9} />
-        </group>
-      );
-    case "bme280":
-      return (
-        <group>
-          <Board size={[0.13, 0.02, 0.11]} color="#6b2fa0" />
-          <Chip pos={[0, 0.02, 0]} size={[0.035, 0.015, 0.035]} color="#c0c0c0" metal={0.9} />
-        </group>
-      );
-    default:
-      return null;
-  }
-}
-
-function Enclosure({ exploded }: { exploded: boolean }) {
-  const lid = useRef<THREE.Mesh>(null);
-  useFrame((_, dt) => {
-    if (!lid.current) return;
-    const y = exploded ? 1.2 : 0.48;
-    lid.current.position.y += (y - lid.current.position.y) * Math.min(1, dt * 4);
-    const m = lid.current.material as THREE.MeshPhysicalMaterial;
-    m.opacity += ((exploded ? 0.06 : 0.16) - m.opacity) * Math.min(1, dt * 4);
-  });
-  return (
-    <group>
-      <RoundedBox args={[1.7, 0.08, 1.2]} radius={0.03} position={[0, -0.3, 0]} receiveShadow>
-        <meshStandardMaterial color="#2a3532" roughness={0.8} />
-      </RoundedBox>
-      <mesh ref={lid} position={[0, 0.48, 0]}>
-        <boxGeometry args={[1.72, 0.04, 1.22]} />
-        <meshPhysicalMaterial color="#9fd8c0" transparent opacity={0.16} roughness={0.1} />
-      </mesh>
-      <mesh position={[0, 0.09, 0]}>
-        <boxGeometry args={[1.7, 0.74, 1.2]} />
-        <meshPhysicalMaterial color="#9fd8c0" transparent opacity={0.05} roughness={0.1} depthWrite={false} />
-      </mesh>
-    </group>
+    </div>
   );
 }
 
 export function MinerModel() {
   const telemetry = useTwin((s) => s.telemetry);
+  const plant = useTwin((s) => s.selectedPlant);
+  const selectPlant = useTwin((s) => s.selectPlant);
+  const [view, setView] = useState<View>("rig");
   const [exploded, setExploded] = useState(false);
-  const [selected, setSelected] = useState<string | undefined>();
+  const [vision, setVision] = useState(true);
   const [spin, setSpin] = useState(true);
-  const part = PARTS.find((p) => p.id === selected);
-  const live = !!telemetry;
+  const [hq, setHq] = useState(true);
+  const [part, setPart] = useState<string | undefined>();
+  const def = PARTS.find((p) => p.id === part);
+  const downAt = useRef<[number, number]>([0, 0]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (plant !== undefined || part) { selectPlant(undefined); setPart(undefined); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [plant, part, selectPlant]);
+
+  // a plant picked elsewhere (grid, camera) brings the twin back to the rig
+  useEffect(() => {
+    if (plant === undefined) return;
+    setPart(undefined);
+    setExploded(false);
+    setView("rig");
+  }, [plant]);
+
+  const selectPart = (id: string) => {
+    selectPlant(undefined);
+    setPart(id);
+    if (view !== "device") setView("device");
+  };
+  const onPlant = (tag: number) => {
+    setPart(undefined);
+    selectPlant(plant === tag ? undefined : tag);
+  };
+  const go = (v: View) => {
+    selectPlant(undefined);
+    setPart(undefined);
+    if (v === "rig") setExploded(false);
+    setView(v);
+  };
 
   return (
-    <>
-      <Canvas shadows camera={{ position: [2.4, 1.9, 2.7], fov: 40 }} onPointerMissed={() => setSelected(undefined)} dpr={[1, 2]}>
-        <color attach="background" args={["#0f1715"]} />
-        <ambientLight intensity={0.55} />
-        <directionalLight position={[3, 5, 2]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={[-3, 2, -2]} intensity={0.4} color="#9fd8c0" />
-        <Enclosure exploded={exploded} />
-        {PARTS.map((def) => (
-          <Part key={def.id} def={def} exploded={exploded} selected={selected === def.id} onSelect={setSelected}>
-            <Bodies id={def.id} live={live} />
-          </Part>
-        ))}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.35, 0]} receiveShadow>
-          <circleGeometry args={[2.4, 48]} />
-          <meshStandardMaterial color="#121b18" />
-        </mesh>
-        <OrbitControls autoRotate={spin && !selected} autoRotateSpeed={0.8} enablePan={false} minDistance={1.6} maxDistance={6} target={[0, 0.05, 0]} />
+    <div className="twin-stage">
+      <Canvas
+        shadows="soft"
+        flat
+        dpr={hq ? [1, 1.75] : 1}
+        gl={{ antialias: false, powerPreference: "high-performance", stencil: false }}
+        camera={{ position: SHOTS.rig.pos.toArray(), fov: 38, near: 0.1, far: 140 }}
+        onPointerDown={(e) => (downAt.current = [e.clientX, e.clientY])}
+        onPointerMissed={(e) => {
+          // only a real click on empty space clears the selection, never the end of a drag
+          if (Math.hypot(e.clientX - downAt.current[0], e.clientY - downAt.current[1]) > 6) return;
+          setPart(undefined);
+          selectPlant(undefined);
+        }}
+      >
+        <PerformanceMonitor onDecline={() => setHq(false)} />
+        <Selection>
+          <Scene view={view} exploded={exploded} vision={vision} spin={spin} part={part} plant={plant} hq={hq} onPart={selectPart} onPlant={onPlant} />
+          <EffectComposer multisampling={hq ? 4 : 0} enableNormalPass={false}>
+            {/* depthAwareUpsampling produces NaN pixels at close range, which bloom then smears over the whole frame */}
+            <N8AO halfRes depthAwareUpsampling={false} aoRadius={0.7} intensity={hq ? 2.2 : 0} distanceFalloff={0.8} quality="performance" />
+            <Outline blur visibleEdgeColor={0xebe8df} hiddenEdgeColor={0x4a5046} edgeStrength={5} width={1200} />
+            <Bloom mipmapBlur luminanceThreshold={1.15} luminanceSmoothing={0.2} intensity={0.85} radius={0.72} />
+            <Vignette offset={0.25} darkness={0.65} />
+            <ToneMapping mode={ToneMappingMode.AGX} />
+          </EffectComposer>
+        </Selection>
       </Canvas>
-      <div className="overlay model-controls">
-        <button className={exploded ? "active" : ""} onClick={() => setExploded((e) => !e)}>{exploded ? "Assemble" : "Explode"}</button>
-        <button className={spin ? "active" : ""} onClick={() => setSpin((s) => !s)}>Rotate</button>
-        <span className="hint">Click a part for live readings</span>
+
+      <div className="overlay twin-toolbar">
+        <div className="seg">
+          <button className={view === "rig" ? "active" : ""} onClick={() => go("rig")}>Rig</button>
+          <button className={view === "device" ? "active" : ""} onClick={() => go("device")}>Device</button>
+        </div>
+        <button className={`toggle ${exploded ? "on" : ""}`} onClick={() => { setExploded((e) => !e); if (view !== "device") setView("device"); selectPlant(undefined); }}>Explode</button>
+        <button className={`toggle ${vision ? "on" : ""}`} onClick={() => setVision((v) => !v)}>Vision</button>
+        <button className={`toggle ${spin ? "on" : ""}`} onClick={() => setSpin((s) => !s)}>Orbit</button>
       </div>
-      {part && (
+      <div className="overlay twin-hud">
+        <span className="hint">{plant !== undefined ? "Esc or click empty space to go back" : view === "rig" ? "Click a plant · drag to orbit · scroll to zoom" : "Click a part for live readings"}</span>
+      </div>
+
+      {def && (
         <div className="overlay part-card">
-          <h3>{part.name}</h3>
-          <p>{part.hardware}<br />{part.role}</p>
+          <button className="close" onClick={() => setPart(undefined)} aria-label="Close">×</button>
+          <div className="eyebrow">{def.hardware}</div>
+          <h3>{def.name}</h3>
+          <p>{def.role}</p>
           <div className="kv">
-            {part.readings(telemetry).map(([k, v]) => (
+            {def.readings(telemetry).map(([k, v]) => (
               <Fragment key={k}><span>{k}</span><b>{v}</b></Fragment>
             ))}
           </div>
         </div>
       )}
-    </>
+      {plant !== undefined && <PlantCard tag={plant} onClose={() => selectPlant(undefined)} />}
+    </div>
   );
 }
