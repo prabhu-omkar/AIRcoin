@@ -21,7 +21,7 @@ Schemas and example payloads: [`../contracts-schema`](../contracts-schema/README
 - **Live feed:** annotated stream (~15 fps, 720p, MJPEG or WebRTC), raw view and NDVI heat-map view. Inference at 1–2 Hz.
 - **Digital twin web app:** 3D miner model (Blender → glTF) with exploded view and live readings per part, a 20-slot plant grid (green healthy / grey missing / red suspect), camera panel, sensor gauges and AQI chart (C2), mint ticker and wallet balance (C4), anti-cheat log, GPS pin on a map.
 
-**Stack:** Raspberry Pi 4/5, Pi Camera Module 3 NoIR Wide + blue gel filter, Python, OpenCV (`cv2.aruco`), MobileNetV3 (no training), React + Vite, react-three-fiber, Leaflet, MQTT over WebSockets.
+**Stack:** Raspberry Pi 4/5, Pi Camera Module 3 NoIR Wide + blue gel filter, Python, OpenCV (`cv2.aruco`), React + Vite, Phaser 4, Web Workers and MQTT over WebSockets. Three.js is lazy-loaded only for Omkar's optional miner-model inspection modal.
 
 ## Suggested layout
 
@@ -34,10 +34,111 @@ vision-twin/
 └── models/     Blender source and exported glTF
 ```
 
+## Delhi city digital twin
+
+The main twin is a detailed 2D Phaser isometric Delhi simulation inspired by the team's before/after concept art:
+
+- pan and zoom around a city containing dense apartments, mixed-use markets, a school, offices, regulator, Delhi Metro and industrial sites;
+- select a building to focus its camera and inspect its plant miner;
+- install plants on eligible rooftops and see the instanced vegetation grow;
+- switch between polluted Delhi and AIRcoin Delhi while AQI, emissions, removal and rewards react;
+- open the building-level miner inspection view for live C2/C4 proof data.
+
+The scene is built to remain smooth on ordinary laptops. Seventeen buildings, vehicles and props
+share a 603 KiB WebP atlas; ground geometry is static; traffic, metro and pollution objects are
+pooled; camera culling and depth sorting are handled by Phaser; simulation runs in a Web Worker;
+MQTT and the miner-model viewer are lazy chunks. Twenty-nine Arcade Physics vehicles follow four
+lanes, obey a signal phase and maintain a car-following gap. Factory stack plumes and vehicle
+exhaust respond to simulated wind. An FPS sampler automatically reduces decorative trees, street
+props and pollution particles on weaker devices and restores detail after sustained recovery.
+
+The AQI panel is explicitly simulated, not regulatory monitoring. Its worker uses a simplified
+urban box model with traffic and industrial sources, ventilation, deposition and a small local
+plant-removal term. Rooftop miners earn AIR from measured PM2.5-equivalent removal; a few rooftops
+are not presented as directly changing Delhi's citywide AQI.
+
+Art rules live in `twin/STYLE.md`. Source art lives outside `public/`; `npm run assets` crops,
+downscales, packs and validates the runtime atlas. AWS S3/CloudFront notes are in
+`twin/AWS-DEPLOY.md`.
+
+To use Omkar's exported model, optimize it as a single shared-material GLB, place it at
+`twin/public/models/aircoin-miner.glb`, copy `twin/.env.example` to `twin/.env`, and leave
+`VITE_MINER_MODEL_URL=/models/aircoin-miner.glb`. Without that environment setting, the checked-in
+procedural miner remains the fallback.
+
 ## Running locally
 
 ```bash
 docker compose up -d mqtt          # from the repo root: mqtt://localhost:1883, ws://localhost:9001
+```
+
+Install Omkar's workstream once:
+
+```bash
+cd vision-twin
+python -m pip install -r requirements.txt
+cd twin && npm install
+```
+
+Run the complete mock-driven Phase 1 demo in separate terminals:
+
+```bash
+# Terminal 1, repo root
+docker compose up -d mqtt
+
+# Terminal 2, C2 telemetry + epoch data
+cd miner-core
+python -m mock.c2_emitter --scenario rush_hour --cycle 3 --drop 7 --fake 12
+
+# Terminal 3, C4 balance + mint API
+cd chain-market
+npm run dev:mock
+
+# Terminal 4, digital twin at http://localhost:5174
+cd vision-twin/twin
+npm run dev
+```
+
+The dashboard connects to MQTT over WebSockets on port 9001 and the C4 mock on port 3004. If
+either is unavailable it stays usable with clearly labelled demo data. Override the endpoints by
+copying `twin/.env.example` to `twin/.env`.
+
+Publish Omkar's own C1 mock (all fault switches may be combined):
+
+```bash
+cd vision-twin
+python -m mock.emitter --drop 7 --fake 12 --swap 5 --unknown 42
+```
+
+Run the real camera pipeline (camera index `0`, one analysed frame per second):
+
+```bash
+cd vision-twin
+python -m pipeline.run --camera 0 --source laptop_camera --preview
+```
+
+Generate print-ready tag images (IDs 0-19 plus unknown spare ID 42):
+
+```bash
+python -m pipeline.generate_markers --output markers
+```
+
+Print the marker itself at 45 mm square with no scaling/cropping and keep the white border.
+
+For a Raspberry Pi use `--source pi_camera`. A recorded video path can be passed to `--camera`
+with `--source recorded`. Enrol a reference plant with
+`python -m enrol.enrol TAG_ID SPECIES path/to/crop.jpg`; the resulting colour feature vector is
+used for per-frame plant matching.
+
+## Verification
+
+```bash
+cd vision-twin
+python -m pytest -q
+python -m mock.emitter --dry-run --count 1 --record sample.jsonl
+python ../contracts-schema/scripts/validate.py c1-vision-event sample.jsonl
+cd ../miner-core && python -m minerd c1check ../vision-twin/sample.jsonl
+cd ../vision-twin/twin && npm run build
 ```
 
 Until miner-core and chain-market are live, drive the twin from the example payloads in `contracts-schema/examples/valid/` (`c2-telemetry.json`, `c2-epoch.json`, `c4-*.json`) or the other workstreams' mock emitters. Validate what you publish:
@@ -50,9 +151,12 @@ python contracts-schema/scripts/validate.py c1-vision-event my-c1-message.json
 
 **Phase 1 · Foundations**
 - [ ] 20 of 20 stickers detected at the rig distance in normal room light
-- [ ] 3D miner model renders in the browser and rotates smoothly
-- [ ] Twin shows mock sensor and mint data updating every second
-- [ ] C1 mock emitter shipped
+- [x] 3D miner model renders in the browser and rotates smoothly
+- [x] Twin shows mock sensor and mint data updating every second
+- [x] C1 mock emitter shipped
+
+The remaining Phase 1 checkbox requires Omkar's physical 4 × 5 rig, printed markers and camera;
+the implemented detector is ready for that acceptance test but software alone cannot certify it.
 
 **Phase 2 · Integration**
 - [ ] Swapped plant flagged in at least 4 of 5 tries

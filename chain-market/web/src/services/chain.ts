@@ -153,3 +153,50 @@ export async function registerMinerOnChain(
     return { success: false, error: err.message };
   }
 }
+
+export async function setMinerActiveOnChain(
+  adminPrivateKey: string, minerIdStr: string, active: boolean
+) {
+  try {
+    const signer = getSigner(adminPrivateKey);
+    const registry = new ethers.Contract(DEFAULT_DEPLOYMENTS.MinerRegistry, CONTRACT_ABIS.MinerRegistry, signer);
+    const minerId = ethers.keccak256(ethers.toUtf8Bytes(minerIdStr));
+    const tx = active ? await registry.reactivateMiner(minerId) : await registry.suspendMiner(minerId);
+    const receipt = await tx.wait();
+    return { success: true, txHash: receipt.hash };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function setObligationOnChain(
+  adminPrivateKey: string, company: string, period: string, amountAir: string
+) {
+  try {
+    const signer = getSigner(adminPrivateKey);
+    const compliance = new ethers.Contract(
+      DEFAULT_DEPLOYMENTS.ComplianceRegistry, CONTRACT_ABIS.ComplianceRegistry, signer
+    );
+    const tx = await compliance.setObligation(company, period, ethers.parseEther(amountAir));
+    const receipt = await tx.wait();
+    return { success: true, txHash: receipt.hash };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getObligation(company: string, period: string) {
+  try {
+    const compliance = new ethers.Contract(
+      DEFAULT_DEPLOYMENTS.ComplianceRegistry, CONTRACT_ABIS.ComplianceRegistry, getProvider()
+    );
+    const [amount, burnedToDate, exists] = await compliance.getObligation(company, period);
+    return {
+      exists: Boolean(exists),
+      amount: ethers.formatEther(amount),
+      burnedToDate: ethers.formatEther(burnedToDate),
+    };
+  } catch {
+    return null;
+  }
+}

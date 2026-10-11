@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useWallet } from "../../context/WalletContext";
 import { fetchRejections, fetchTotals } from "../../services/api";
-import { registerMinerOnChain } from "../../services/chain";
+import { registerMinerOnChain, setMinerActiveOnChain, setObligationOnChain } from "../../services/chain";
 import { RejectionRecord, MinerApplication } from "../../types";
 import { Button } from "../ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
@@ -127,7 +127,7 @@ export const AdminPortal: React.FC = () => {
     const stickerStart = miners.length * 20;
 
     if (currentWallet.privateKey) {
-      await registerMinerOnChain(
+      const result = await registerMinerOnChain(
         currentWallet.privateKey,
         newMinerId,
         mockDeviceAddress,
@@ -135,6 +135,10 @@ export const AdminPortal: React.FC = () => {
         Array.from({ length: 20 }, (_, i) => stickerStart + i),
         app.geohash
       );
+      if (!result.success) {
+        showToast(result.error || "On-chain registration failed", "error");
+        return;
+      }
     }
 
     setMiners([
@@ -153,7 +157,15 @@ export const AdminPortal: React.FC = () => {
     showToast(`Approved ${app.id} as ${newMinerId}`, "success");
   };
 
-  const handleToggleSuspend = (minerId: string) => {
+  const handleToggleSuspend = async (minerId: string) => {
+    const miner = miners.find((m) => m.id === minerId);
+    if (!miner || !currentWallet.privateKey) return;
+    const makeActive = miner.status !== "active";
+    const result = await setMinerActiveOnChain(currentWallet.privateKey, minerId, makeActive);
+    if (!result.success) {
+      showToast(result.error || "On-chain status update failed", "error");
+      return;
+    }
     setMiners(
       miners.map((m) =>
         m.id === minerId
@@ -164,9 +176,17 @@ export const AdminPortal: React.FC = () => {
     showToast(`Updated status for ${minerId}`, "info");
   };
 
-  const handleSetObligation = (e: React.FormEvent) => {
+  const handleSetObligation = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast(`Statutory quota set: ${obligAmount} AIR for ${obligPeriod}`, "success");
+    if (!currentWallet.privateKey) return;
+    const result = await setObligationOnChain(
+      currentWallet.privateKey, obligCompany, obligPeriod, obligAmount
+    );
+    showToast(
+      result.success ? `Statutory quota set on-chain: ${obligAmount} AIR for ${obligPeriod}`
+        : result.error || "On-chain obligation update failed",
+      result.success ? "success" : "error"
+    );
   };
 
   return (

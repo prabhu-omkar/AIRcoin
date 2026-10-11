@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useWallet } from "../../context/WalletContext";
 import { CertificateModal } from "../CertificateModal";
-import { burnForCompliance, buyListing } from "../../services/chain";
+import { burnForCompliance, buyListing, getObligation } from "../../services/chain";
 import { fetchListings, fetchBurns } from "../../services/api";
 import { BurnItem, MarketplaceListing } from "../../types";
 import { Button } from "../ui/button";
@@ -60,6 +60,11 @@ export const CompanyPortal: React.FC = () => {
 
   useEffect(() => {
     async function loadData() {
+      const obligation = await getObligation(currentWallet.address, obligationPeriod);
+      if (obligation?.exists) {
+        setTotalObligation(parseFloat(obligation.amount));
+        setBurnedToDate(parseFloat(obligation.burnedToDate));
+      }
       const burnsData = await fetchBurns();
       if (burnsData && burnsData.length > 0) {
         setBurns(burnsData);
