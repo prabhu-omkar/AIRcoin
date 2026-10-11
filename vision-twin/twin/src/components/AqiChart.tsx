@@ -17,7 +17,7 @@ export function AqiChart() {
   const ticks = [0, maxY / 2, maxY].map((v) => Math.round(v));
 
   return (
-    <section className="panel" style={{ flex: "0 0 auto" }}>
+    <section className="panel area-chart">
       <h2>
         Air quality
         <span className="right legend">

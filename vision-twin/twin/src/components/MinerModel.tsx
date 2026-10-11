@@ -10,15 +10,14 @@ import { Miner, PARTS } from "./twin3d/Miner";
 import { Rig, slotPosition } from "./twin3d/Rig";
 import { Atmosphere, Floor, Lights, MINER_POS, MINER_ROT, Studio, Tripod } from "./twin3d/Stage";
 
-type View = "rig" | "device" | "exploded";
+type View = "rig" | "device";
 
 const SHOTS: Record<View, { pos: THREE.Vector3; target: THREE.Vector3 }> = {
-  rig: { pos: new THREE.Vector3(9.5, 8.8, 25), target: new THREE.Vector3(0, 6.1, 2) },
+  rig: { pos: new THREE.Vector3(10.8, 8.5, 27), target: new THREE.Vector3(0, 5.3, 1.6) },
   device: { pos: MINER_POS.clone().add(new THREE.Vector3(-3.4, 1.9, -3.9)), target: MINER_POS.clone().add(new THREE.Vector3(0, 0, 0)) },
-  exploded: { pos: MINER_POS.clone().add(new THREE.Vector3(-4.6, 3.4, -5.6)), target: MINER_POS.clone().add(new THREE.Vector3(0, 0.5, 0)) },
 };
 
-function CameraRig({ view, focus }: { view: View; focus?: number }) {
+function CameraRig({ view, focus, enabled = true }: { view: View; focus?: number; enabled?: boolean }) {
   const ref = useRef<CameraControls>(null);
   useEffect(() => {
     const c = ref.current;
@@ -32,7 +31,7 @@ function CameraRig({ view, focus }: { view: View; focus?: number }) {
     const v = SHOTS[view];
     c.setLookAt(v.pos.x, v.pos.y, v.pos.z, v.target.x, v.target.y, v.target.z, true);
   }, [view, focus]);
-  return <CameraControls ref={ref} makeDefault minDistance={1.2} maxDistance={40} maxPolarAngle={Math.PI / 2 - 0.04} smoothTime={0.6} />;
+  return <CameraControls ref={ref} makeDefault enabled={enabled} minDistance={1.2} maxDistance={40} maxPolarAngle={Math.PI / 2 - 0.04} smoothTime={0.6} />;
 }
 
 const STATUS_LABEL = { present: "Healthy", missing: "Missing", removed: "Removed", suspect: "Suspect" } as const;
@@ -67,9 +66,8 @@ export function MinerModel() {
   const plant = useTwin((s) => s.selectedPlant);
   const selectPlant = useTwin((s) => s.selectPlant);
   const [view, setView] = useState<View>("rig");
-  const [vision, setVision] = useState(true);
-  const [exploded, setExploded] = useState(false);
   const [part, setPart] = useState<string | undefined>();
+  const [dragging, setDragging] = useState(false);
   const downAt = useRef<[number, number]>([0, 0]);
   const def = PARTS.find((p) => p.id === part);
 
@@ -93,7 +91,6 @@ export function MinerModel() {
   const go = (v: View) => {
     selectPlant(undefined);
     setPart(undefined);
-    setExploded(false);
     setView(v);
   };
 
@@ -114,24 +111,22 @@ export function MinerModel() {
         <Studio />
         <Lights />
         <Floor />
-        <Rig vision={vision && view === "rig" && plant === undefined} selected={plant} onSelect={(t) => { setPart(undefined); selectPlant(plant === t ? undefined : t); }} />
+        <Rig interactive={view === "rig"} onDragChange={setDragging} vision={view === "rig" && plant === undefined} selected={plant} onSelect={(t) => { setPart(undefined); selectPlant(plant === t ? undefined : t); }} />
         <group position={MINER_POS} rotation={[0, MINER_ROT, 0]}>
-          <Miner exploded={exploded} selected={part} onSelect={(id) => { selectPlant(undefined); setPart(id); if (view === "rig") setView("device"); }} />
+          <Miner exploded={view === "device"} selected={part} onSelect={(id) => { selectPlant(undefined); setPart(id); setView("device"); }} />
         </group>
         <Tripod />
-        <CameraRig view={exploded ? "exploded" : view} focus={plant} />
+        <CameraRig view={view} focus={plant} enabled={!dragging} />
       </Canvas>
 
       <div className="overlay twin-toolbar">
         <div className="seg">
-          <button className={view === "rig" ? "active" : ""} onClick={() => go("rig")}>Rig</button>
-          <button className={view !== "rig" ? "active" : ""} onClick={() => go("device")}>Device</button>
+          <button className={view === "rig" ? "active" : ""} onClick={() => go("rig")}>Digital twin</button>
+          <button className={view === "device" ? "active" : ""} onClick={() => go("device")}>Device exploded</button>
         </div>
-        {view === "rig" && <button className={vision ? "active" : ""} onClick={() => setVision((v) => !v)}>Detections</button>}
-        {view !== "rig" && <button className={exploded ? "active" : ""} onClick={() => setExploded((e) => !e)}>{exploded ? "Assemble" : "Exploded view"}</button>}
       </div>
       <div className="overlay twin-hud">
-        <span className="hint">{plant !== undefined ? "Esc to go back" : view === "rig" ? "Click a plant · drag to orbit" : "Click a part for its readings"}</span>
+        <span className="hint">{dragging ? "Release to drop" : plant !== undefined ? "Esc to go back" : view === "rig" ? "Drag a pot away, or drag a fake plant onto a slot" : "Click a part for its readings"}</span>
       </div>
 
       {def && (

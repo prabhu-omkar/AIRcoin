@@ -1,11 +1,11 @@
 // The physical rig: a 4 x 5 plant rack, one pot per tagged slot, each driven by the C2 plant status.
-import { Html } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { rigLayout, type RigPlant } from "../../config";
 import type { PlantStatus, TelemetryPlant } from "../../contracts";
 import { useTwin } from "../../store";
+import { setDemoPlant } from "../../sources";
 import { easeInOut, easeOut, makePlantMaterial, STATUS_COLOR } from "./materials";
 import { buildPlant } from "./plants";
 import { markerTexture, noiseTexture, woodTexture } from "./textures";
@@ -62,7 +62,6 @@ const potGeometry = (() => {
 const soilGeometry = new THREE.CircleGeometry(RIG.potR * 0.91, 32).rotateX(-Math.PI / 2).translate(0, -0.05, 0);
 const stickerGeometry = new THREE.PlaneGeometry(STICKER.w, STICKER.h);
 const ringGeometry = new THREE.RingGeometry(RIG.potR * 1.15, RIG.potR * 1.32, 48).rotateX(-Math.PI / 2);
-const ledGeometry = new THREE.BoxGeometry(0.55, 0.05, 0.02);
 const scarGeometry = new THREE.CircleGeometry(RIG.potR * 0.78, 32).rotateX(-Math.PI / 2);
 
 let shared: ReturnType<typeof makeShared> | undefined;
@@ -142,6 +141,7 @@ export const PLANT_LAYER = 1;
 const NDVI_LOW = new THREE.Color("#2340a0");
 const NDVI_MID = new THREE.Color("#e8d33a");
 const NDVI_HIGH = new THREE.Color("#2fbf4a");
+const DRAG_PLANE = new THREE.Plane(new THREE.Vector3(0, 0, 1), -1.7);
 /** NDVI false colour: blue = no living tissue (plastic), yellow = weak, green = healthy. */
 function ndviColour(alive: number, out: THREE.Color) {
   return alive < 0.5 ? out.copy(NDVI_LOW).lerp(NDVI_MID, alive * 2) : out.copy(NDVI_MID).lerp(NDVI_HIGH, (alive - 0.5) * 2);
@@ -154,40 +154,36 @@ interface SlotProps {
   labels: boolean;
   ndvi: boolean;
   onSelect?: (tag: number) => void;
+  onDragChange?: (dragging: boolean) => void;
+  covered?: boolean;
 }
 
-function PlantSlot({ rp, vision, selected, labels, ndvi, onSelect }: SlotProps) {
+function PlantSlot({ rp, vision: _vision, selected, labels: _labels, ndvi, onSelect, onDragChange, covered = false }: SlotProps) {
   const m = useShared();
   const p = useTwin((s) => s.telemetry?.plants.find((x) => x.tag_id === rp.tag_id));
   const status: PlantStatus = p?.status ?? "missing";
-  const lost = status === "missing" || status === "removed";
-  const pos = useMemo(() => slotPosition(rp.slot), [rp.slot]);
+  const home = useMemo(() => slotPosition(rp.slot), [rp.slot]);
+  const storedPosition = useTwin((s) => s.scenePositions[rp.tag_id]);
+  const lost = (status === "missing" || status === "removed") && !storedPosition;
+  const setScenePosition = useTwin((s) => s.setScenePosition);
+  const setDemoOverride = useTwin((s) => s.setDemoOverride);
+  const pos = useMemo(() => storedPosition ? new THREE.Vector3(...storedPosition) : home, [storedPosition, home]);
   const model = useMemo(() => buildPlant(rp.species, rp.tag_id + 1, RIG.potR), [rp.species, rp.tag_id]);
   const mat = useMemo(() => makePlantMaterial(), []);
   const ndviMat = useMemo(() => new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), []);
   const ghostMat = useMemo(() => new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }), []);
-  const ledMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#111", emissive: STATUS_COLOR.present.clone(), emissiveIntensity: 2, toneMapped: false }), []);
   const ringMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#f4f4f5", transparent: true, opacity: 0, depthWrite: false }), []);
   const stickerMat = useMemo(() => new THREE.MeshStandardMaterial({ map: markerTexture(rp.tag_id), roughness: 0.45 }), [rp.tag_id]);
-  const bracket = useMemo(() => {
-    const w = 1.0;
-    const top = PLANT_MAX_H + 0.25;
-    const bot = -RIG.potH + 0.05;
-    const k = 0.22;
-    const c = [
-      [-w, top, -w + k, top], [-w, top, -w, top - k], [w, top, w - k, top], [w, top, w, top - k],
-      [-w, bot, -w + k, bot], [-w, bot, -w, bot + k], [w, bot, w - k, bot], [w, bot, w, bot + k],
-    ];
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(c.flatMap(([x0, y0, x1, y1]) => [x0, y0, 0, x1, y1, 0]), 3));
-    return { geometry: g, material: new THREE.LineBasicMaterial({ transparent: true }), top };
-  }, []);
 
   const potRef = useRef<THREE.Group>(null);
+  const rootRef = useRef<THREE.Group>(null);
   const ghostRef = useRef<THREE.Group>(null);
+  const dragging = useRef(false);
+  const dragOffset = useRef(new THREE.Vector3());
   // 0 = pot on the shelf, 1 = lifted away; eased towards the reported status
   const away = useRef(lost ? 1 : 0);
   const scale = sizeScale(p, model.height);
+  useEffect(() => { if (!dragging.current) rootRef.current?.position.copy(pos); }, [pos]);
 
   useFrame(({ clock }, dt0) => {
     const dt = Math.min(dt0, 0.1);
@@ -195,10 +191,18 @@ function PlantSlot({ rp, vision, selected, labels, ndvi, onSelect }: SlotProps) 
     away.current = THREE.MathUtils.clamp(away.current + (lost ? 1 : -1) * (dt / MOVE_S), 0, 1);
     const a = away.current;
     const e = lost ? easeInOut(a) : 1 - easeOut(1 - a);
+    const isMoved = Boolean(storedPosition) || dragging.current;
+    const isCovered = covered && !isMoved;
     if (potRef.current) {
-      potRef.current.position.set(0, e * LIFT, e * 1.4);
-      potRef.current.scale.setScalar(Math.max(0.001, 1 - Math.max(0, a - 0.6) / 0.4));
-      potRef.current.visible = a < 0.999;
+      if (isMoved) {
+        potRef.current.position.set(0, 0, 0);
+        potRef.current.scale.setScalar(1);
+        potRef.current.visible = true;
+      } else {
+        potRef.current.position.set(0, e * LIFT, e * 1.4);
+        potRef.current.scale.setScalar(Math.max(0.001, 1 - Math.max(0, a - 0.6) / 0.4));
+        potRef.current.visible = !isCovered && a < 0.999;
+      }
     }
     const alive = p?.alive_score ?? 1;
     const u = mat.userData.u;
@@ -209,9 +213,6 @@ function PlantSlot({ rp, vision, selected, labels, ndvi, onSelect }: SlotProps) 
     ghostMat.opacity += ((lost ? 0.1 : 0) - ghostMat.opacity) * k;
     ghostMat.color.copy(STATUS_COLOR[status]);
     if (ghostRef.current) ghostRef.current.visible = ghostMat.opacity > 0.01;
-    ledMat.emissive.lerp(STATUS_COLOR[status], k);
-    bracket.material.color.copy(STATUS_COLOR[status]);
-    bracket.material.opacity = selected ? 1 : 0.7;
     ringMat.opacity += ((selected ? 0.6 + 0.2 * Math.sin(clock.elapsedTime * 4) : 0) - ringMat.opacity) * k;
   });
 
@@ -221,10 +222,60 @@ function PlantSlot({ rp, vision, selected, labels, ndvi, onSelect }: SlotProps) 
     onSelect(rp.tag_id);
   };
 
+  const pointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (!onSelect || e.button !== 0) return;
+    e.stopPropagation();
+    const hit = new THREE.Vector3();
+    if (!e.ray.intersectPlane(DRAG_PLANE, hit)) return;
+    dragging.current = true;
+    dragOffset.current.copy(rootRef.current?.position ?? pos).sub(hit);
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    onDragChange?.(true);
+    document.body.style.cursor = "grabbing";
+  };
+  const pointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current || !rootRef.current) return;
+    e.stopPropagation();
+    const hit = new THREE.Vector3();
+    if (e.ray.intersectPlane(DRAG_PLANE, hit)) rootRef.current.position.copy(hit.add(dragOffset.current));
+  };
+  const pointerUp = (e: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current || !rootRef.current) return;
+    e.stopPropagation();
+    dragging.current = false;
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    onDragChange?.(false);
+    document.body.style.cursor = "grab";
+    const at = rootRef.current.position.clone();
+    const target = rigLayout.plants
+      .map((plant) => ({ plant, distance: Math.hypot(slotPosition(plant.slot).x - at.x, slotPosition(plant.slot).y - at.y) }))
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (target && target.distance < 1.05 && target.plant.slot === rp.slot) {
+      rootRef.current.position.copy(home);
+      setScenePosition(rp.tag_id, undefined);
+      setDemoOverride(rp.tag_id, undefined);
+      void setDemoPlant(rp.tag_id, undefined);
+    } else if (target && target.distance < 1.05) {
+      const placed = slotPosition(target.plant.slot).add(new THREE.Vector3(0, 0, 0.95));
+      rootRef.current.position.copy(placed);
+      setScenePosition(rp.tag_id, [placed.x, placed.y, placed.z]);
+      setDemoOverride(rp.tag_id, "swap");
+      void setDemoPlant(rp.tag_id, "swap");
+    } else {
+      setScenePosition(rp.tag_id, [at.x, at.y, at.z]);
+      setDemoOverride(rp.tag_id, "removed");
+      void setDemoPlant(rp.tag_id, "removed");
+    }
+  };
+
   return (
     <group
+      ref={rootRef}
       position={pos}
       onClick={click}
+      onPointerDown={pointerDown}
+      onPointerMove={pointerMove}
+      onPointerUp={pointerUp}
       onPointerOver={(e) => { if (onSelect) { e.stopPropagation(); document.body.style.cursor = "pointer"; } }}
       onPointerOut={() => (document.body.style.cursor = "")}
     >
@@ -239,29 +290,104 @@ function PlantSlot({ rp, vision, selected, labels, ndvi, onSelect }: SlotProps) 
         <mesh geometry={potGeometry} material={ghostMat} />
         <mesh geometry={model.geometry} material={ghostMat} position={[0, -0.04, 0]} scale={scale} />
       </group>
-      <mesh geometry={ledGeometry} position={[0, -RIG.potH - 0.1, RIG.plankDepth / 2 + 0.045]} material={ledMat} />
       <mesh geometry={ringGeometry} position={[0, -RIG.potH + 0.012, 0]} material={ringMat} />
-      {vision && labels && (
-        <group position={[0, 0, RIG.potR + 0.1]}>
-          <lineSegments geometry={bracket.geometry} material={bracket.material} />
-          {(selected || status !== "present") && (
-            <Html position={[-1.0, bracket.top + 0.12, 0]} style={{ pointerEvents: "none" }} zIndexRange={[5, 0]}>
-              <div className={`vision-tag ${status}`}>#{rp.tag_id} · {status}</div>
-            </Html>
-          )}
-        </group>
-      )}
     </group>
   );
 }
 
-export function Rig({ vision, selected, onSelect, labels = true, ndvi = false }: { vision: boolean; selected?: number; onSelect?: (tag: number) => void; labels?: boolean; ndvi?: boolean }) {
+const FAKE_POSITIONS = [-2.2, 0, 2.2];
+
+function FakePlant({ index, slot, onDragChange }: { index: number; slot?: number; onDragChange?: (dragging: boolean) => void }) {
+  const home = useMemo(() => slot === undefined ? new THREE.Vector3(FAKE_POSITIONS[index], 0.88, 2.2) : slotPosition(slot), [index, slot]);
+  const root = useRef<THREE.Group>(null);
+  const dragging = useRef(false);
+  const offset = useRef(new THREE.Vector3());
+  const species = rigLayout.plants[(index * 7 + 2) % rigLayout.plants.length].species;
+  const model = useMemo(() => buildPlant(species, 700 + index, RIG.potR), [species, index]);
+  const plastic = useMemo(() => new THREE.MeshStandardMaterial({ color: index === 1 ? "#42d878" : "#37b968", roughness: 0.18, metalness: 0.08 }), [index]);
+  const pot = useMemo(() => new THREE.MeshStandardMaterial({ color: "#232c27", roughness: 0.35 }), []);
+  const targetPlant = slot === undefined ? undefined : rigLayout.plants.find((plant) => plant.slot === slot);
+  const stickerMat = useMemo(() => targetPlant ? new THREE.MeshStandardMaterial({ map: markerTexture(targetPlant.tag_id), roughness: 0.2 }) : undefined, [targetPlant?.tag_id]);
+  const setSceneFakeSlot = useTwin((s) => s.setSceneFakeSlot);
+  const setDemoOverride = useTwin((s) => s.setDemoOverride);
+  useEffect(() => { root.current?.position.copy(home); }, [home]);
+  const down = (e: ThreeEvent<PointerEvent>) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const hit = new THREE.Vector3();
+    if (!e.ray.intersectPlane(DRAG_PLANE, hit)) return;
+    dragging.current = true;
+    offset.current.copy(home).sub(hit);
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    onDragChange?.(true);
+    document.body.style.cursor = "grabbing";
+  };
+  const move = (e: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current || !root.current) return;
+    e.stopPropagation();
+    const hit = new THREE.Vector3();
+    if (e.ray.intersectPlane(DRAG_PLANE, hit)) root.current.position.copy(hit.add(offset.current));
+  };
+  const up = (e: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current || !root.current) return;
+    e.stopPropagation();
+    dragging.current = false;
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    onDragChange?.(false);
+    const at = root.current.position;
+    const target = rigLayout.plants
+      .map((plant) => ({ plant, distance: Math.hypot(slotPosition(plant.slot).x - at.x, slotPosition(plant.slot).y - at.y) }))
+      .sort((a, b) => a.distance - b.distance)[0];
+    const previous = slot === undefined ? undefined : rigLayout.plants.find((plant) => plant.slot === slot);
+    if (previous && (!target || target.plant.slot !== slot)) {
+      setDemoOverride(previous.tag_id, undefined);
+      void setDemoPlant(previous.tag_id, undefined);
+    }
+    if (target && target.distance < 1.15) {
+      setSceneFakeSlot(index, target.plant.slot);
+      setDemoOverride(target.plant.tag_id, "fake");
+      void setDemoPlant(target.plant.tag_id, "fake");
+      root.current.position.copy(slotPosition(target.plant.slot));
+    } else {
+      setSceneFakeSlot(index, undefined);
+      root.current.position.set(FAKE_POSITIONS[index], 0.88, 2.2);
+    }
+    document.body.style.cursor = "grab";
+  };
+  return (
+    <group ref={root} position={home} onPointerDown={down} onPointerMove={move} onPointerUp={up}
+      onPointerOver={() => (document.body.style.cursor = "grab")} onPointerOut={() => { if (!dragging.current) document.body.style.cursor = ""; }}>
+      <mesh geometry={potGeometry} material={pot} castShadow />
+      <mesh geometry={soilGeometry} material={pot} />
+      {stickerMat && <mesh geometry={stickerGeometry} position={[0, STICKER.y, STICKER.z]} rotation={[STICKER.tilt, 0, 0]} material={stickerMat} />}
+      <mesh geometry={model.geometry} material={plastic} position={[0, -0.04, 0]} scale={Math.min(1.15, PLANT_MAX_H / model.height)} castShadow />
+    </group>
+  );
+}
+
+function FakePlantTray({ onDragChange }: { onDragChange?: (dragging: boolean) => void }) {
+  const material = useMemo(() => new THREE.MeshStandardMaterial({ color: "#171f1b", metalness: 0.5, roughness: 0.5 }), []);
+  const placements = useTwin((s) => s.sceneFakeSlots);
+  return (
+    <group>
+      <mesh position={[0, 0.08, 2.2]} material={material} castShadow receiveShadow>
+        <boxGeometry args={[6.2, 0.16, 1.5]} />
+      </mesh>
+      {FAKE_POSITIONS.map((_, index) => <FakePlant key={index} index={index} slot={placements[index]} onDragChange={onDragChange} />)}
+    </group>
+  );
+}
+
+export function Rig({ vision, selected, onSelect, labels = true, ndvi = false, interactive = false, showFakes = false, onDragChange }: { vision: boolean; selected?: number; onSelect?: (tag: number) => void; labels?: boolean; ndvi?: boolean; interactive?: boolean; showFakes?: boolean; onDragChange?: (dragging: boolean) => void }) {
+  const placements = useTwin((s) => s.sceneFakeSlots);
+  const fakeSlots = new Set(Object.values(placements).filter((value): value is number => value !== undefined));
   return (
     <group>
       <Shelf />
       {rigLayout.plants.map((rp) => (
-        <PlantSlot key={rp.tag_id} rp={rp} vision={vision} selected={selected === rp.tag_id} onSelect={onSelect} labels={labels} ndvi={ndvi} />
+        <PlantSlot key={rp.tag_id} rp={rp} vision={vision} selected={selected === rp.tag_id} onSelect={interactive ? onSelect : undefined} labels={labels} ndvi={ndvi} onDragChange={onDragChange} covered={fakeSlots.has(rp.slot)} />
       ))}
+      {(interactive || showFakes) && <FakePlantTray onDragChange={interactive ? onDragChange : undefined} />}
     </group>
   );
 }

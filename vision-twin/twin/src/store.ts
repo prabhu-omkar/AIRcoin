@@ -1,6 +1,6 @@
 // App state, fed by a data source (mock or live). Components only read from here.
 import { create } from "zustand";
-import type { AnticheatFlag, Balance, ChainEvent, EpochSummary, Mint, Telemetry } from "./contracts";
+import type { AnticheatFlag, Balance, ChainEvent, EpochSummary, Mint, PlantStatus, Telemetry } from "./contracts";
 
 
 export type LinkState = "connecting" | "online" | "offline" | "error";
@@ -20,6 +20,9 @@ export interface HistoryPoint {
   pm10: number;
 }
 
+export type DemoPlantOverride = "removed" | "fake" | "swap";
+export type ScenePosition = [number, number, number];
+
 interface TwinState {
   source: "mock" | "live";
   links: { c2: LinkState; c4: LinkState };
@@ -31,7 +34,13 @@ interface TwinState {
   mints: Mint[]; // newest first
   log: LogEntry[]; // newest first
   selectedPlant?: number;
+  scenePositions: Record<number, ScenePosition>;
+  sceneFakeSlots: Record<number, number | undefined>;
+  demoOverrides: Record<number, { kind: DemoPlantOverride; since: number }>;
   selectPlant: (tag: number | undefined) => void;
+  setScenePosition: (tag: number, position?: ScenePosition) => void;
+  setSceneFakeSlot: (index: number, slot?: number) => void;
+  setDemoOverride: (tag: number, kind?: DemoPlantOverride) => void;
   setLink: (key: "c2" | "c4", state: LinkState) => void;
   onTelemetry: (t: Telemetry) => void;
   onEpoch: (e: EpochSummary) => void;
@@ -60,13 +69,38 @@ export const useTwin = create<TwinState>((set, get) => ({
   epochs: [],
   mints: [],
   log: [],
+  scenePositions: {},
+  sceneFakeSlots: {},
+  demoOverrides: {},
 
   selectPlant: (tag) => set({ selectedPlant: tag }),
+  setScenePosition: (tag, position) => set((s) => {
+    const scenePositions = { ...s.scenePositions };
+    if (position) scenePositions[tag] = position; else delete scenePositions[tag];
+    return { scenePositions };
+  }),
+  setSceneFakeSlot: (index, slot) => set((s) => ({ sceneFakeSlots: { ...s.sceneFakeSlots, [index]: slot } })),
+  setDemoOverride: (tag, kind) => set((s) => {
+    const demoOverrides = { ...s.demoOverrides };
+    if (kind) demoOverrides[tag] = { kind, since: Date.now() }; else delete demoOverrides[tag];
+    return { demoOverrides };
+  }),
 
   setLink: (key, state) => set((s) => ({ links: { ...s.links, [key]: state } })),
 
   onTelemetry: (t) => {
     const s = get();
+    const plants = t.plants.map((plant) => {
+      const override = s.demoOverrides[plant.tag_id];
+      if (!override) return plant;
+      if (override.kind === "removed") {
+        const status: PlantStatus = Date.now() - override.since >= 60_000 ? "removed" : "missing";
+        return { ...plant, status, leaf_area_cm2: 0, rate_air_per_h: 0 };
+      }
+      if (override.kind === "fake") return { ...plant, status: "suspect" as const, alive_score: 0.05, species_conf: 0.48, rate_air_per_h: 0 };
+      return { ...plant, status: "suspect" as const, species_conf: 0.2, rate_air_per_h: 0 };
+    });
+    t = { ...t, plants };
     const known = new Set(s.log.map((l) => l.id));
     const fresh: LogEntry[] = t.flags
       .filter((f) => !known.has(flagKey(f)))

@@ -3,7 +3,7 @@
 import { config } from "../config";
 import { useTwin } from "../store";
 import { startLive } from "./live";
-import { MockMiner, type MockOutput } from "./mock";
+import { MockMiner, type MockOutput, type PlantOverride } from "./mock";
 
 /** Messages on the hub's event stream: the same outputs the local mock produces. */
 export type HubMessage = MockOutput;
@@ -19,14 +19,37 @@ export function apply(out: HubMessage) {
   }
 }
 
+let localMock: MockMiner | undefined;
+
 function startLocalMock(): () => void {
   const miner = new MockMiner(config.minerId, Date.now());
+  localMock = miner;
   useTwin.getState().setLink("c2", "online");
   useTwin.getState().setLink("c4", "online");
   miner.snapshot().forEach(apply);
   miner.tick(Date.now()).forEach(apply);
   const timer = setInterval(() => miner.tick(Date.now()).forEach(apply), 1000);
-  return () => clearInterval(timer);
+  return () => { clearInterval(timer); if (localMock === miner) localMock = undefined; };
+}
+
+/** Interactive demo control used by the 3D twin. */
+export async function setDemoPlant(tag: number, override?: PlantOverride) {
+  if (config.source !== "mock") return false;
+  if (localMock) {
+    localMock.setPlant(tag, override, Date.now());
+    localMock.tick(Date.now()).forEach(apply);
+    return true;
+  }
+  try {
+    const response = await fetch(config.hubUrl.replace(/\/$/, "") + "/plant", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tag, override: override ?? null }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 function startHub(base: string): () => void {

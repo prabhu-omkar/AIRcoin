@@ -22,6 +22,7 @@ function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: 
   const v = useMemo(() => new THREE.Vector3(), []);
   const corners = useMemo(() => rigLayout.plants.map((rp) => ({ rp, marker: markerCorners(rp.slot), base: slotPosition(rp.slot) })), []);
   const jitter = useRef({ at: 0, seed: 1 });
+  const scenePositions = useTwin((s) => s.scenePositions);
 
   useEffect(() => {
     // the whole rack at the lens's real field of view, or zoomed onto one plant (like a crop of the frame)
@@ -29,7 +30,8 @@ function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: 
     const cam = camera as THREE.PerspectiveCamera;
     camera.position.copy(LENS_WORLD);
     if (rp) {
-      const p = slotPosition(rp.slot);
+      const moved = scenePositions[rp.tag_id];
+      const p = moved ? new THREE.Vector3(...moved) : slotPosition(rp.slot);
       camera.lookAt(p.x, p.y + 0.45, p.z);
       cam.fov = 19;
     } else {
@@ -38,7 +40,7 @@ function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: 
     }
     cam.updateProjectionMatrix();
     invalidate();
-  }, [camera, focus, invalidate]);
+  }, [camera, focus, invalidate, scenePositions]);
   useEffect(() => {
     const id = setInterval(() => invalidate(), 1000 / FPS);
     return () => clearInterval(id);
@@ -86,8 +88,12 @@ function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: 
     g.font = `600 ${fs}px "JetBrains Mono", ui-monospace, monospace`;
     g.lineJoin = "round";
     const out: Box[] = [];
-    for (const { rp, marker, base } of corners) {
+    for (const { rp, marker, base: expectedBase } of corners) {
       const p = tel?.plants.find((x) => x.tag_id === rp.tag_id);
+      const moved = st.scenePositions[rp.tag_id];
+      const base = moved ? new THREE.Vector3(...moved) : expectedBase;
+      const delta = base.clone().sub(expectedBase);
+      const actualMarker = marker.map((point) => point.clone().add(delta));
       const status: PlantStatus = p?.status ?? "missing";
       const potHere = status !== "missing" && status !== "removed";
       const sel = st.selectedPlant === rp.tag_id;
@@ -111,7 +117,7 @@ function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: 
         g.setLineDash([]);
         g.strokeRect(x0, y0, x1 - x0, y1 - y0);
         // ArUco quad + first-corner marker, as cv2.aruco.drawDetectedMarkers does
-        const q = marker.map(project);
+        const q = actualMarker.map(project);
         g.beginPath();
         q.forEach(([x, y], i) => (i ? g.lineTo(x + jx, y + jy) : g.moveTo(x + jx, y + jy)));
         g.closePath();
@@ -155,7 +161,7 @@ function CamScene({ ndvi }: { ndvi: boolean }) {
       <Studio />
       <Lights shadowSize={1024} />
       <Floor />
-      <Rig vision={false} labels={false} selected={selected} ndvi={ndvi} />
+      <Rig vision={false} labels={false} selected={selected} ndvi={ndvi} showFakes />
     </>
   );
 }

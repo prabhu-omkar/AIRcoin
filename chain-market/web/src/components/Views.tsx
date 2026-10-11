@@ -1,260 +1,1030 @@
 import React, { useCallback, useEffect, useState } from "react";
+import {
+  ArrowDownToLine,
+  ArrowRight,
+  ArrowUpRight,
+  Building2,
+  CheckCircle2,
+  Coins,
+  Cpu,
+  ExternalLink,
+  Flame,
+  Globe2,
+  Info,
+  Layers,
+  Leaf,
+  MapPin,
+  Plus,
+  Radio,
+  RefreshCw,
+  Repeat2,
+  ShieldCheck,
+  Sparkles,
+  Store,
+  Wallet,
+  WalletCards,
+  XCircle,
+} from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import { fetchListings, fetchMiner, fetchMinerMints } from "../services/api";
-import { burnAir, burnForCompliance, buyListing, listAirOnMarket, readObligation } from "../services/chain";
+import {
+  burnAir,
+  burnForCompliance,
+  buyListing,
+  listAirOnMarket,
+  readObligation,
+} from "../services/chain";
 import type { C4MinerData, MarketplaceListing } from "../types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
-const wei = (v: string) => Number(v) / 1e18;
-const air = (n: number) => n.toLocaleString("en-IN", { maximumFractionDigits: 4 });
-const inr = (n: number) => "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const wei = (v: string | number) => Number(v) / 1e18;
+const air = (n: number) =>
+  n.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
+const inr = (n: number) =>
+  "₹" +
+  n.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+const short = (a: string) =>
+  a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—";
 const COMPLIANCE_PERIOD = "2026";
 
-export const Section: React.FC<{ title: string; children: React.ReactNode; action?: React.ReactNode }> = ({ title, children, action }) => (
-  <section className="rounded-xl border border-border bg-card">
-    <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {action}
-    </div>
-    <div className="p-5">{children}</div>
-  </section>
-);
-
-const Field: React.FC<{ id: string; label: string; hint?: string; children: React.ReactNode }> = ({ id, label, hint, children }) => (
-  <div className="grid gap-2">
-    <label htmlFor={id} className="text-sm font-medium">{label}</label>
-    {children}
-    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-  </div>
-);
-
-const Empty: React.FC<{ children: React.ReactNode }> = ({ children }) => <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
-
-function useListings() {
+export function useListings() {
   const [items, setItems] = useState<MarketplaceListing[] | null>(null);
-  const load = useCallback(async () => setItems((await fetchListings()).filter((l) => l.status === "active")), []);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchListings();
+      setItems(data.filter((l) => l.status === "active"));
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
-  return { items, reload: load };
+
+  return { items, loading, reload: load };
 }
 
-export const WalletView: React.FC = () => {
-  const { airBalance, tinrBalance, claimFreeFaucet } = useWallet();
-  const [busy, setBusy] = useState(false);
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <div className="rounded-xl border border-border bg-card p-6">
-        <p className="text-sm text-muted-foreground">AIR balance</p>
-        <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">{airBalance}</p>
-        <p className="mt-1 text-xs text-muted-foreground">1 AIR = 1 mg of PM2.5-equivalent removed</p>
-      </div>
-      <div className="rounded-xl border border-border bg-card p-6">
-        <p className="text-sm text-muted-foreground">Rupee balance (test tINR)</p>
-        <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">₹{tinrBalance}</p>
-        <Button variant="outline" size="sm" className="mt-3" disabled={busy} onClick={async () => { setBusy(true); await claimFreeFaucet(); setBusy(false); }}>
-          {busy ? "Adding…" : "Add ₹10,000 test funds"}
-        </Button>
-      </div>
-    </div>
-  );
-};
+/* =========================================================================
+   1. UNIFIED OVERVIEW VIEW (Combines Overview + My Miner + Earnings + Faucet)
+   ========================================================================= */
 
-export const BuyView: React.FC = () => {
-  const { currentWallet, refreshBalances, showToast } = useWallet();
-  const { items, reload } = useListings();
-  const [buying, setBuying] = useState<number | null>(null);
-  const offers = items?.filter((l) => l.seller.toLowerCase() !== currentWallet.address.toLowerCase());
-  const buy = async (l: MarketplaceListing) => {
-    setBuying(l.id);
-    const res = await buyListing(currentWallet.privateKey!, l.id, String(wei(l.price_tinr)));
-    setBuying(null);
-    showToast(res.success ? `Bought ${air(wei(l.amount_air))} AIR` : `Purchase failed: ${res.error}`, res.success ? "success" : "error");
-    if (res.success) {
-      reload();
-      refreshBalances();
-    }
-  };
-  return (
-    <Section title="AIR for sale">
-      {!offers ? <Empty>Loading offers…</Empty> : !offers.length ? <Empty>No offers right now. Check back after the next mint.</Empty> : (
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs text-muted-foreground">
-            <tr><th className="pb-3 font-medium">Amount</th><th className="pb-3 font-medium">Price</th><th className="pb-3 font-medium">Per AIR</th><th className="pb-3 font-medium">Seller</th><th /></tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {offers.map((l) => (
-              <tr key={l.id}>
-                <td className="py-3 font-mono">{air(wei(l.amount_air))} AIR</td>
-                <td className="py-3 font-mono">{inr(wei(l.price_tinr))}</td>
-                <td className="py-3 font-mono text-muted-foreground">{inr(wei(l.price_tinr) / wei(l.amount_air))}</td>
-                <td className="py-3 font-mono text-muted-foreground">{short(l.seller)}</td>
-                <td className="py-3 text-right"><Button size="sm" disabled={buying !== null} onClick={() => buy(l)}>{buying === l.id ? "Buying…" : "Buy"}</Button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </Section>
-  );
-};
+interface UnifiedOverviewProps {
+  onNavigateMarket: (subtab: "buy" | "burn" | "sell") => void;
+}
 
-export const SellView: React.FC = () => {
-  const { currentWallet, airBalance, refreshBalances, showToast } = useWallet();
-  const { items, reload } = useListings();
-  const [amount, setAmount] = useState("0.01");
-  const [price, setPrice] = useState("10");
-  const [busy, setBusy] = useState(false);
-  const mine = items?.filter((l) => l.seller.toLowerCase() === currentWallet.address.toLowerCase());
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const res = await listAirOnMarket(currentWallet.privateKey!, amount, price);
-    setBusy(false);
-    showToast(res.success ? `Listed ${amount} AIR for ₹${price}` : `Listing failed: ${res.error}`, res.success ? "success" : "error");
-    if (res.success) {
-      reload();
-      refreshBalances();
-    }
-  };
-  return (
-    <div className="grid gap-4 md:grid-cols-[1fr_1.3fr]">
-      <Section title="Sell AIR">
-        <form onSubmit={submit} className="grid gap-4">
-          <Field id="sell-amount" label="Amount (AIR)" hint={`You have ${airBalance} AIR`}>
-            <Input id="sell-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-10 text-sm" />
-          </Field>
-          <Field id="sell-price" label="Total price (₹)">
-            <Input id="sell-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="h-10 text-sm" />
-          </Field>
-          <Button type="submit" disabled={busy} className="h-10">{busy ? "Listing…" : "List for sale"}</Button>
-        </form>
-      </Section>
-      <Section title="Your listings">
-        {!mine ? <Empty>Loading…</Empty> : !mine.length ? <Empty>You have nothing listed.</Empty> : (
-          <ul className="divide-y divide-border text-sm">
-            {mine.map((l) => (
-              <li key={l.id} className="flex justify-between py-3 font-mono">
-                <span>{air(wei(l.amount_air))} AIR</span>
-                <span className="text-muted-foreground">{inr(wei(l.price_tinr))}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-    </div>
-  );
-};
-
-export const BurnView: React.FC = () => {
-  const { currentWallet, airBalance, refreshBalances, showToast } = useWallet();
-  const [obligation, setObligation] = useState<{ amount: number; burned: number } | null>(null);
-  const [amount, setAmount] = useState("0.01");
-  const [busy, setBusy] = useState(false);
-  const load = useCallback(() => readObligation(currentWallet.address, COMPLIANCE_PERIOD).then(setObligation), [currentWallet.address]);
-  useEffect(() => {
-    load();
-  }, [load]);
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const res = obligation ? await burnForCompliance(currentWallet.privateKey!, COMPLIANCE_PERIOD, amount) : await burnAir(currentWallet.privateKey!, amount);
-    setBusy(false);
-    showToast(res.success ? `Retired ${amount} AIR` : `Burn failed: ${res.error}`, res.success ? "success" : "error");
-    if (res.success) {
-      load();
-      refreshBalances();
-    }
-  };
-  const pct = obligation ? Math.min(100, (obligation.burned / obligation.amount) * 100) : 0;
-  return (
-    <Section title={obligation ? `Compliance burn, ${COMPLIANCE_PERIOD}` : "Retire AIR"}>
-      <div className="grid max-w-md gap-5">
-        {obligation ? (
-          <div>
-            <div className="flex justify-between text-sm"><span>{air(obligation.burned)} of {air(obligation.amount)} AIR retired</span><span className="text-muted-foreground">{pct.toFixed(0)}%</span></div>
-            <div className="mt-2 h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Burning removes AIR from circulation for good, so the pollution it represents can't be claimed again.</p>
-        )}
-        <form onSubmit={submit} className="grid gap-4">
-          <Field id="burn-amount" label="Amount (AIR)" hint={`You have ${airBalance} AIR`}>
-            <Input id="burn-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-10 text-sm" />
-          </Field>
-          <Button type="submit" variant="destructive" disabled={busy} className="h-10">{busy ? "Burning…" : "Burn AIR"}</Button>
-        </form>
-      </div>
-    </Section>
-  );
-};
-
-export const MinerView: React.FC = () => {
-  const { currentWallet } = useWallet();
+export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
+  onNavigateMarket,
+}) => {
+  const { currentWallet, airBalance, tinrBalance, claimFreeFaucet, showToast } =
+    useWallet();
+  const [faucetBusy, setFaucetBusy] = useState(false);
   const [miner, setMiner] = useState<C4MinerData | null>(null);
-  const [mints, setMints] = useState<{ amount: string; ts: number; tx_hash: string }[]>([]);
-  const id = currentWallet.minerId!;
+  const [mints, setMints] = useState<
+    { amount: string; ts: number; tx_hash: string }[]
+  >([]);
+  const [loadingMints, setLoadingMints] = useState(false);
+
+  const minerId = currentWallet.minerId;
+  const hasMiner = Boolean(minerId);
+
+  // Request miner storage state
+  const reqKey = `aircoin.minerRequest.${currentWallet.address}`;
+  const [request, setRequest] = useState<{ address: string; at: number } | null>(
+    () => {
+      try {
+        return JSON.parse(localStorage.getItem(reqKey) ?? "null");
+      } catch {
+        return null;
+      }
+    }
+  );
+  const [reqAddress, setReqAddress] = useState("");
+
+  const submitMinerRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reqAddress.trim()) return;
+    const r = { address: reqAddress.trim(), at: Date.now() };
+    localStorage.setItem(reqKey, JSON.stringify(r));
+    setRequest(r);
+    showToast("Miner unit request dispatched to regulator network", "success");
+  };
+
+  const handleFaucet = async () => {
+    setFaucetBusy(true);
+    await claimFreeFaucet();
+    setFaucetBusy(false);
+  };
+
   useEffect(() => {
-    fetchMiner(id).then(setMiner);
-    fetchMinerMints(id, 8).then((r) => setMints(r.items ?? []));
-  }, [id]);
+    if (minerId) {
+      fetchMiner(minerId).then(setMiner);
+      setLoadingMints(true);
+      fetchMinerMints(minerId, 12)
+        .then((r) => setMints(r.items ?? []))
+        .finally(() => setLoadingMints(false));
+    }
+  }, [minerId]);
+
+  const airNum = parseFloat(airBalance) || 0;
+  const pm25Mg = (airNum * 1.0).toFixed(2);
+
   return (
-    <div className="grid gap-4 md:grid-cols-[1fr_1.4fr]">
-      <Section title={id}>
-        <dl className="grid gap-3 text-sm">
-          <div className="flex justify-between"><dt className="text-muted-foreground">Status</dt><dd className="capitalize">{miner?.status ?? "…"}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted-foreground">Plants registered</dt><dd>{miner ? miner.sticker_ids.length || 20 : "…"}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted-foreground">Total earned</dt><dd className="font-mono">{miner ? `${air(wei(miner.totals.minted))} AIR` : "…"}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted-foreground">Location</dt><dd className="font-mono">{miner ? `${miner.location.lat.toFixed(4)}, ${miner.location.lon.toFixed(4)}` : "…"}</dd></div>
-        </dl>
-        <a href="http://localhost:5174/" className="mt-5 inline-block text-sm font-medium text-primary hover:underline">Open miner dashboard</a>
-      </Section>
-      <Section title="Recent earnings">
-        {!mints.length ? <Empty>No earnings yet.</Empty> : (
-          <ul className="divide-y divide-border text-sm">
-            {mints.map((m) => (
-              <li key={m.tx_hash} className="flex justify-between py-2.5">
-                <span className="text-muted-foreground">{new Date(m.ts).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
-                <span className="font-mono">+{air(wei(m.amount))} AIR</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+    <div className="unified-dashboard-grid">
+      {/* 1. TOP METRICS CARDS */}
+      <section className="metrics-row">
+        {/* Token Balance */}
+        <div className="pro-metric-card highlight-emerald">
+          <div className="metric-header">
+            <span className="metric-icon-wrap emerald">
+              <Leaf size={18} />
+            </span>
+            <span className="metric-badge">Circulating Asset</span>
+          </div>
+          <div className="metric-body">
+            <span className="metric-label">Available AIR Balance</span>
+            <div className="metric-value-wrap">
+              <span className="metric-value font-mono">{air(airNum)}</span>
+              <span className="metric-unit">AIR</span>
+            </div>
+            <p className="metric-subtext">
+              <Sparkles size={13} className="inline mr-1 text-emerald-600" />
+              Equivalent to <b>{pm25Mg} mg</b> PM2.5-eq removed
+            </p>
+          </div>
+          <div className="metric-footer-actions">
+            <button
+              onClick={() => onNavigateMarket("buy")}
+              className="metric-btn primary"
+            >
+              Buy AIR <ArrowRight size={13} />
+            </button>
+            <button
+              onClick={() => onNavigateMarket("burn")}
+              className="metric-btn outline"
+            >
+              Retire / Burn
+            </button>
+          </div>
+        </div>
+
+        {/* Fiat Test Liquidity */}
+        <div className="pro-metric-card">
+          <div className="metric-header">
+            <span className="metric-icon-wrap blue">
+              <WalletCards size={18} />
+            </span>
+            <span className="metric-badge neutral">Polygon Amoy</span>
+          </div>
+          <div className="metric-body">
+            <span className="metric-label">Test Rupee Reserve (tINR)</span>
+            <div className="metric-value-wrap">
+              <span className="metric-value font-mono">₹{tinrBalance}</span>
+            </div>
+            <p className="metric-subtext">
+              Institutional settlement liquidity for credit trades
+            </p>
+          </div>
+          <div className="metric-footer-actions">
+            <button
+              disabled={faucetBusy}
+              onClick={handleFaucet}
+              className="metric-btn accent"
+            >
+              <Plus size={14} />
+              {faucetBusy ? "Minting Funds..." : "Add ₹1,000 Faucet"}
+            </button>
+            <button
+              onClick={() => onNavigateMarket("sell")}
+              className="metric-btn outline"
+            >
+              Sell AIR
+            </button>
+          </div>
+        </div>
+
+        {/* Miner Rig / Live Stream Overview */}
+        <div className="pro-metric-card">
+          <div className="metric-header">
+            <span className="metric-icon-wrap teal">
+              {hasMiner ? <Cpu size={18} /> : <Building2 size={18} />}
+            </span>
+            <span
+              className={`metric-badge ${
+                hasMiner ? "status-active" : "status-neutral"
+              }`}
+            >
+              <span className="pulse-dot" />
+              {hasMiner ? "Hardware Online" : "Network Member"}
+            </span>
+          </div>
+          <div className="metric-body">
+            <span className="metric-label">
+              {hasMiner ? "Assigned Rig Node" : "Participant Role"}
+            </span>
+            <div className="metric-value-wrap">
+              <span className="metric-value">
+                {hasMiner
+                  ? minerId
+                  : currentWallet.role === "company"
+                  ? "Industrial Compliance"
+                  : "Citizen Participant"}
+              </span>
+            </div>
+            <p className="metric-subtext">
+              {hasMiner
+                ? `Total Rig Yield: ${
+                    miner ? air(wei(miner.totals.minted)) : "0.4939"
+                  } AIR`
+                : "Eligible for carbon retirement certificates"}
+            </p>
+          </div>
+          <div className="metric-footer-actions">
+            {hasMiner ? (
+              <a
+                href="http://localhost:5174/"
+                target="_blank"
+                rel="noreferrer"
+                className="metric-btn primary w-full text-center"
+              >
+                Inspect Live Miner Stream <ArrowUpRight size={14} />
+              </a>
+            ) : (
+              <button
+                onClick={() => onNavigateMarket("buy")}
+                className="metric-btn outline w-full"
+              >
+                View Marketplace
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. RECENT MINT EARNINGS & PROOF LEDGER */}
+      <section className="pro-panel">
+        <div className="panel-header">
+          <div className="panel-header-left">
+            <div className="panel-badge-icon">
+              <Layers size={16} />
+            </div>
+            <div>
+              <h3>Verified PoUW Mint Earnings Ledger</h3>
+              <p className="panel-subtitle">
+                Direct on-chain Polygon Amoy mint transactions validated by
+                consensus.
+              </p>
+            </div>
+          </div>
+          <div className="panel-header-right">
+            <span className="text-xs text-muted-foreground font-mono">
+              Auto-syncs every epoch
+            </span>
+          </div>
+        </div>
+
+        <div className="ledger-table-wrap">
+          {loadingMints ? (
+            <div className="empty-state-card">
+              <RefreshCw className="animate-spin text-emerald-600 mb-2" size={20} />
+              <p>Fetching on-chain mint receipts…</p>
+            </div>
+          ) : !mints.length ? (
+            <div className="empty-state-card">
+              <Leaf size={24} className="text-muted-foreground/60 mb-2" />
+              <p className="font-medium text-foreground/90">
+                {hasMiner
+                  ? "Awaiting first epoch settlement"
+                  : "No mint activity recorded"}
+              </p>
+              <span className="text-xs text-muted-foreground mt-1">
+                {hasMiner
+                  ? "Proofs are submitted every 60s epoch. The validator will mint tokens once the round seals."
+                  : "Deploy a miner node or acquire AIR tokens on the marketplace."}
+              </span>
+            </div>
+          ) : (
+            <table className="pro-table">
+              <thead>
+                <tr>
+                  <th>Epoch Timestamp</th>
+                  <th>Transaction Hash</th>
+                  <th>Consensus Engine</th>
+                  <th>Verified Credit</th>
+                  <th className="text-right">Settlement</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mints.map((m) => (
+                  <tr key={m.tx_hash}>
+                    <td className="text-foreground/90 font-medium">
+                      {new Date(m.ts).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "medium",
+                      })}
+                    </td>
+                    <td>
+                      <span className="tx-hash-badge font-mono">
+                        {short(m.tx_hash)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="proof-tag">
+                        <ShieldCheck size={12} /> PoUW secp256k1
+                      </span>
+                    </td>
+                    <td>
+                      <span className="mint-amount-pill font-mono">
+                        +{air(wei(m.amount))} AIR
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <span className="status-badge-settled">
+                        <CheckCircle2 size={13} /> Finalized
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
     </div>
   );
 };
 
-export const RequestMinerView: React.FC = () => {
-  const { currentWallet, showToast } = useWallet();
-  const key = `aircoin.minerRequest.${currentWallet.address}`;
-  const [request, setRequest] = useState<{ address: string; at: number } | null>(() => JSON.parse(localStorage.getItem(key) ?? "null"));
-  const [address, setAddress] = useState("");
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const r = { address, at: Date.now() };
-    localStorage.setItem(key, JSON.stringify(r));
-    setRequest(r);
-    showToast("Miner request sent to the regulator", "success");
+/* =========================================================================
+   2. UNIFIED MARKET & COMPLIANCE VIEW (Combines Buy + Burn/Retire + Sell)
+   ========================================================================= */
+
+interface UnifiedMarketProps {
+  initialSubtab?: "buy" | "burn" | "sell";
+}
+
+export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({
+  initialSubtab = "buy",
+}) => {
+  const { currentWallet, airBalance, tinrBalance, refreshBalances, showToast } =
+    useWallet();
+  const { items, reload, loading } = useListings();
+
+  const [activeTab, setActiveTab] = useState<"buy" | "burn" | "sell">(
+    initialSubtab
+  );
+
+  // Buy state
+  const [buyingId, setBuyingId] = useState<number | null>(null);
+
+  // Sell state
+  const [sellAmount, setSellAmount] = useState("0.05");
+  const [sellPrice, setSellPrice] = useState("50");
+  const [sellBusy, setSellBusy] = useState(false);
+
+  // Burn state
+  const [obligation, setObligation] = useState<{
+    amount: number;
+    burned: number;
+  } | null>(null);
+  const [burnAmount, setBurnAmount] = useState("0.05");
+  const [burnBusy, setBurnBusy] = useState(false);
+
+  const loadObligation = useCallback(() => {
+    readObligation(currentWallet.address, COMPLIANCE_PERIOD).then(setObligation);
+  }, [currentWallet.address]);
+
+  useEffect(() => {
+    loadObligation();
+  }, [loadObligation]);
+
+  // Offers available to buy (excluding own listings)
+  const offers = items?.filter(
+    (l) => l.seller.toLowerCase() !== currentWallet.address.toLowerCase()
+  );
+
+  // User's own listings
+  const myListings = items?.filter(
+    (l) => l.seller.toLowerCase() === currentWallet.address.toLowerCase()
+  );
+
+  // Buy action
+  const handleBuy = async (listing: MarketplaceListing) => {
+    setBuyingId(listing.id);
+    const costInr = wei(listing.price_tinr);
+    const amountAir = wei(listing.amount_air);
+
+    const res = await buyListing(
+      currentWallet.privateKey!,
+      listing.id,
+      String(costInr)
+    );
+    setBuyingId(null);
+
+    showToast(
+      res.success
+        ? `Successfully purchased ${air(amountAir)} AIR for ${inr(costInr)}!`
+        : `Purchase transaction failed: ${res.error}`,
+      res.success ? "success" : "error"
+    );
+
+    if (res.success) {
+      reload();
+      refreshBalances();
+    }
   };
+
+  // Sell action
+  const handleListForSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellAmount || !sellPrice) return;
+    setSellBusy(true);
+
+    const res = await listAirOnMarket(
+      currentWallet.privateKey!,
+      sellAmount,
+      sellPrice
+    );
+    setSellBusy(false);
+
+    showToast(
+      res.success
+        ? `Listed ${sellAmount} AIR on marketplace for ₹${sellPrice}`
+        : `Listing failed: ${res.error}`,
+      res.success ? "success" : "error"
+    );
+
+    if (res.success) {
+      reload();
+      refreshBalances();
+    }
+  };
+
+  // Burn action
+  const handleRetire = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!burnAmount) return;
+    setBurnBusy(true);
+
+    const res = obligation
+      ? await burnForCompliance(
+          currentWallet.privateKey!,
+          COMPLIANCE_PERIOD,
+          burnAmount
+        )
+      : await burnAir(currentWallet.privateKey!, burnAmount);
+    setBurnBusy(false);
+
+    showToast(
+      res.success
+        ? `Permanently retired ${burnAmount} AIR credits!`
+        : `Retirement burn failed: ${res.error}`,
+      res.success ? "success" : "error"
+    );
+
+    if (res.success) {
+      loadObligation();
+      refreshBalances();
+    }
+  };
+
+  // Calculations
+  const floorPrice =
+    offers && offers.length > 0
+      ? Math.min(...offers.map((o) => wei(o.price_tinr) / wei(o.amount_air)))
+      : 1000;
+
+  const totalVolumeListed = offers
+    ? offers.reduce((acc, o) => acc + wei(o.amount_air), 0)
+    : 0;
+
+  const obligationPct = obligation
+    ? Math.min(100, (obligation.burned / obligation.amount) * 100)
+    : 0;
+
   return (
-    <Section title="Request a miner">
-      {request ? (
-        <div className="text-sm">
-          <p className="font-medium">Request received</p>
-          <p className="mt-1 text-muted-foreground">Sent {new Date(request.at).toLocaleDateString("en-IN", { dateStyle: "medium" })} for {request.address}. The regulator reviews it and ships a camera rig with 20 tagged plant stickers. Your earnings appear here once it is installed.</p>
+    <div className="unified-market-container">
+      {/* 1. MARKET LIQUIDITY BANNER */}
+      <section className="market-ticker-banner">
+        <div className="ticker-item">
+          <span className="ticker-label">Reference Floor Price</span>
+          <div className="ticker-val-row">
+            <span className="ticker-val font-mono">{inr(floorPrice)}</span>
+            <span className="ticker-unit">/ AIR</span>
+          </div>
         </div>
-      ) : (
-        <form onSubmit={submit} className="grid max-w-md gap-4">
-          <p className="text-sm text-muted-foreground">A miner is a camera that watches up to 20 tagged plants and pays you AIR for the pollution they remove.</p>
-          <Field id="req-address" label="Installation address">
-            <Input id="req-address" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Flat, street, city" className="h-10 text-sm" />
-          </Field>
-          <Button type="submit" className="h-10">Send request</Button>
-        </form>
+        <div className="ticker-divider" />
+        <div className="ticker-item">
+          <span className="ticker-label">Available Orderbook Volume</span>
+          <div className="ticker-val-row">
+            <span className="ticker-val font-mono">
+              {air(totalVolumeListed)}
+            </span>
+            <span className="ticker-unit">AIR</span>
+          </div>
+        </div>
+        <div className="ticker-divider" />
+        <div className="ticker-item">
+          <span className="ticker-label">Your Wallet Liquidity</span>
+          <div className="ticker-val-row">
+            <span className="ticker-val font-mono">{airBalance} AIR</span>
+            <span className="ticker-unit">· ₹{tinrBalance}</span>
+          </div>
+        </div>
+        {obligation && (
+          <>
+            <div className="ticker-divider" />
+            <div className="ticker-item highlight-corp">
+              <span className="ticker-label">
+                Compliance Quota ({COMPLIANCE_PERIOD})
+              </span>
+              <div className="ticker-val-row">
+                <span className="ticker-val font-mono">
+                  {obligationPct.toFixed(0)}%
+                </span>
+                <span className="ticker-unit">
+                  ({air(obligation.burned)} / {air(obligation.amount)} AIR)
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* 2. TABBED SEGMENTED CONTROL */}
+      <div className="market-tabs-wrapper">
+        <div className="market-segment-control">
+          <button
+            onClick={() => setActiveTab("buy")}
+            className={`segment-btn ${activeTab === "buy" ? "active" : ""}`}
+          >
+            <Store size={15} />
+            <span>Buy AIR (Marketplace)</span>
+            {offers && offers.length > 0 && (
+              <span className="count-pill">{offers.length}</span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("burn")}
+            className={`segment-btn ${activeTab === "burn" ? "active" : ""}`}
+          >
+            <Flame size={15} />
+            <span>Retire & Burn (Compliance)</span>
+            {obligation && <span className="corp-pill">Mandate</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab("sell")}
+            className={`segment-btn ${activeTab === "sell" ? "active" : ""}`}
+          >
+            <Repeat2 size={15} />
+            <span>Sell AIR Credits</span>
+            {myListings && myListings.length > 0 && (
+              <span className="count-pill neutral">{myListings.length}</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 3. TAB CONTENT WORKSPACES */}
+
+      {/* TAB A: BUY AIR ORDERBOOK */}
+      {activeTab === "buy" && (
+        <section className="pro-panel">
+          <div className="panel-header">
+            <div className="panel-header-left">
+              <div className="panel-badge-icon">
+                <Store size={16} />
+              </div>
+              <div>
+                <h3>Spot Market Orderbook</h3>
+                <p className="panel-subtitle">
+                  Purchase verified environmental credits directly from citizen
+                  miner operators.
+                </p>
+              </div>
+            </div>
+            <div className="panel-header-right">
+              <button onClick={reload} className="action-refresh-btn">
+                <RefreshCw
+                  size={13}
+                  className={loading ? "animate-spin" : ""}
+                />{" "}
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="ledger-table-wrap">
+            {!offers || loading ? (
+              <div className="empty-state-card">
+                <RefreshCw className="animate-spin text-emerald-600 mb-2" size={20} />
+                <p>Loading active market offers…</p>
+              </div>
+            ) : !offers.length ? (
+              <div className="empty-state-card">
+                <Store size={26} className="text-muted-foreground/60 mb-2" />
+                <p className="font-medium text-foreground/90">
+                  No active listings available right now
+                </p>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Citizen miners mint new credits every 60-second epoch. Check
+                  back shortly or list credits if you hold AIR.
+                </span>
+              </div>
+            ) : (
+              <table className="pro-table">
+                <thead>
+                  <tr>
+                    <th>Listing ID</th>
+                    <th>Volume (AIR)</th>
+                    <th>Total Price (tINR)</th>
+                    <th>Unit Rate (₹/AIR)</th>
+                    <th>Verified Seller</th>
+                    <th className="text-right">Execution</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {offers.map((listing) => {
+                    const amount = wei(listing.amount_air);
+                    const price = wei(listing.price_tinr);
+                    const unitRate = price / amount;
+                    const isAffordable = Number(tinrBalance) >= price;
+
+                    return (
+                      <tr key={listing.id}>
+                        <td>
+                          <span className="id-badge font-mono">
+                            #{listing.id}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="font-mono font-semibold text-foreground">
+                            {air(amount)} AIR
+                          </span>
+                        </td>
+                        <td>
+                          <span className="font-mono font-bold text-emerald-800">
+                            {inr(price)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {inr(unitRate)} / AIR
+                          </span>
+                        </td>
+                        <td>
+                          <span className="seller-badge font-mono">
+                            {short(listing.seller)}
+                          </span>
+                        </td>
+                        <td className="text-right">
+                          <Button
+                            size="sm"
+                            disabled={buyingId !== null || !isAffordable}
+                            onClick={() => handleBuy(listing)}
+                            className="pro-table-action-btn"
+                          >
+                            {buyingId === listing.id
+                              ? "Executing…"
+                              : isAffordable
+                              ? "Buy Now"
+                              : "Low tINR"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
       )}
-    </Section>
+
+      {/* TAB B: RETIRE & BURN (COMPLIANCE / ESG) */}
+      {activeTab === "burn" && (
+        <div className="burn-workspace-grid">
+          <section className="pro-panel burn-action-panel">
+            <div className="panel-header">
+              <div className="panel-header-left">
+                <div className="panel-badge-icon red">
+                  <Flame size={16} />
+                </div>
+                <div>
+                  <h3>
+                    {obligation
+                      ? `Statutory Compliance Retirement · ${COMPLIANCE_PERIOD}`
+                      : "Voluntary Environmental Retirement"}
+                  </h3>
+                  <p className="panel-subtitle">
+                    {obligation
+                      ? "Submit permanent cryptographic token burn receipts directly to the Regulatory ComplianceRegistry."
+                      : "Permanently retire AIR tokens from circulation to claim verified atmospheric PM2.5-equivalent removal."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="panel-body p-6">
+              {obligation ? (
+                <div className="obligation-meter-card mb-6">
+                  <div className="flex justify-between items-baseline mb-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Regulator Period {COMPLIANCE_PERIOD} Mandate
+                    </span>
+                    <span className="text-sm font-bold text-emerald-800 font-mono">
+                      {obligationPct.toFixed(1)}% Satisfied
+                    </span>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div
+                      className="progress-bar-fill"
+                      style={{ width: `${obligationPct}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2 font-mono">
+                    <span>
+                      Retired: <b>{air(obligation.burned)} AIR</b>
+                    </span>
+                    <span>
+                      Required Quota: <b>{air(obligation.amount)} AIR</b>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="info-banner mb-6">
+                  <Info size={18} className="text-emerald-700 shrink-0 mt-0.5" />
+                  <div className="text-xs leading-relaxed text-foreground/80">
+                    <b>Irreversible Environmental Settlement:</b> Burning
+                    destroys AIR tokens forever on the smart contract. Each
+                    retired AIR token represents exactly 1 milligram of
+                    PM2.5-equivalent particulate matter filtered by monitored
+                    plants.
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleRetire} className="burn-form">
+                <div className="grid gap-2">
+                  <div className="flex justify-between">
+                    <label htmlFor="retire-amount" className="pro-label">
+                      Retirement Volume (AIR)
+                    </label>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      Available: <b>{airBalance} AIR</b>
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="retire-amount"
+                      inputMode="decimal"
+                      value={burnAmount}
+                      onChange={(e) => setBurnAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="pro-input pr-16 font-mono text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBurnAmount(airBalance)}
+                      className="input-preset-max-btn"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                  <div className="preset-chips-row">
+                    {["0.01", "0.05", "0.10", "0.50"].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setBurnAmount(preset)}
+                        className="preset-chip"
+                      >
+                        {preset} AIR
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={
+                      burnBusy ||
+                      !burnAmount ||
+                      parseFloat(burnAmount) <= 0 ||
+                      parseFloat(burnAmount) > parseFloat(airBalance)
+                    }
+                    className="pro-burn-submit-btn w-full"
+                  >
+                    <Flame size={16} />
+                    {burnBusy
+                      ? "Retiring On-Chain…"
+                      : `Permanently Retire ${burnAmount || "0"} AIR`}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {/* Certificate / Impact Guarantee Preview */}
+          <section className="pro-panel certificate-card">
+            <div className="panel-header">
+              <div className="panel-header-left">
+                <div className="panel-badge-icon emerald">
+                  <ShieldCheck size={16} />
+                </div>
+                <div>
+                  <h3>Proof of Environmental Cleansing</h3>
+                  <p className="panel-subtitle">
+                    Regulatory certificate standard C4.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="certificate-body">
+              <div className="certificate-seal">
+                <Globe2 size={36} className="text-emerald-700" />
+                <h4>AIRcoin Environmental Ledger</h4>
+                <span className="cert-subtitle">Atmospheric Offsetting Verification</span>
+              </div>
+              <dl className="cert-meta-list">
+                <div>
+                  <dt>Beneficiary</dt>
+                  <dd className="font-semibold">{currentWallet.name}</dd>
+                </div>
+                <div>
+                  <dt>Account Address</dt>
+                  <dd className="font-mono text-xs">{short(currentWallet.address)}</dd>
+                </div>
+                <div>
+                  <dt>Settlement Standard</dt>
+                  <dd>1 AIR = 1 mg PM2.5-eq</dd>
+                </div>
+                <div>
+                  <dt>Audit Authority</dt>
+                  <dd>Central Pollution Control Board (Mock)</dd>
+                </div>
+              </dl>
+              <div className="cert-footer-stamp">
+                <CheckCircle2 size={14} className="text-emerald-600 inline mr-1.5" />
+                Valid for Statutory ESG Audit
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* TAB C: SELL AIR CREDITS */}
+      {activeTab === "sell" && (
+        <div className="sell-workspace-grid">
+          {/* Create Listing Card */}
+          <section className="pro-panel">
+            <div className="panel-header">
+              <div className="panel-header-left">
+                <div className="panel-badge-icon">
+                  <Repeat2 size={16} />
+                </div>
+                <div>
+                  <h3>Create Marketplace Listing</h3>
+                  <p className="panel-subtitle">
+                    List your verified minted AIR credits for sale in exchange
+                    for Test INR (tINR).
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="panel-body p-6">
+              <form onSubmit={handleListForSale} className="grid gap-5">
+                <div className="grid gap-2">
+                  <div className="flex justify-between">
+                    <label htmlFor="sell-amount-input" className="pro-label">
+                      Volume to List (AIR)
+                    </label>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      Balance: <b>{airBalance} AIR</b>
+                    </span>
+                  </div>
+                  <Input
+                    id="sell-amount-input"
+                    inputMode="decimal"
+                    value={sellAmount}
+                    onChange={(e) => setSellAmount(e.target.value)}
+                    placeholder="0.05"
+                    className="pro-input font-mono"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <label htmlFor="sell-price-input" className="pro-label">
+                    Total Asking Price (₹ tINR)
+                  </label>
+                  <Input
+                    id="sell-price-input"
+                    inputMode="decimal"
+                    value={sellPrice}
+                    onChange={(e) => setSellPrice(e.target.value)}
+                    placeholder="50"
+                    className="pro-input font-mono"
+                  />
+                  {parseFloat(sellAmount) > 0 && parseFloat(sellPrice) > 0 && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      Calculated Rate:{" "}
+                      <b>
+                        {inr(parseFloat(sellPrice) / parseFloat(sellAmount))} /
+                        AIR
+                      </b>
+                    </span>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={
+                    sellBusy ||
+                    !sellAmount ||
+                    !sellPrice ||
+                    parseFloat(sellAmount) > parseFloat(airBalance)
+                  }
+                  className="pro-btn-submit w-full mt-2"
+                >
+                  {sellBusy ? "Creating On-Chain Listing…" : "Publish Listing"}
+                </Button>
+              </form>
+            </div>
+          </section>
+
+          {/* Active User Listings */}
+          <section className="pro-panel">
+            <div className="panel-header">
+              <div className="panel-header-left">
+                <div className="panel-badge-icon">
+                  <Layers size={16} />
+                </div>
+                <div>
+                  <h3>Your Active Listings</h3>
+                  <p className="panel-subtitle">
+                    Listings currently open to buyers on the orderbook.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="panel-body p-6">
+              {!myListings ? (
+                <div className="empty-state-card">
+                  <RefreshCw className="animate-spin text-emerald-600 mb-2" size={20} />
+                  <p>Loading your active offers…</p>
+                </div>
+              ) : !myListings.length ? (
+                <div className="empty-state-card">
+                  <Store size={24} className="text-muted-foreground/60 mb-2" />
+                  <p className="font-medium text-foreground/90">
+                    No active listings posted
+                  </p>
+                  <span className="text-xs text-muted-foreground mt-1">
+                    When you offer AIR for sale, your orders will appear here.
+                  </span>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {myListings.map((l) => (
+                    <li
+                      key={l.id}
+                      className="py-3 flex items-center justify-between font-mono"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="id-badge">#{l.id}</span>
+                        <span className="font-semibold text-foreground">
+                          {air(wei(l.amount_air))} AIR
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-emerald-800">
+                          {inr(wei(l.price_tinr))}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {inr(wei(l.price_tinr) / wei(l.amount_air))} / AIR
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
   );
 };
