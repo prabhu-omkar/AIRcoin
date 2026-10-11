@@ -4,35 +4,27 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    --foreground: 240 5% 96%;
-
-    --card: 240 10% 3.9%;
-    --card-foreground: 240 5% 96%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 240 5% 96%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 6% 10%;
-
-    --secondary: 240 4% 12%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 4% 12%;
-    --muted-foreground: 240 5% 60%;
-
-    --accent: 240 4% 14%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 4% 14%;
-    --input: 240 4% 14%;
-    --ring: 240 5% 65%;
-
-    --radius: 0.375rem;
+    /* AIRcoin product theme (shared with vision-twin): light slate neutrals, one deep-teal accent */
+    --background: 210 20% 98%;
+    --foreground: 222 24% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+    --primary: 174 70% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 22% 95%;
+    --secondary-foreground: 222 24% 12%;
+    --muted: 214 22% 95%;
+    --muted-foreground: 215 14% 40%;
+    --accent: 174 40% 94%;
+    --accent-foreground: 174 70% 20%;
+    --destructive: 0 68% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 88%;
+    --input: 214 20% 84%;
+    --ring: 174 70% 26%;
+    --radius: 0.5rem;
   }
 }
 
@@ -43,8 +35,6 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background-color: #000000;
-    color: #f4f4f5;
   }
 }
 
@@ -54,12 +44,12 @@
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #cbd5e1;
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #94a3b8;
 }
