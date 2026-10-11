@@ -19,7 +19,7 @@ export function MapPanel() {
   const anchor = useTwin((s) => s.telemetry?.miner_id); // re-centre once per miner
   return (
     <section className="panel fill map-panel" style={{ flex: "0 0 180px" }}>
-      <h2>Location<span className="right meta">{gps ? `${gps.fix} · ${gps.satellites ?? "?"} sats` : "no fix"}</span></h2>
+      <h2>Location</h2>
       <div className="body">
         {gps ? (
           <MapContainer key={anchor} center={[gps.lat, gps.lon]} zoom={17} className="map" zoomControl={false} attributionControl={false}>

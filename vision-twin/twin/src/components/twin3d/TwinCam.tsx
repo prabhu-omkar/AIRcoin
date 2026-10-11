@@ -16,7 +16,7 @@ const COLORS: Record<PlantStatus, string> = { present: "#3fb950", suspect: "#f85
 interface Box { tag: number; x0: number; y0: number; x1: number; y1: number }
 
 /** Renders at a fixed rate and draws the detection overlay right after each frame. */
-function CameraRender({ ndvi, overlay, boxes }: { ndvi: boolean; overlay: React.RefObject<HTMLCanvasElement>; boxes: React.MutableRefObject<Box[]> }) {
+function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: number; overlay: React.RefObject<HTMLCanvasElement>; boxes: React.MutableRefObject<Box[]> }) {
   const { gl, scene, camera, invalidate, size } = useThree();
   const dark = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0b1530" }), []);
   const v = useMemo(() => new THREE.Vector3(), []);
@@ -24,8 +24,22 @@ function CameraRender({ ndvi, overlay, boxes }: { ndvi: boolean; overlay: React.
   const jitter = useRef({ at: 0, seed: 1 });
 
   useEffect(() => {
+    // the whole rack at the lens's real field of view, or zoomed onto one plant (like a crop of the frame)
+    const rp = focus !== undefined ? rigLayout.plants.find((p) => p.tag_id === focus) : undefined;
+    const cam = camera as THREE.PerspectiveCamera;
     camera.position.copy(LENS_WORLD);
-    camera.lookAt(LENS_WORLD.x, LENS_WORLD.y, 0);
+    if (rp) {
+      const p = slotPosition(rp.slot);
+      camera.lookAt(p.x, p.y + 0.45, p.z);
+      cam.fov = 19;
+    } else {
+      camera.lookAt(LENS_WORLD.x, LENS_WORLD.y, 0);
+      cam.fov = CAMERA_VFOV;
+    }
+    cam.updateProjectionMatrix();
+    invalidate();
+  }, [camera, focus, invalidate]);
+  useEffect(() => {
     const id = setInterval(() => invalidate(), 1000 / FPS);
     return () => clearInterval(id);
   }, [camera, invalidate]);
@@ -161,7 +175,7 @@ function useClock() {
 
 /** The miner camera view: same world as the twin, seen through the lens. */
 /** mode "live" = the lens view; "ndvi" = plant health in false colour (blue = no living tissue). */
-export function TwinCam({ mode = "live" }: { mode?: "live" | "ndvi" }) {
+export function TwinCam({ mode = "live", focus }: { mode?: "live" | "ndvi"; focus?: number }) {
   const overlay = useRef<HTMLCanvasElement>(null);
   const boxes = useRef<Box[]>([]);
   const clock = useClock();
@@ -192,7 +206,7 @@ export function TwinCam({ mode = "live" }: { mode?: "live" | "ndvi" }) {
           camera={{ fov: CAMERA_VFOV, near: 0.1, far: 90, position: LENS_WORLD.toArray() }}
         >
           <CamScene ndvi={mode === "ndvi"} />
-          <CameraRender ndvi={mode === "ndvi"} overlay={overlay} boxes={boxes} />
+          <CameraRender ndvi={mode === "ndvi"} focus={focus} overlay={overlay} boxes={boxes} />
         </Canvas>
         <canvas ref={overlay} className="twincam-overlay" onClick={click} />
       </div>

@@ -51,7 +51,6 @@ export function Gauges() {
     <section className="panel area-gauges">
       <h2>
         Air sensors
-        <span className="right meta">{t?.sensors_simulated ? "simulated" : t ? "live" : "—"}{t?.scenario ? ` · ${t.scenario.replace(/_/g, " ")}` : ""}</span>
       </h2>
       <div className="body readouts">
         {READOUTS.map((d) => (

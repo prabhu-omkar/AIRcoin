@@ -65,7 +65,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const switchWallet = (wallet: DemoWallet) => {
     setCurrentWallet(wallet);
-    showToast(`Switched persona to ${wallet.name}`, "info");
   };
 
   const claimFreeFaucet = async (): Promise<string | null> => {

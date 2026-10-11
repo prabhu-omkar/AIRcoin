@@ -153,3 +153,25 @@ export async function registerMinerOnChain(
     return { success: false, error: err.message };
   }
 }
+
+/** Retire AIR permanently (ERC-20 burn), for anyone who holds it. */
+export async function burnAir(privateKey: string, amountAir: string) {
+  try {
+    const airToken = new ethers.Contract(DEFAULT_DEPLOYMENTS.AIRToken, CONTRACT_ABIS.AIRToken, getSigner(privateKey));
+    const receipt = await (await airToken.burn(ethers.parseEther(amountAir))).wait();
+    return { success: true, txHash: receipt.hash };
+  } catch (err: any) {
+    return { success: false, error: err.shortMessage || err.message };
+  }
+}
+
+/** A company's compliance obligation for a period (AIR, as numbers). */
+export async function readObligation(address: string, period: string) {
+  try {
+    const c = new ethers.Contract(DEFAULT_DEPLOYMENTS.ComplianceRegistry, CONTRACT_ABIS.ComplianceRegistry, getProvider());
+    const [amount, burned, exists] = await c.getObligation(address, period);
+    return exists ? { amount: Number(ethers.formatEther(amount)), burned: Number(ethers.formatEther(burned)) } : null;
+  } catch {
+    return null;
+  }
+}

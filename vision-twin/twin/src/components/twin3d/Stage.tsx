@@ -4,7 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { sharedTime } from "./materials";
-import { LENS_LOCAL } from "./Miner";
+import { LENS_LOCAL, MINER_BOTTOM } from "./Miner";
 import { RACK_H } from "./Rig";
 
 /** Miner on its tripod, ~1.05 m from the rack, lens at the rack's mid height. */
@@ -36,7 +36,7 @@ export function Atmosphere({ drive = false }: { drive?: boolean }) {
 
 export function Tripod() {
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#16191b", metalness: 0.75, roughness: 0.35 }), []);
-  const head = MINER_POS.y - 0.45;
+  const head = MINER_POS.y - MINER_BOTTOM - 0.2;
   const hub = 2.6;
   const legs = useMemo(() => [0, 1, 2].map((i) => {
     const a = (i / 3) * Math.PI * 2 + 0.3;

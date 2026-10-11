@@ -17,6 +17,7 @@ export interface PartDef {
   hardware: string;
   role: string;
   pos: Vec3; // assembled, miner-local
+  exploded: Vec3; // offset in the exploded view
   readings: (t?: Telemetry) => [string, string][];
 }
 
@@ -24,41 +25,41 @@ const fmt = (v: number | undefined, d = 1, unit = "") => (v === undefined ? "—
 
 export const PARTS: PartDef[] = [
   {
-    id: "pi", name: "Raspberry Pi", hardware: "Raspberry Pi 4 (4 GB) / Pi 5", role: "Runs vision, estimation and signing",
-    pos: [-0.2, -0.17, -0.12],
+    id: "pi", name: "Raspberry Pi", hardware: "Raspberry Pi 4 (4 GB)", role: "Runs vision, estimation and signing",
+    pos: [-0.42, -0.56, -0.18], exploded: [0, 0.75, -0.15],
     readings: (t) => [["CPU temp", fmt(t?.device?.cpu_temp_c, 1, " °C")], ["CPU", fmt(t?.device?.cpu_pct, 0, " %")], ["Memory", fmt(t?.device?.mem_pct, 0, " %")], ["Uplink", t?.uplink?.online === false ? "offline" : t ? "online" : "—"]],
   },
   {
-    id: "camera", name: "Camera", hardware: "Pi Camera Module 3 NoIR Wide + blue gel filter", role: "Reads stickers, sizes plants, NDVI liveness",
-    pos: [0, 0.66, 0.5],
+    id: "camera", name: "Camera", hardware: "Pi Camera Module 3 NoIR Wide, blue gel filter", role: "Reads stickers, sizes plants, NDVI liveness",
+    pos: [0, 0.12, 0.5], exploded: [0, 0.3, -0.1],
     readings: (t) => {
       const seen = t?.plants.filter((p) => p.status === "present" || p.status === "suspect").length;
       return [["Plants seen", t ? `${seen}/${t.plants.length}` : "—"], ["Suspect", t ? String(t.plants.filter((p) => p.status === "suspect").length) : "—"]];
     },
   },
   {
-    id: "gps", name: "GPS", hardware: "u-blox NEO-6M / NEO-M8N (UART)", role: "Fixes location for anti-cheat and local AQI",
-    pos: [-0.5, 0.53, -0.38],
+    id: "gps", name: "GPS", hardware: "u-blox NEO-6M with patch antenna", role: "Location for anti-cheat and local AQI",
+    pos: [-0.55, 0.6, -0.15], exploded: [0, 1.25, 0],
     readings: (t) => [["Fix", t?.gps.fix ?? "—"], ["Satellites", t?.gps.satellites !== undefined ? String(t.gps.satellites) : "—"], ["Lat, lon", t ? `${t.gps.lat.toFixed(5)}, ${t.gps.lon.toFixed(5)}` : "—"]],
   },
   {
-    id: "pms", name: "Particulate sensor", hardware: "PMS5003", role: "PM2.5 / PM10 (simulated in the demo)",
-    pos: [0.58, -0.135, -0.3],
+    id: "pms", name: "Particulate sensor", hardware: "Plantower PMS5003", role: "PM2.5 / PM10",
+    pos: [0.68, -0.53, -0.28], exploded: [0.15, 0.9, -0.1],
     readings: (t) => [["PM2.5", fmt(t?.sensors.pm25_ugm3, 0, " µg/m³")], ["PM10", fmt(t?.sensors.pm10_ugm3, 0, " µg/m³")], ["AQI", fmt(t?.aqi, 0)]],
   },
   {
-    id: "mq135", name: "Gas / VOC sensor", hardware: "MQ-135", role: "VOCs and NO₂ (simulated in the demo)",
-    pos: [-0.55, -0.22, 0.38],
+    id: "mq135", name: "Gas / VOC sensor", hardware: "MQ-135", role: "VOCs and NO₂",
+    pos: [0.62, -0.645, 0.32], exploded: [0.15, 0.85, 0.15],
     readings: (t) => [["VOC index", fmt(t?.sensors.voc_index, 0)], ["NO₂", fmt(t?.sensors.no2_ppb, 0, " ppb")], ["CO", fmt(t?.sensors.co_ppm, 2, " ppm")]],
   },
   {
-    id: "scd40", name: "CO₂ sensor", hardware: "SCD40", role: "CO₂ (simulated in the demo)",
-    pos: [0.18, -0.22, 0.4],
+    id: "scd40", name: "CO₂ sensor", hardware: "Sensirion SCD40", role: "CO₂",
+    pos: [0.2, -0.645, 0.36], exploded: [0, 0.7, 0.15],
     readings: (t) => [["CO₂", fmt(t?.sensors.co2_ppm, 0, " ppm")]],
   },
   {
-    id: "bme280", name: "Climate sensor", hardware: "BME280", role: "Temperature, humidity, pressure",
-    pos: [0.6, -0.22, 0.42],
+    id: "bme280", name: "Climate sensor", hardware: "Bosch BME280", role: "Temperature, humidity, pressure",
+    pos: [0.3, -0.645, 0.02], exploded: [0, 0.6, 0],
     readings: (t) => [["Temp", fmt(t?.sensors.temp_c, 1, " °C")], ["Humidity", fmt(t?.sensors.humidity_pct, 0, " %")], ["Pressure", fmt(t?.sensors.pressure_hpa, 0, " hPa")]],
   },
 ];
@@ -215,17 +216,12 @@ function CameraBody({ live }: { live: boolean }) {
       <Box pos={[0, 0, 0.03]} size={[0.088, 0.088, 0.045]} m={m.black} />
       <Cyl pos={[0, 0, 0.068]} r={0.038} h={0.035} m={m.blackGloss} rot={[Math.PI / 2, 0, 0]} seg={32} />
       <Cyl pos={[0, 0, 0.086]} r={0.026} h={0.004} m={m.glass} rot={[Math.PI / 2, 0, 0]} seg={32} />
-      {/* blue gel filter in a clip */}
+      {/* blue gel filter in front of the lens */}
       <Cyl pos={[0, 0, 0.1]} r={0.052} h={0.006} m={m.gel} rot={[Math.PI / 2, 0, 0]} seg={32} />
-      <mesh position={[0, 0, 0.1]} material={m.black}>
-        <torusGeometry args={[0.053, 0.006, 8, 32]} />
-      </mesh>
-      {/* holes and a small connector */}
-      <Box pos={[0, -0.095, -0.012]} size={[0.16, 0.035, 0.016]} m={m.black} />
-      {/* aluminium mast + tilt joint */}
-      <Box pos={[0, -0.2, -0.04]} size={[0.06, 0.2, 0.025]} m={m.alu} />
-      <Cyl pos={[0, -0.1, -0.04]} r={0.022} h={0.08} m={m.darkMetal} rot={[0, 0, Math.PI / 2]} />
-      <Led pos={[0.1, 0.1, 0.01]} color="#ff2040" blink={(t) => (live ? 0.6 + 0.4 * Math.sin(t * 4) : 0)} size={0.014} />
+      {/* aluminium L-bracket down to the tray */}
+      <Box pos={[0, -0.39, -0.03]} size={[0.2, 0.66, 0.012]} m={m.alu} />
+      <Box pos={[0, -0.715, -0.12]} size={[0.2, 0.012, 0.18]} m={m.alu} />
+      <Led pos={[0.1, 0.1, 0.01]} color="#e5484d" blink={(t) => (live ? 0.6 + 0.4 * Math.sin(t * 4) : 0)} size={0.014} />
     </group>
   );
 }
@@ -333,19 +329,37 @@ function Bodies({ id, t }: { id: string; t?: Telemetry }) {
   }
 }
 
-function Part({ def, selected, onSelect, t, children }: { def: PartDef; selected: boolean; onSelect: (id: string) => void; t?: Telemetry; children: ReactNode }) {
+const v3 = (a: Vec3) => new THREE.Vector3(...a);
+const ease = (k: number) => 1 - (1 - k) ** 3;
+
+/** Eases a group between its assembled and exploded position. */
+function useExplode(ref: React.RefObject<THREE.Group>, pos: Vec3, offset: Vec3, exploded: boolean) {
+  const from = useMemo(() => v3(pos), [pos]);
+  const to = useMemo(() => v3(pos).add(v3(offset)), [pos, offset]);
+  const k = useRef(0);
+  useFrame((_, dt) => {
+    const step = Math.min(dt, 0.05) / 0.9;
+    k.current = exploded ? Math.min(1, k.current + step) : Math.max(0, k.current - step);
+    ref.current?.position.lerpVectors(from, to, ease(k.current));
+  });
+}
+
+function Part({ def, exploded, selected, onSelect, t, children }: { def: PartDef; exploded: boolean; selected: boolean; onSelect: (id: string) => void; t?: Telemetry; children: ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
   const [hover, setHover] = useState(false);
+  useExplode(ref, def.pos, def.exploded, exploded);
   const reading = def.readings(t)[0];
   return (
     <group
+      ref={ref}
       position={def.pos}
       onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onSelect(def.id); }}
       onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { setHover(false); document.body.style.cursor = ""; }}
     >
       {children}
-      {(hover || selected) && (
-        <Html position={[0, 0.22, 0]} center style={{ pointerEvents: "none" }} zIndexRange={[20, 10]}>
+      {(exploded || hover || selected) && (
+        <Html position={[0, 0.2, 0]} center style={{ pointerEvents: "none" }} zIndexRange={[20, 10]}>
           <div className={`part-tag ${selected ? "sel" : ""}`}>
             <b>{def.name}</b>
             {reading && <span>{reading[0]} <em>{reading[1]}</em></span>}
@@ -364,8 +378,8 @@ function Ribbon({ points, width }: { points: THREE.Vector3[]; width: number }) {
     const pos: number[] = [];
     const idx: number[] = [];
     for (let i = 0; i <= n; i++) {
-      const p = curve.getPoint(i / n);
-      pos.push(p.x - width / 2, p.y, p.z, p.x + width / 2, p.y, p.z);
+      const q = curve.getPoint(i / n);
+      pos.push(q.x - width / 2, q.y, q.z, q.x + width / 2, q.y, q.z);
       if (i < n) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
     }
     const g = new THREE.BufferGeometry();
@@ -377,109 +391,110 @@ function Ribbon({ points, width }: { points: THREE.Vector3[]; width: number }) {
   return <mesh geometry={geo} material={mats().ribbon} castShadow />;
 }
 
-const RIBBON_PATH = [new THREE.Vector3(-0.155, -0.1, 0.05), new THREE.Vector3(-0.155, 0.1, 0.1), new THREE.Vector3(-0.05, 0.3, 0.32), new THREE.Vector3(0, 0.44, 0.44), new THREE.Vector3(0, 0.56, 0.48)];
-const WIRE_COLORS = ["#e53935", "#212121", "#fdd835", "#43a047", "#1e88e5", "#fb8c00", "#f5f5f5", "#8e24aa"];
+const WIRE_COLORS = ["#d93f3f", "#222222", "#e8c547", "#3c9b52", "#3577d4", "#e2873a"];
+const partPos = (id: string) => v3(PARTS.find((p) => p.id === id)!.pos);
 
-/** Dupont jumper wires from the GPIO header to each sensor. */
-function Wiring() {
-  const wires = useMemo(() => {
-    const pi = new THREE.Vector3(...PARTS[0].pos);
+/** Jumper wires from the Pi's GPIO header and the camera ribbon; shown only when assembled. */
+function Wiring({ visible }: { visible: boolean }) {
+  const { wires, ribbon } = useMemo(() => {
+    const pi = partPos("pi");
     const header = (i: number) => pi.clone().add(new THREE.Vector3(-0.29 + i * 0.0254, 0.08, -0.245));
-    const ends: [number, string, THREE.Vector3][] = [
-      [1, "pms", new THREE.Vector3(...PARTS[3].pos).add(new THREE.Vector3(-0.26, -0.05, 0.12))],
-      [2, "pms", new THREE.Vector3(...PARTS[3].pos).add(new THREE.Vector3(-0.26, -0.05, 0.14))],
-      [4, "mq135", new THREE.Vector3(...PARTS[4].pos).add(new THREE.Vector3(0.16, 0.02, -0.08))],
-      [5, "mq135", new THREE.Vector3(...PARTS[4].pos).add(new THREE.Vector3(0.16, 0.02, -0.05))],
-      [7, "scd40", new THREE.Vector3(...PARTS[5].pos).add(new THREE.Vector3(-0.08, 0.02, -0.1))],
-      [8, "scd40", new THREE.Vector3(...PARTS[5].pos).add(new THREE.Vector3(-0.05, 0.02, -0.1))],
-      [10, "bme280", new THREE.Vector3(...PARTS[6].pos).add(new THREE.Vector3(-0.06, 0.02, -0.05))],
-      [12, "gps", new THREE.Vector3(...PARTS[2].pos).add(new THREE.Vector3(0, -0.04, 0.17))],
+    const ends: [number, THREE.Vector3][] = [
+      [1, partPos("pms").add(new THREE.Vector3(-0.26, -0.05, 0.12))],
+      [3, partPos("mq135").add(new THREE.Vector3(-0.12, 0.02, -0.08))],
+      [5, partPos("scd40").add(new THREE.Vector3(-0.08, 0.02, -0.1))],
+      [7, partPos("bme280").add(new THREE.Vector3(-0.06, 0.02, -0.05))],
+      [9, partPos("gps").add(new THREE.Vector3(0, -0.02, 0.17))],
+      [11, partPos("pms").add(new THREE.Vector3(-0.26, -0.05, 0.15))],
     ];
-    return ends.map(([pin, , end], i) => {
-      const start = header(pin);
-      const mid = start.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.22 + (i % 3) * 0.05, 0));
-      return { color: WIRE_COLORS[i % WIRE_COLORS.length], curve: new THREE.CatmullRomCurve3([start, start.clone().add(new THREE.Vector3(0, 0.08, 0)), mid, end.clone().add(new THREE.Vector3(0, 0.08, 0)), end]) };
-    });
+    const csi = pi.clone().add(new THREE.Vector3(0.045, 0.06, 0.17));
+    const cam = partPos("camera").add(new THREE.Vector3(0, -0.12, -0.02));
+    return {
+      wires: ends.map(([pin, end], i) => {
+        const start = header(pin);
+        const mid = start.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 0.18 + (i % 3) * 0.04, 0));
+        return { color: WIRE_COLORS[i], curve: new THREE.CatmullRomCurve3([start, start.clone().add(new THREE.Vector3(0, 0.07, 0)), mid, end.clone().add(new THREE.Vector3(0, 0.07, 0)), end]) };
+      }),
+      ribbon: [csi, csi.clone().add(new THREE.Vector3(0, 0.12, 0.05)), cam.clone().add(new THREE.Vector3(0, -0.1, -0.15)), cam],
+    };
   }, []);
   return (
-    <group>
+    <group visible={visible}>
       {wires.map((w, i) => (
         <mesh key={i} castShadow>
-          <tubeGeometry args={[w.curve, 48, 0.009, 6, false]} />
-          <meshStandardMaterial color={w.color} roughness={0.45} />
+          <tubeGeometry args={[w.curve, 48, 0.008, 6, false]} />
+          <meshStandardMaterial color={w.color} roughness={0.5} />
         </mesh>
       ))}
-      <Ribbon width={0.15} points={RIBBON_PATH} />
+      <Ribbon width={0.15} points={ribbon} />
     </group>
   );
 }
 
-function ExhaustFan({ cpu }: { cpu: number }) {
-  const m = mats();
-  const blades = useRef<THREE.Group>(null);
-  useFrame((_, dt) => {
-    if (blades.current) blades.current.rotation.z += dt * (6 + cpu * 0.5);
-  });
+// ---------- IP65 enclosure: grey ABS body, gasketed front cover with a clear window ----------
+const W = 2.3, H = 1.5, D = 1.3, T = 0.06; // outer size (x, y, z) and wall thickness; 1 unit = 10 cm
+export const WINDOW = { y: 0.12, r: 0.22 };
+
+function Wall({ pos, size, offset, exploded, m, children }: { pos: Vec3; size: Vec3; offset: Vec3; exploded: boolean; m: THREE.Material; children?: ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  useExplode(ref, pos, offset, exploded);
   return (
-    <group position={[0.952, 0.08, 0.05]} rotation={[0, Math.PI / 2, 0]}>
-      <Box pos={[0, 0, 0]} size={[0.32, 0.32, 0.04]} m={m.black} />
-      <mesh position={[0, 0, 0.021]} material={m.blackGloss}>
-        <circleGeometry args={[0.15, 32]} />
-      </mesh>
-      <group ref={blades} position={[0, 0, 0.03]}>
-        {Array.from({ length: 7 }, (_, i) => (
-          <mesh key={i} rotation={[0.35, 0, (i / 7) * Math.PI * 2]} position={[0, 0, 0]} material={m.black}>
-            <boxGeometry args={[0.03, 0.26, 0.004]} />
-          </mesh>
-        ))}
-        <Cyl pos={[0, 0, 0.005]} r={0.05} h={0.02} m={m.black} rot={[Math.PI / 2, 0, 0]} />
-      </group>
-      {/* grille */}
-      {[-0.09, -0.03, 0.03, 0.09].map((y) => <Box key={y} pos={[0, y, 0.045]} size={[0.3, 0.008, 0.008]} m={m.silver} />)}
+    <group ref={ref} position={pos}>
+      <RoundedBox args={size} radius={0.03} smoothness={3} material={m} castShadow receiveShadow />
+      {children}
     </group>
   );
 }
 
-function Enclosure({ online }: { online: boolean }) {
+function Enclosure({ exploded, online }: { exploded: boolean; online: boolean }) {
   const m = mats();
-  const shell = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#cfeee2", transparent: true, opacity: 0.1, roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03, depthWrite: false, envMapIntensity: 1.5, side: THREE.DoubleSide }), []);
-  const lidMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#13221d", transparent: true, opacity: 0.42, roughness: 0.06, clearcoat: 1, depthWrite: false, envMapIntensity: 1.6 }), []);
-  const strip = useMemo(() => new THREE.MeshStandardMaterial({ color: "#111", emissive: new THREE.Color("#3fb950"), emissiveIntensity: 3, toneMapped: false }), []);
-  const plate = useMemo(() => new THREE.MeshStandardMaterial({ map: labelTexture("nameplate", "#0f1513", "#e6efe9", [["AIRcoin", 64, "800"], ["MINER · PoUW · v1", 30, "500"]], 512, 192), roughness: 0.35, metalness: 0.4 }), []);
-  strip.emissive.set(online ? "#3fb950" : "#d29922");
+  const abs = useMemo(() => new THREE.MeshStandardMaterial({ color: "#cfd3d6", roughness: 0.62, metalness: 0, map: noiseTexture("abs", "#f2f2f2", 0.05) }), []);
+  const lens = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#ffffff", roughness: 0.04, transmission: 1, thickness: 0.04, ior: 1.58, clearcoat: 1 }), []);
+  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: "#c7ccd1", metalness: 1, roughness: 0.3 }), []);
+  const led = useMemo(() => new THREE.MeshStandardMaterial({ color: "#111", emissive: new THREE.Color(online ? "#2fbf4a" : "#d29922"), emissiveIntensity: 2.5, toneMapped: false }), [online]);
+  const plate = useMemo(() => new THREE.MeshStandardMaterial({ map: labelTexture("nameplate-v2", "#e9ecef", "#2b3036", [["AIRcoin miner", 54, "700"], ["miner-001, IP65", 30, "500"]], 512, 160), roughness: 0.5 }), []);
+  const x = W / 2 - T / 2, y = H / 2 - T / 2, z = D / 2 - T / 2;
+  const screws = ([[-1, -1], [1, -1], [-1, 1], [1, 1]] as const).map(([sx, sy]) => [sx * (W / 2 - 0.1), sy * (H / 2 - 0.1)] as const);
   return (
     <group>
-      <RoundedBox args={[1.92, 0.12, 1.42]} radius={0.04} smoothness={4} position={[0, -0.32, 0]} material={m.housing} castShadow receiveShadow />
-      <RoundedBox args={[1.9, 0.72, 1.4]} radius={0.035} smoothness={3} position={[0, 0.1, 0]} material={shell} />
-      {/* aluminium corner posts */}
-      {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Box key={`${sx}${sz}`} pos={[sx * 0.93, 0.1, sz * 0.68]} size={[0.045, 0.72, 0.045]} m={m.alu} />))}
-      <RoundedBox args={[1.96, 0.05, 1.46]} radius={0.02} smoothness={3} position={[0, 0.47, 0]} material={lidMat} />
-      {/* rear nameplate and status strip (rear faces the viewer in the rig) */}
-      <mesh position={[0, -0.32, -0.716]} rotation={[0, Math.PI, 0]} material={plate}>
-        <planeGeometry args={[0.6, 0.1]} />
-      </mesh>
-      <mesh position={[-0.55, -0.32, 0.716]} material={plate}>
-        <planeGeometry args={[0.6, 0.1]} />
-      </mesh>
-      <Box pos={[0.62, -0.32, -0.714]} size={[0.4, 0.018, 0.006]} m={strip} />
-      <Box pos={[0.35, -0.32, 0.714]} size={[0.7, 0.018, 0.006]} m={strip} />
-      {/* rubber feet */}
-      {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Cyl key={`f${sx}${sz}`} pos={[sx * 0.8, -0.395, sz * 0.58]} r={0.06} h={0.03} m={m.rubber} seg={16} />))}
-      {/* vent slots on the -x wall */}
-      {Array.from({ length: 6 }, (_, i) => <Box key={`v${i}`} pos={[-0.952, -0.05 + i * 0.07, 0]} size={[0.006, 0.025, 0.6]} m={m.black} />)}
+      {/* bottom with the aluminium component tray */}
+      <RoundedBox args={[W, T, D]} radius={0.03} smoothness={3} position={[0, -y, 0]} material={abs} castShadow receiveShadow />
+      <mesh position={[0, -0.665, 0]} material={m.alu} receiveShadow><boxGeometry args={[W - 0.3, 0.02, D - 0.3]} /></mesh>
+      {/* back, sides and lid come apart along their own axes */}
+      <Wall pos={[0, 0, -z]} size={[W, H, T]} offset={[0, 0, -0.7]} exploded={exploded} m={abs}>
+        <mesh position={[0.6, -0.5, -T / 2 - 0.002]} rotation={[0, Math.PI, 0]} material={plate}><planeGeometry args={[0.7, 0.22]} /></mesh>
+      </Wall>
+      <Wall pos={[-x, 0, 0]} size={[T, H, D]} offset={[-0.75, 0, 0]} exploded={exploded} m={abs} />
+      <Wall pos={[x, 0, 0]} size={[T, H, D]} offset={[0.75, 0, 0]} exploded={exploded} m={abs}>
+        {/* louvred vent beside the particulate sensor */}
+        {Array.from({ length: 7 }, (_, i) => (
+          <mesh key={i} position={[T / 2 + 0.008, -0.45 + i * 0.07, -0.25]} rotation={[0.5, 0, 0]} material={abs} castShadow><boxGeometry args={[0.02, 0.05, 0.5]} /></mesh>
+        ))}
+      </Wall>
+      <Wall pos={[0, y, 0]} size={[W, T, D]} offset={[0, 1.25, 0]} exploded={exploded} m={abs} />
+      {/* front cover: clear window over the lens, gasket, four stainless screws, status LED */}
+      <Wall pos={[0, 0, z]} size={[W, H, T]} offset={[0, 0, 1.0]} exploded={exploded} m={abs}>
+        <mesh position={[0, WINDOW.y, T / 2 + 0.004]} material={lens}><circleGeometry args={[WINDOW.r, 48]} /></mesh>
+        <mesh position={[0, WINDOW.y, T / 2 + 0.006]} material={m.rubber}><ringGeometry args={[WINDOW.r, WINDOW.r + 0.035, 48]} /></mesh>
+        {screws.map(([sx, sy], i) => <Cyl key={i} pos={[sx, sy, T / 2 + 0.01]} r={0.03} h={0.02} m={steel} rot={[Math.PI / 2, 0, 0]} seg={16} />)}
+        <mesh position={[0.85, -0.55, T / 2 + 0.006]} material={led}><circleGeometry args={[0.025, 16]} /></mesh>
+      </Wall>
+      {/* cable gland, power lead and tripod plate underneath */}
+      <Cyl pos={[-0.7, -H / 2 - 0.06, -0.3]} r={0.07} h={0.12} m={m.black} seg={16} />
+      <mesh position={[-0.7, -H / 2 - 0.25, -0.3]} material={m.black}><cylinderGeometry args={[0.025, 0.025, 0.3, 10]} /></mesh>
+      <RoundedBox args={[0.6, 0.05, 0.6]} radius={0.015} position={[0, -H / 2 - 0.025, 0]} material={m.darkMetal} castShadow />
     </group>
   );
 }
 
-export function Miner({ selected, onSelect }: { selected?: string; onSelect: (id: string) => void }) {
+export function Miner({ exploded, selected, onSelect }: { exploded: boolean; selected?: string; onSelect: (id: string) => void }) {
   const t = useTwin((s) => s.telemetry);
   return (
     <group>
-      <Enclosure online={t?.uplink?.online !== false} />
-      <ExhaustFan cpu={t?.device?.cpu_pct ?? 30} />
-      <Wiring />
+      <Enclosure exploded={exploded} online={t?.uplink?.online !== false} />
+      <Wiring visible={!exploded} />
       {PARTS.map((def) => (
-        <Part key={def.id} def={def} selected={selected === def.id} onSelect={onSelect} t={t}>
+        <Part key={def.id} def={def} exploded={exploded} selected={selected === def.id} onSelect={onSelect} t={t}>
           <Bodies id={def.id} t={t} />
         </Part>
       ))}
@@ -487,5 +502,7 @@ export function Miner({ selected, onSelect }: { selected?: string; onSelect: (id
   );
 }
 
-/** Lens position in miner-local space (for the vision frustum). */
-export const LENS_LOCAL = new THREE.Vector3(0, 0.66, 0.6);
+/** Lens position in miner-local space (the camera looks out through the front window). */
+export const LENS_LOCAL = new THREE.Vector3(0, WINDOW.y, 0.62);
+/** Distance from the miner's origin down to the tripod plate. */
+export const MINER_BOTTOM = H / 2 + 0.05;

@@ -42,24 +42,24 @@ export function Wallet() {
 
   return (
     <section className="panel wallet" style={{ flex: "0 0 auto" }}>
-      <h2>Wallet<span className="right meta">{balance ? `${balance.address.slice(0, 6)}…${balance.address.slice(-4)}` : ""}</span></h2>
+      <h2>Wallet</h2>
       <div className="body">
         <div className="balance">{air.toFixed(4)}<small>AIR</small></div>
         <div className="epoch-line">
-          <span>Epoch {epoch?.epoch ?? "—"}</span>
+          <span>This minute</span>
           <b>+{running.toFixed(5)}</b>
         </div>
-        <div className="progress" title="epoch progress"><div style={{ width: `${progress * 100}%` }} /></div>
+        <div className="progress" title="progress through this minute"><div style={{ width: `${progress * 100}%` }} /></div>
         <div className="epoch-line sub">
-          <span>Last epoch</span>
+          <span>Last minute</span>
           <span>{latest ? <>{latest.total_air.toFixed(5)} AIR · <em className={latest.attestation.status}>{latest.attestation.status}</em></> : "—"}</span>
         </div>
         <table className="mints">
-          <thead><tr><th>Epoch</th><th>Minted</th></tr></thead>
+          <thead><tr><th>Time</th><th>Earned</th></tr></thead>
           <tbody>
             {mints.slice(0, 5).map((m) => (
               <tr key={m.tx_hash} className={m.tx_hash === fresh ? "fresh" : ""}>
-                <td>{m.epoch}</td>
+                <td>{new Date(m.ts).toLocaleTimeString([], { hour12: false })}</td>
                 <td>+{fromBaseUnits(m.amount).toFixed(5)}</td>
               </tr>
             ))}
