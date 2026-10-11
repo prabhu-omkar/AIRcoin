@@ -3,10 +3,19 @@ export const TILE_HEIGHT = 64;
 export const HALF_WIDTH = TILE_WIDTH / 2;
 export const HALF_HEIGHT = TILE_HEIGHT / 2;
 export const MAP_SIZE = 22;
+// The scene tiles the 22x22 map three times in each direction, separated by a
+// TILE_GAP-tile gutter so the joining edges read as distinct blocks. The grid
+// therefore spans TILE_MIN..TILE_MAX centered on the original map.
+export const TILE_GAP = 2;
+export const TILE_STEP = MAP_SIZE + TILE_GAP;
+export const TILE_MIN = -TILE_STEP;
+export const TILE_MAX = TILE_STEP + MAP_SIZE - 1;
 export const WORLD_ORIGIN_X = MAP_SIZE * HALF_WIDTH + 260;
 export const WORLD_ORIGIN_Y = 170;
-export const WORLD_WIDTH = MAP_SIZE * TILE_WIDTH + 520;
-export const WORLD_HEIGHT = MAP_SIZE * TILE_HEIGHT + 620;
+export const WORLD_MIN_X = WORLD_ORIGIN_X + (TILE_MIN - TILE_MAX) * HALF_WIDTH;
+export const WORLD_MIN_Y = WORLD_ORIGIN_Y + (TILE_MIN + TILE_MIN) * HALF_HEIGHT;
+export const WORLD_WIDTH = (TILE_MAX - TILE_MIN) * TILE_WIDTH + 520;
+export const WORLD_HEIGHT = (TILE_MAX - TILE_MIN) * TILE_HEIGHT + 620;
 
 export type GridPoint = { col: number; row: number };
 export type WorldPoint = { x: number; y: number };
