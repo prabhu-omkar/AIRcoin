@@ -1,4 +1,14 @@
-# Generated locally: sticker sheets, enrolment photos/vectors, hardware-check frames
+__pycache__/
+.pytest_cache/
+*.pyc
+.tmp-*.jsonl
 data/
-*.tsbuildinfo
 .run/
+*.tsbuildinfo
+twin/node_modules/
+twin/dist/
+twin/.npm-cache/
+twin/.chrome-test*/
+twin/.edge-city-check/
+twin/city-preview*.png
+twin/preview-city*.png

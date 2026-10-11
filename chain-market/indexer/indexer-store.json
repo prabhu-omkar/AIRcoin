@@ -1,0 +1,48 @@
+{
+  "events": [
+    {
+      "id": 1,
+      "type": "mint",
+      "tx_hash": "0xe9b47b19135808278ba613fda49f998c5a1480993ba55e905f78fad9f46f23ad",
+      "log_index": 2,
+      "block_number": 475,
+      "ts": 1791666794000,
+      "data_json": "{\"miner_id\":\"miner-001\",\"epoch\":29861112,\"amount\":\"11808488000000000\",\"to\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"evidence_hash\":\"0x71105f903dc20e6a0abd0c48cb4c5e6ed93a7b3148b16dd1c78f9f56f709fbcd\"}"
+    },
+    {
+      "id": 2,
+      "type": "mint",
+      "tx_hash": "0x3efae0df34493b36fb3954ccb86cb4c46583cba3ad023cf348212705184861e0",
+      "log_index": 2,
+      "block_number": 535,
+      "ts": 1791666855000,
+      "data_json": "{\"miner_id\":\"miner-001\",\"epoch\":29861113,\"amount\":\"11695803000000000\",\"to\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"evidence_hash\":\"0x6f1492732ac2d866baefdc7ae7b3290a1bee99e713244c92d702f041b64cc816\"}"
+    }
+  ],
+  "mints": [
+    {
+      "id": 1,
+      "miner_id": "miner-001",
+      "epoch": 29861112,
+      "amount": "11808488000000000",
+      "to_address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "evidence_hash": "0x71105f903dc20e6a0abd0c48cb4c5e6ed93a7b3148b16dd1c78f9f56f709fbcd",
+      "tx_hash": "0xe9b47b19135808278ba613fda49f998c5a1480993ba55e905f78fad9f46f23ad",
+      "block_number": 475,
+      "ts": 1791666794000
+    },
+    {
+      "id": 2,
+      "miner_id": "miner-001",
+      "epoch": 29861113,
+      "amount": "11695803000000000",
+      "to_address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "evidence_hash": "0x6f1492732ac2d866baefdc7ae7b3290a1bee99e713244c92d702f041b64cc816",
+      "tx_hash": "0x3efae0df34493b36fb3954ccb86cb4c46583cba3ad023cf348212705184861e0",
+      "block_number": 535,
+      "ts": 1791666855000
+    }
+  ],
+  "trades": [],
+  "burns": []
+}

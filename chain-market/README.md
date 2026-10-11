@@ -61,6 +61,11 @@ python contracts-schema/scripts/validate.py c4-chain-event my-event.json
 
 ## Phase checklist
 
+The local demo command starts the complete Workstream C runtime: contracts, validator, C4 indexer
+and the wallet/market/company/admin web platform. The admin's register, suspend/reactivate and
+obligation controls execute real contract transactions; marketplace purchases and compliance burns
+also execute on-chain. `npm test` in `indexer/` verifies durable C4 storage and aggregation.
+
 **Phase 1 · Foundations**
 - [x] All six contracts written with unit tests; deployed on a local chain (23 passing tests)
 - [x] Valid mock attestation mints; tampered, replayed or over-cap ones are rejected

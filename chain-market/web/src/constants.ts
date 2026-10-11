@@ -69,9 +69,9 @@ export const CONTRACT_ABIS = {
   ],
   MinerRegistry: [
     "function registerMiner(bytes32 minerId, address deviceAddress, address ownerWallet, bytes32 stickerSetHash, string geohash)",
-    "function suspend(bytes32 minerId)",
-    "function reactivate(bytes32 minerId)",
-    "function revoke(bytes32 minerId)",
+    "function suspendMiner(bytes32 minerId)",
+    "function reactivateMiner(bytes32 minerId)",
+    "function revokeMiner(bytes32 minerId)",
     "function isActive(bytes32 minerId) view returns (bool)",
     "function getDeviceAddress(bytes32 minerId) view returns (address)",
     "function getOwnerWallet(bytes32 minerId) view returns (address)",

@@ -1,0 +1,471 @@
+{
+  "frames": {
+    "apartment-0": {
+      "frame": {
+        "x": 72,
+        "y": 24,
+        "w": 368,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 368,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 368,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "apartment-1": {
+      "frame": {
+        "x": 583,
+        "y": 24,
+        "w": 369,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 369,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 369,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "apartment-2": {
+      "frame": {
+        "x": 1089,
+        "y": 24,
+        "w": 381,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 381,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 381,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "apartment-3": {
+      "frame": {
+        "x": 1610,
+        "y": 24,
+        "w": 364,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 364,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 364,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "neem": {
+      "frame": {
+        "x": 123,
+        "y": 770,
+        "w": 265,
+        "h": 236
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 265,
+        "h": 236
+      },
+      "sourceSize": {
+        "w": 265,
+        "h": 236
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "okhla-factory": {
+      "frame": {
+        "x": 533,
+        "y": 635,
+        "w": 470,
+        "h": 371
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 470,
+        "h": 371
+      },
+      "sourceSize": {
+        "w": 470,
+        "h": 371
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "metro-real": {
+      "frame": {
+        "x": 1045,
+        "y": 618,
+        "w": 470,
+        "h": 388
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 470,
+        "h": 388
+      },
+      "sourceSize": {
+        "w": 470,
+        "h": 388
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "auto-se": {
+      "frame": {
+        "x": 1714,
+        "y": 771,
+        "w": 156,
+        "h": 235
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 156,
+        "h": 235
+      },
+      "sourceSize": {
+        "w": 156,
+        "h": 235
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "hatchback": {
+      "frame": {
+        "x": 156,
+        "y": 1273,
+        "w": 199,
+        "h": 245
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 199,
+        "h": 245
+      },
+      "sourceSize": {
+        "w": 199,
+        "h": 245
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "delhi-bus": {
+      "frame": {
+        "x": 618,
+        "y": 1244,
+        "w": 300,
+        "h": 274
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 300,
+        "h": 274
+      },
+      "sourceSize": {
+        "w": 300,
+        "h": 274
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "vendor-cart": {
+      "frame": {
+        "x": 1199,
+        "y": 1263,
+        "w": 162,
+        "h": 255
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 162,
+        "h": 255
+      },
+      "sourceSize": {
+        "w": 162,
+        "h": 255
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "chai-stall": {
+      "frame": {
+        "x": 1719,
+        "y": 1273,
+        "w": 145,
+        "h": 245
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 145,
+        "h": 245
+      },
+      "sourceSize": {
+        "w": 145,
+        "h": 245
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "auto-nw": {
+      "frame": {
+        "x": 180,
+        "y": 1795,
+        "w": 151,
+        "h": 235
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 151,
+        "h": 235
+      },
+      "sourceSize": {
+        "w": 151,
+        "h": 235
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "car-nw": {
+      "frame": {
+        "x": 684,
+        "y": 1785,
+        "w": 167,
+        "h": 245
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 167,
+        "h": 245
+      },
+      "sourceSize": {
+        "w": 167,
+        "h": 245
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "bus-nw": {
+      "frame": {
+        "x": 1143,
+        "y": 1730,
+        "w": 274,
+        "h": 300
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 274,
+        "h": 300
+      },
+      "sourceSize": {
+        "w": 274,
+        "h": 300
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "green-apartment-0": {
+      "frame": {
+        "x": 24,
+        "y": 2590,
+        "w": 368,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 368,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 368,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "green-apartment-1": {
+      "frame": {
+        "x": 416,
+        "y": 2590,
+        "w": 368,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 368,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 368,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "green-apartment-2": {
+      "frame": {
+        "x": 808,
+        "y": 2590,
+        "w": 368,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 368,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 368,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    },
+    "green-apartment-3": {
+      "frame": {
+        "x": 1200,
+        "y": 2590,
+        "w": 368,
+        "h": 470
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 368,
+        "h": 470
+      },
+      "sourceSize": {
+        "w": 368,
+        "h": 470
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      }
+    }
+  },
+  "meta": {
+    "app": "AIRcoin city asset pipeline",
+    "version": "1.0",
+    "image": "delhi-atlas.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2048,
+      "h": 3084
+    },
+    "scale": "1"
+  }
+}

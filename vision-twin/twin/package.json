@@ -1,43 +1,29 @@
 {
-  "name": "aircoin-twin",
+  "name": "@aircoin/vision-twin",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev-all.mjs",
-    "dev:twin": "vite --mode twin",
-    "dev:dashboard": "vite --mode dashboard",
-    "hub": "vite-node scripts/mock-hub.ts",
-    "build": "tsc -b && vite build --mode twin && vite build --mode dashboard",
-    "build:twin": "tsc -b && vite build --mode twin",
-    "build:dashboard": "tsc -b && vite build --mode dashboard",
-    "preview:twin": "vite preview --mode twin",
-    "preview:dashboard": "vite preview --mode dashboard",
-    "test": "vitest run",
-    "typecheck": "tsc -b",
-    "dev:live": "node scripts/dev-all.mjs --live"
+    "assets": "python scripts/build_city_atlas.py",
+    "dev": "vite --port 5174",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/drei": "9.117.3",
-    "@react-three/fiber": "8.17.10",
-    "leaflet": "1.9.4",
-    "lucide-react": "^0.453.0",
-    "mqtt": "5.10.3",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-leaflet": "4.2.1",
-    "three": "0.170.0",
-    "zustand": "5.0.2"
+    "@react-three/drei": "^9.117.3",
+    "@react-three/fiber": "^8.17.10",
+    "lucide-react": "^0.468.0",
+    "mqtt": "^5.10.3",
+    "phaser": "^4.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.170.0"
   },
   "devDependencies": {
-    "@types/leaflet": "1.9.15",
-    "@types/react": "18.3.18",
-    "@types/react-dom": "18.3.5",
-    "@types/three": "0.170.0",
-    "@vitejs/plugin-react": "4.3.4",
-    "ajv": "8.17.1",
-    "typescript": "5.7.2",
-    "vite": "6.0.7",
-    "vitest": "3.0.5"
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.170.0",
+    "typescript": "^5.6.3",
+    "vite": "^8.3.4"
   }
 }
