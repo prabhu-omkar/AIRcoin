@@ -36,7 +36,6 @@ export class DelhiScene extends Phaser.Scene {
   private streetProps:Phaser.GameObjects.Image[]=[];
   private pollution:PollutionPuff[]=[];
   private exhaust:PollutionPuff[]=[];
-  private signalLights:Phaser.GameObjects.Arc[]=[];
   private selection?:Phaser.GameObjects.Graphics;
   private tileHover?:Phaser.GameObjects.Graphics;
   private haze?:Phaser.GameObjects.Rectangle;
@@ -54,9 +53,9 @@ export class DelhiScene extends Phaser.Scene {
   private highFpsSamples=0;
   private reducedDetail=false;
   private reducedMotion=false;
+  private trafficClock=0;
   private signalHorizontalGreen=true;
   private signalAllRed=false;
-  private trafficClock=0;
   private metroProgress=.22;
   private scenarioHandler=(event:Event)=>this.applyScenario((event as CustomEvent<Scenario>).detail);
   private plantsHandler=(event:Event)=>this.syncPlants((event as CustomEvent<Record<string,number>>).detail);
@@ -141,12 +140,6 @@ export class DelhiScene extends Phaser.Scene {
       ["vendor-cart",15.2,14.9,.16],["chai-stall",21.2,20.9,.16],
     ];
     for(const [frame,col,row,scale] of items){const p=gridToWorld(col,row);const prop=this.add.image(p.x,p.y,"delhi-city",frame).setOrigin(.5,.94).setScale(scale).setDepth(depthFor(col,row,52));this.streetProps.push(prop);}
-    for(const col of ROAD_CENTERS)for(const row of ROAD_CENTERS){
-    const junction=gridToWorld(col,row);
-    [[-112,-58],[-82,68],[111,-58],[82,68]].forEach(([dx,dy],index)=>{
-      const light=this.add.circle(junction.x+dx,junction.y+dy,6,index<2?0x75e58f:0xef5d56,1).setStrokeStyle(2,0x102837).setDepth(5000);this.signalLights.push(light);
-    });
-    }
   }
 
   private createTrees(){
@@ -259,7 +252,7 @@ export class DelhiScene extends Phaser.Scene {
     }
   }
 
-  private updateSignals(time:number){const phase=(time/1000)%24;this.signalHorizontalGreen=phase<10;this.signalAllRed=(phase>=10&&phase<12)||phase>=22;this.signalLights.forEach((light,index)=>light.setFillStyle(!this.signalAllRed&&((index%4<2)===this.signalHorizontalGreen)?0x71eb97:0xef5d56,1));}
+  private updateSignals(time:number){const phase=(time/1000)%24;this.signalHorizontalGreen=phase<10;this.signalAllRed=(phase>=10&&phase<12)||phase>=22;}
 
   private updateTraffic(delta:number){
     const dt=Math.min(delta,50)/1000*(this.reducedMotion?.15:1);
