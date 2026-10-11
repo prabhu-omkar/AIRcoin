@@ -90,6 +90,21 @@ http
       });
       return;
     }
+    if (req.url === "/plant" && req.method === "POST" && !BRIDGE) {
+      let body = "";
+      req.on("data", (chunk) => body += chunk);
+      req.on("end", () => {
+        try {
+          const data = JSON.parse(body) as { tag: number; override: "removed" | "fake" | "swap" | null };
+          miner.setPlant(data.tag, data.override ?? undefined, Date.now());
+          tick();
+          res.writeHead(200, { ...cors, "content-type": "application/json" }).end(JSON.stringify({ ok: true }));
+        } catch {
+          res.writeHead(400, cors).end();
+        }
+      });
+      return;
+    }
     res.writeHead(404, cors).end();
   })
   .listen(PORT, () => console.log(`[hub] ${BRIDGE ? "C2 bridge" : "mock"} for ${MINER_ID} on http://localhost:${PORT} (events: /events)`));

@@ -5,30 +5,71 @@ import { AntiCheatLog } from "../../components/AntiCheatLog";
 import { AqiChart } from "../../components/AqiChart";
 import { CameraPanel } from "../../components/CameraPanel";
 import { Gauges } from "../../components/Gauges";
-import { Header } from "../../components/Header";
+import { Header, type DashboardView } from "../../components/Header";
 import { Login } from "../../components/Login";
 import { MapPanel } from "../../components/MapPanel";
 import { PlantGrid } from "../../components/PlantGrid";
 import { Wallet } from "../../components/Wallet";
 import { config } from "../../config";
 import { startSource } from "../../sources";
+import { useTwin } from "../../store";
+
+function DashboardTop() {
+  const t = useTwin((s) => s.telemetry);
+  const earning = t?.plants.reduce((sum, p) => sum + p.rate_air_per_h, 0) ?? 0;
+  const aqi = Math.round(t?.aqi ?? 0);
+  const aqiCategory = aqi <= 50 ? "Good" : aqi <= 100 ? "Moderate" : aqi <= 200 ? "Poor" : "Severe";
+  const aqiClass = aqi <= 50 ? "tag-good" : aqi <= 100 ? "tag-moderate" : "tag-bad";
+
+  return (
+    <div className="dashboard-topbar compact">
+      <div className="topbar-left">
+        <h1>Overview</h1>
+        <span className="miner-status-chip">
+          <i className="status-dot-pulse" />
+          {t?.miner_id ?? config.minerId} · Active
+        </span>
+      </div>
+      <div className="topbar-metrics-strip">
+        <div className="topbar-metric-card">
+          <span className="tb-label">Air Quality</span>
+          <div className="tb-val-row">
+            <strong className="tb-val">{aqi}</strong>
+            <span className={`tb-tag ${aqiClass}`}>{aqiCategory}</span>
+          </div>
+        </div>
+        <div className="topbar-metric-card highlight">
+          <span className="tb-label">Earning Rate</span>
+          <div className="tb-val-row">
+            <strong className="tb-val">{earning.toFixed(3)}</strong>
+            <span className="tb-unit">AIR/h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PAGE_COPY: Record<Exclude<DashboardView, "overview">, string> = {
+  plants: "Plant fleet",
+  earnings_security: "Earnings & security",
+};
+
+function PageIntro({ view }: { view: Exclude<DashboardView, "overview"> }) {
+  return <div className="section-intro"><div><h1>{PAGE_COPY[view]}</h1></div></div>;
+}
 
 function Dashboard({ owner, onSignOut }: { owner: Owner; onSignOut: () => void }) {
+  const [view, setView] = useState<DashboardView>("overview");
   useEffect(() => startSource(), []);
   return (
-    <div className="app">
-      <Header app="dashboard" account={owner.name} onSignOut={onSignOut} />
-      <main className="grid dash">
-        <CameraPanel />
-        <PlantGrid />
-        <Gauges />
-        <aside className="area-side">
-          <Wallet />
-          <AqiChart />
-          <AntiCheatLog />
-          <MapPanel />
-        </aside>
-      </main>
+    <div className="app dashboard-shell">
+      <Header app="dashboard" account={owner.name} onSignOut={onSignOut} view={view} onNavigate={setView} />
+      <div className="dashboard-workspace">
+        {view === "overview" && <><DashboardTop /><main className="dashboard-page overview-page"><CameraPanel /><AqiChart /><Gauges /></main></>}
+        {view === "plants" && <><PageIntro view="plants" /><main className="dashboard-page plants-page"><CameraPanel /><PlantGrid /></main></>}
+        {view === "earnings_security" && <><PageIntro view="earnings_security" /><main className="dashboard-page earnings-security-page"><Wallet /><AntiCheatLog /><MapPanel /></main></>}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 // Judges' demo: the full-screen 3D digital twin of one miner and its 20-plant rig.
 import { useEffect, useRef, useState } from "react";
-import { Header } from "../../components/Header";
 import { MinerModel } from "../../components/MinerModel";
 import { TwinCam } from "../../components/twin3d/TwinCam";
 import { startSource } from "../../sources";
@@ -47,7 +46,6 @@ export function TwinApp() {
   return (
     <div className="twin-app">
       <MinerModel />
-      <Header app="twin" />
       <FlagNotices />
       <CameraPip />
     </div>

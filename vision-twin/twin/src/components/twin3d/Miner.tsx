@@ -435,6 +435,59 @@ function Wiring({ visible }: { visible: boolean }) {
 const W = 2.3, H = 1.5, D = 1.3, T = 0.06; // outer size (x, y, z) and wall thickness; 1 unit = 10 cm
 export const WINDOW = { y: 0.12, r: 0.22 };
 
+/** Fixed installation hardware: power conversion, terminal blocks, cooling and cable management. */
+function InternalHardware() {
+  const m = mats();
+  const red = useMemo(() => new THREE.MeshStandardMaterial({ color: "#b6322d", roughness: 0.55 }), []);
+  const blue = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2464a8", roughness: 0.52 }), []);
+  const copper = useMemo(() => new THREE.MeshStandardMaterial({ color: "#bd7335", metalness: 0.75, roughness: 0.32 }), []);
+  const fan = useMemo(() => new THREE.MeshStandardMaterial({ color: "#202428", roughness: 0.48 }), []);
+  return (
+    <group>
+      {/* slotted aluminium carrier and cable ducts */}
+      <Box pos={[0, -0.64, -0.42]} size={[1.92, 0.035, 0.12]} m={m.alu} />
+      {[-0.72, -0.24, 0.24, 0.72].map((x) => <Box key={x} pos={[x, -0.616, -0.42]} size={[0.22, 0.008, 0.13]} m={m.black} />)}
+      <Box pos={[-1.02, -0.24, -0.18]} size={[0.09, 0.72, 0.54]} m={m.white} />
+      <Box pos={[1.02, -0.24, -0.18]} size={[0.09, 0.72, 0.54]} m={m.white} />
+      {Array.from({ length: 7 }, (_, i) => <Box key={`duct-${i}`} pos={[-1.025, -0.51 + i * 0.09, 0.105]} size={[0.1, 0.025, 0.04]} m={m.black} />)}
+
+      {/* fused 12 V input and pluggable terminal strip */}
+      <group position={[-0.83, -0.34, 0.26]}>
+        <Box pos={[0, 0, 0]} size={[0.3, 0.12, 0.17]} m={m.black} />
+        <Box pos={[-0.085, 0.07, 0]} size={[0.09, 0.045, 0.13]} m={red} />
+        <Box pos={[0.075, 0.07, 0]} size={[0.14, 0.045, 0.13]} m={blue} />
+        {[-0.11, -0.035, 0.04, 0.115].map((x) => <Cyl key={x} pos={[x, 0.1, 0]} r={0.015} h={0.012} m={m.silver} seg={12} />)}
+      </group>
+
+      {/* regulated DC power stage with inductor, capacitors and status LED */}
+      <group position={[-0.74, 0.17, -0.38]}>
+        <Pcb k="power-stage" size={[0.46, 0.018, 0.28]} mask="#174f8b" trace="#3474b5" label="12V → 5V" sub="3A REGULATOR" />
+        <Cyl pos={[-0.09, 0.06, 0]} r={0.07} h={0.09} m={copper} seg={20} />
+        <Box pos={[0.08, 0.045, -0.04]} size={[0.12, 0.065, 0.1]} m={m.blackGloss} />
+        {[-0.16, 0.17].map((x) => <Cyl key={x} pos={[x, 0.065, 0.09]} r={0.025} h={0.11} m={m.black} seg={18} />)}
+        <Led pos={[0.18, 0.025, -0.1]} color="#39d275" />
+      </group>
+
+      {/* filtered intake fan on the rear bulkhead */}
+      <group position={[0.72, 0.25, -0.59]}>
+        <RoundedBox args={[0.48, 0.48, 0.055]} radius={0.04} smoothness={3} material={fan} castShadow />
+        <Cyl pos={[0, 0, 0.04]} r={0.075} h={0.07} m={m.darkMetal} rot={[Math.PI / 2, 0, 0]} seg={24} />
+        {Array.from({ length: 7 }, (_, i) => (
+          <mesh key={i} position={[0, 0, 0.078]} rotation={[0, 0, i * Math.PI / 3.5]} material={fan} castShadow>
+            <boxGeometry args={[0.055, 0.34, 0.018]} />
+          </mesh>
+        ))}
+        <mesh position={[0, 0, 0.09]} material={m.black}><torusGeometry args={[0.19, 0.012, 8, 36]} /></mesh>
+      </group>
+
+      {/* realistic board standoffs and earth bonding point */}
+      {[[-0.88, -0.55], [0.88, -0.55], [-0.88, 0.45], [0.88, 0.45]].map(([x, z]) => <Cyl key={`${x}-${z}`} pos={[x, -0.57, z]} r={0.025} h={0.14} m={m.brass} seg={8} />)}
+      <Cyl pos={[0.82, -0.58, 0.42]} r={0.035} h={0.13} m={m.gold} seg={12} />
+      <Box pos={[0.72, -0.49, 0.42]} size={[0.2, 0.012, 0.035]} m={copper} />
+    </group>
+  );
+}
+
 function Wall({ pos, size, offset, exploded, m, children }: { pos: Vec3; size: Vec3; offset: Vec3; exploded: boolean; m: THREE.Material; children?: ReactNode }) {
   const ref = useRef<THREE.Group>(null);
   useExplode(ref, pos, offset, exploded);
@@ -492,7 +545,8 @@ export function Miner({ exploded, selected, onSelect }: { exploded: boolean; sel
   return (
     <group>
       <Enclosure exploded={exploded} online={t?.uplink?.online !== false} />
-      <Wiring visible={!exploded} />
+      <InternalHardware />
+      <Wiring visible />
       {PARTS.map((def) => (
         <Part key={def.id} def={def} exploded={exploded} selected={selected === def.id} onSelect={onSelect} t={t}>
           <Bodies id={def.id} t={t} />
