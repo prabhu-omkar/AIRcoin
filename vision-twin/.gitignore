@@ -2,6 +2,9 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .tmp-*.jsonl
+data/
+.run/
+*.tsbuildinfo
 twin/node_modules/
 twin/dist/
 twin/.npm-cache/

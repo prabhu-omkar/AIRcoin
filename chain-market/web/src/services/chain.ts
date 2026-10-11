@@ -154,48 +154,23 @@ export async function registerMinerOnChain(
   }
 }
 
-export async function setMinerActiveOnChain(
-  adminPrivateKey: string, minerIdStr: string, active: boolean
-) {
+/** Retire AIR permanently (ERC-20 burn), for anyone who holds it. */
+export async function burnAir(privateKey: string, amountAir: string) {
   try {
-    const signer = getSigner(adminPrivateKey);
-    const registry = new ethers.Contract(DEFAULT_DEPLOYMENTS.MinerRegistry, CONTRACT_ABIS.MinerRegistry, signer);
-    const minerId = ethers.keccak256(ethers.toUtf8Bytes(minerIdStr));
-    const tx = active ? await registry.reactivateMiner(minerId) : await registry.suspendMiner(minerId);
-    const receipt = await tx.wait();
+    const airToken = new ethers.Contract(DEFAULT_DEPLOYMENTS.AIRToken, CONTRACT_ABIS.AIRToken, getSigner(privateKey));
+    const receipt = await (await airToken.burn(ethers.parseEther(amountAir))).wait();
     return { success: true, txHash: receipt.hash };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.shortMessage || err.message };
   }
 }
 
-export async function setObligationOnChain(
-  adminPrivateKey: string, company: string, period: string, amountAir: string
-) {
+/** A company's compliance obligation for a period (AIR, as numbers). */
+export async function readObligation(address: string, period: string) {
   try {
-    const signer = getSigner(adminPrivateKey);
-    const compliance = new ethers.Contract(
-      DEFAULT_DEPLOYMENTS.ComplianceRegistry, CONTRACT_ABIS.ComplianceRegistry, signer
-    );
-    const tx = await compliance.setObligation(company, period, ethers.parseEther(amountAir));
-    const receipt = await tx.wait();
-    return { success: true, txHash: receipt.hash };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
-}
-
-export async function getObligation(company: string, period: string) {
-  try {
-    const compliance = new ethers.Contract(
-      DEFAULT_DEPLOYMENTS.ComplianceRegistry, CONTRACT_ABIS.ComplianceRegistry, getProvider()
-    );
-    const [amount, burnedToDate, exists] = await compliance.getObligation(company, period);
-    return {
-      exists: Boolean(exists),
-      amount: ethers.formatEther(amount),
-      burnedToDate: ethers.formatEther(burnedToDate),
-    };
+    const c = new ethers.Contract(DEFAULT_DEPLOYMENTS.ComplianceRegistry, CONTRACT_ABIS.ComplianceRegistry, getProvider());
+    const [amount, burned, exists] = await c.getObligation(address, period);
+    return exists ? { amount: Number(ethers.formatEther(amount)), burned: Number(ethers.formatEther(burned)) } : null;
   } catch {
     return null;
   }

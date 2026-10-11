@@ -13,7 +13,7 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
         onClick={() => onOpenChange(false)}
       />
       <div className="relative z-50 w-full max-w-lg">{children}</div>
@@ -28,7 +28,7 @@ const DialogContent = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "relative w-full rounded-lg border border-zinc-800 bg-[#09090b] p-6 text-zinc-100 shadow-2xl animate-in fade-in-0 zoom-in-95",
+      "relative w-full rounded-lg border border-border bg-card p-6 text-foreground shadow-lg animate-in fade-in-0 zoom-in-95",
       className
     )}
     {...props}
@@ -37,7 +37,7 @@ const DialogContent = React.forwardRef<
     {onClose && (
       <button
         onClick={onClose}
-        className="absolute right-4 top-4 rounded-sm text-zinc-400 hover:text-zinc-100 focus:outline-none"
+        className="absolute right-4 top-4 rounded-sm text-muted-foreground hover:text-foreground focus:outline-none"
       >
         <X className="h-4 w-4" />
       </button>
@@ -63,7 +63,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn("text-sm font-semibold tracking-tight text-zinc-100", className)}
+    className={cn("text-sm font-semibold tracking-tight text-foreground", className)}
     {...props}
   />
 ));
@@ -75,7 +75,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-xs text-zinc-400", className)}
+    className={cn("text-xs text-muted-foreground", className)}
     {...props}
   />
 ));
@@ -86,7 +86,7 @@ const DialogFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex justify-end gap-2 mt-5 pt-3 border-t border-zinc-800/80", className)}
+    className={cn("flex justify-end gap-2 mt-5 pt-3 border-t border-border/80", className)}
     {...props}
   />
 );
