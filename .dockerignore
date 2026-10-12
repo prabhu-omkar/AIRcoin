@@ -1,0 +1,16 @@
+node_modules
+.git
+.github
+.agents
+.demo
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+dist
+build
+coverage
+*.log
+.DS_Store

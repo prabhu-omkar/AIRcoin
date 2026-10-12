@@ -12,12 +12,16 @@
   "dependencies": {
     "@react-three/drei": "^9.117.3",
     "@react-three/fiber": "^8.17.10",
+    "@types/leaflet": "^1.9.15",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "mqtt": "^5.10.3",
     "phaser": "^4.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "three": "^0.170.0"
+    "react-leaflet": "^4.2.1",
+    "three": "^0.170.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

@@ -1,7 +1,7 @@
 import { C4MinerData, MarketplaceListing, TradeItem, BurnItem, RejectionRecord } from "../types";
-
-const INDEXER_URL = "http://localhost:3002";
-const VALIDATOR_URL = "http://localhost:3001";
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const INDEXER_URL = (import.meta.env.VITE_INDEXER_URL || (API_BASE ? API_BASE : "http://localhost:3002")).replace(/\/+$/, "");
+const VALIDATOR_URL = (import.meta.env.VITE_VALIDATOR_URL || (API_BASE ? API_BASE : "http://localhost:3001")).replace(/\/+$/, "");
 
 export async function fetchMiner(minerId: string): Promise<C4MinerData | null> {
   try {

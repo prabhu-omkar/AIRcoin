@@ -21,7 +21,7 @@ Schemas and example payloads: [`../contracts-schema`](../contracts-schema/README
 - **Live feed:** annotated stream (~15 fps, 720p, MJPEG or WebRTC), raw view and NDVI heat-map view. Inference at 1–2 Hz.
 - **Digital twin web app:** 3D miner model (Blender → glTF) with exploded view and live readings per part, a 20-slot plant grid (green healthy / grey missing / red suspect), camera panel, sensor gauges and AQI chart (C2), mint ticker and wallet balance (C4), anti-cheat log, GPS pin on a map.
 
-**Stack:** Raspberry Pi 4/5, Pi Camera Module 3 NoIR Wide + blue gel filter, Python, OpenCV (`cv2.aruco`), React + Vite, Phaser 4, Web Workers and MQTT over WebSockets. Three.js is lazy-loaded only for Omkar's optional miner-model inspection modal.
+**Stack:** Raspberry Pi 4/5, Pi Camera Module 3 NoIR Wide + blue gel filter, Python, OpenCV (`cv2.aruco`), React + Vite, Three.js, React Three Fiber, WebSockets, and MQTT.
 
 ## Suggested layout
 
@@ -30,41 +30,27 @@ vision-twin/
 ├── pipeline/   Python: capture, aruco, plant match, leaf area, NDVI, status machine, C1 publisher
 ├── enrol/      enrolment script: photo + feature vector per tag
 ├── mock/       C1 mock emitter (replays a recorded scene; can simulate removed/fake plant)
-├── twin/       React + Vite web app
+├── twin/       React + Three.js 3D living miner digital twin & owner dashboard
 └── models/     Blender source and exported glTF
 ```
 
-## Delhi city digital twin
+## 3D Living Miner Digital Twin
 
-The main twin is a detailed 2D Phaser isometric Delhi simulation inspired by the team's before/after concept art:
+The main visual interface is Omkar's interactive 3D living miner digital twin:
 
-- pan and zoom around a city containing dense apartments, mixed-use markets, a school, offices, regulator, Delhi Metro and industrial sites;
-- select a building to focus its camera and inspect its plant miner;
-- install plants on eligible rooftops and see the instanced vegetation grow;
-- switch between polluted Delhi and AIRcoin Delhi while AQI, emissions, removal and rewards react;
-- open the building-level miner inspection view for live C2/C4 proof data.
+- **3D Living Miner Rig:** 20-pot physical hydroponic rack with botanical species models, active lighting, and animated air flow indicators.
+- **Exploded Device Hardware View:** IP65 environmental enclosure separated along its assembly axes with clickable hardware modules:
+  - Raspberry Pi 4/5 compute unit
+  - PMS5003 laser particulate matter (PM2.5 / PM10) sensor
+  - MQ-135 / SCD40 gas and VOC monitoring modules
+  - Pi Camera Module 3 NoIR with ArUco optical rig
+  - GPS antenna and power delivery circuitry
+- **Click to Explode Interaction:** Hovering over the PM2.5 monitoring device displays a "click to explode" hint in the HUD hint bar; clicking smoothly animates the enclosure into the exploded diagnostic view.
+- **Camera PiP Feed:** Picture-in-picture real-time camera stream with high-contrast toggle between optical Lens view and NDVI false-color vegetation index heat-map.
+- **Anti-Cheat Drag-and-Drop:** Drag pots to swap or remove plants in real time to trigger anti-cheat mismatch detection and observe the attestation penalty.
+- **Owner Dashboard:** Switch seamlessly into the fleet dashboard to inspect telemetry history, species catalogue distribution, live mint events, and network proofs.
 
-The scene is built to remain smooth on ordinary laptops. Seventeen buildings, vehicles and props
-share a 603 KiB WebP atlas; ground geometry is static; traffic, metro and pollution objects are
-pooled; camera culling and depth sorting are handled by Phaser; simulation runs in a Web Worker;
-MQTT and the miner-model viewer are lazy chunks. Twenty-nine Arcade Physics vehicles follow four
-lanes, obey a signal phase and maintain a car-following gap. Factory stack plumes and vehicle
-exhaust respond to simulated wind. An FPS sampler automatically reduces decorative trees, street
-props and pollution particles on weaker devices and restores detail after sustained recovery.
-
-The AQI panel is explicitly simulated, not regulatory monitoring. Its worker uses a simplified
-urban box model with traffic and industrial sources, ventilation, deposition and a small local
-plant-removal term. Rooftop miners earn AIR from measured PM2.5-equivalent removal; a few rooftops
-are not presented as directly changing Delhi's citywide AQI.
-
-Art rules live in `twin/STYLE.md`. Source art lives outside `public/`; `npm run assets` crops,
-downscales, packs and validates the runtime atlas. AWS S3/CloudFront notes are in
-`twin/AWS-DEPLOY.md`.
-
-To use Omkar's exported model, optimize it as a single shared-material GLB, place it at
-`twin/public/models/aircoin-miner.glb`, copy `twin/.env.example` to `twin/.env`, and leave
-`VITE_MINER_MODEL_URL=/models/aircoin-miner.glb`. Without that environment setting, the checked-in
-procedural miner remains the fallback.
+To use an external exported model, optimize it as a single shared-material GLB, place it at `twin/public/models/aircoin-miner.glb`, copy `twin/.env.example` to `twin/.env`, and set `VITE_MINER_MODEL_URL=/models/aircoin-miner.glb`. Without that file, the procedural 3D miner model renders seamlessly. AWS deployment instructions are in [`twin/AWS-DEPLOY.md`](twin/AWS-DEPLOY.md).
 
 ## Running locally
 

@@ -9,6 +9,7 @@ from typing import Any
 import uvicorn
 import httpx
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -131,6 +132,14 @@ class ControllerState:
 
 def create_app(state: ControllerState) -> FastAPI:
     app = FastAPI(title="AIRcoin Scenario Controller", version="1.0.0")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/", response_class=HTMLResponse)
     def panel():

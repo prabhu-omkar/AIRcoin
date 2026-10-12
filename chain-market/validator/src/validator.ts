@@ -330,7 +330,7 @@ export class Validator {
         raw_json: JSON.stringify(attestation),
       });
 
-      console.log(`[Validator] ✓ Minted ${minerId} epoch ${epoch}: ${receipt.hash}`);
+      console.log(`[Validator] [OK] Minted ${minerId} epoch ${epoch}: ${receipt.hash}`);
       return response;
     } catch (e: any) {
       // Check for specific revert reasons
@@ -379,7 +379,7 @@ export class Validator {
       // ignore persistence errors on reject
     }
 
-    console.log(`[Validator] ✗ Rejected ${minerId} epoch ${epoch}: ${code} — ${reason}`);
+    console.log(`[Validator] [REJECTED] Rejected ${minerId} epoch ${epoch}: ${code} — ${reason}`);
     return response;
   }
 

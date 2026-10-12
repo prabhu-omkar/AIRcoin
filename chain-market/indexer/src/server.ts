@@ -13,11 +13,13 @@ const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 
 // Load deployments
 const contractsDir = path.join(__dirname, "..", "..", "contracts");
-const deploymentsPath = path.join(contractsDir, "deployments.json");
-const registryPath = path.join(
-  __dirname, "..", "..", "..",
-  "contracts-schema", "examples", "valid", "registry.json"
-);
+const deploymentsPath = process.env.DEPLOYMENTS_PATH || path.join(contractsDir, "deployments.json");
+const registryPath =
+  process.env.REGISTRY_PATH ||
+  path.join(
+    __dirname, "..", "..", "..",
+    "contracts-schema", "examples", "valid", "registry.json"
+  );
 
 if (!fs.existsSync(deploymentsPath)) {
   console.error("deployments.json not found. Run deploy in contracts/ first.");

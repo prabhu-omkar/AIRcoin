@@ -19,4 +19,4 @@ npx hardhat run scripts/seed.ts --network localhost || {
   npx hardhat run scripts/seed.ts
 }
 
-echo "✓ Setup and deployment complete!"
+echo "[OK] Setup and deployment complete!"

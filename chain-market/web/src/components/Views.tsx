@@ -254,7 +254,7 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
           <div className="metric-footer-actions">
             {hasMiner ? (
               <a
-                href="http://localhost:5174/"
+                href={import.meta.env.VITE_TWIN_URL || "http://localhost:5174/"}
                 target="_blank"
                 rel="noreferrer"
                 className="metric-btn primary w-full text-center"

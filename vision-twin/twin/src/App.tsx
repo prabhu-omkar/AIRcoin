@@ -1,133 +1,86 @@
 import { lazy, Suspense, useState } from "react";
-import { Factory, Leaf, Trees } from "lucide-react";
-import { useCitySimulation } from "./city/useCitySimulation";
-import type { Scenario } from "./city/types";
+import { Box, Loader2 } from "lucide-react";
 
-const PhaserCity = lazy(() => import("./phaser/PhaserCity"));
-const NOOP = () => {};
-const EMPTY_PLANTS: Record<string, number> = {};
+const TwinApp = lazy(() => import("./apps/twin/TwinApp"));
+const DashboardApp = lazy(() =>
+  import("./apps/dashboard/DashboardApp").then((m) => ({ default: m.DashboardApp }))
+);
 
-const aqiLabel = (aqi: number) =>
-  aqi > 300
-    ? "Severe"
-    : aqi > 200
-    ? "Very poor"
-    : aqi > 100
-    ? "Poor"
-    : aqi > 50
-    ? "Moderate"
-    : "Good";
+type ViewMode = "twin" | "dashboard";
 
-function MiniGraph({ values }: { values: number[] }) {
-  const min = Math.min(...values),
-    max = Math.max(...values);
-  const points = values
-    .map(
-      (value, index) =>
-        `${(index / Math.max(1, values.length - 1)) * 100},${
-          38 - ((value - min) / Math.max(1, max - min)) * 32
-        }`
-    )
-    .join(" ");
-  return (
-    <svg
-      className="mini-graph"
-      viewBox="0 0 100 42"
-      preserveAspectRatio="none"
-      aria-label="AQI trend"
-    >
-      <defs>
-        <linearGradient id="aqi-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop stopColor="currentColor" stopOpacity=".36" />
-          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={`0,42 ${points} 100,42`} fill="url(#aqi-fill)" />
-      <polyline
-        points={points}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
+export function App() {
+  const getInitialView = (): ViewMode => {
+    if (typeof window === "undefined") return "twin";
+    const param = new URLSearchParams(window.location.search).get("view");
+    if (param === "dashboard" || window.location.hash.includes("dashboard")) {
+      return "dashboard";
+    }
+    return "twin";
+  };
 
-function App() {
-  const [scenario, setScenario] = useState<Scenario>("polluted");
-  const city = useCitySimulation(scenario, 0);
+  const [viewMode, setViewMode] = useState<ViewMode>(getInitialView);
+
+  const switchToTwin = () => {
+    setViewMode("twin");
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", "#twin");
+    }
+  };
+
+  const switchToDashboard = () => {
+    setViewMode("dashboard");
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", "#dashboard");
+    }
+  };
 
   return (
-    <div className={`city-app scenario-${scenario}`}>
-      <main className="city-stage">
-        {/* Sim City (Interactive Phaser Isometric Simulation) */}
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
+      {viewMode === "twin" ? (
         <Suspense
           fallback={
-            <div className="scene-loading">
-              <Leaf />
-              <span>PAINTING DELHI…</span>
+            <div
+              style={{
+                display: "flex",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                color: "var(--muted, #56616f)",
+                fontFamily: "var(--font, sans-serif)",
+              }}
+            >
+              <Loader2 size={20} />
+              <span>Loading 3D Digital Twin...</span>
             </div>
           }
         >
-          <PhaserCity
-            scenario={scenario}
-            selectedId={null}
-            onSelect={NOOP}
-            plantCounts={EMPTY_PLANTS}
-            onPerformance={NOOP}
-          />
+          <TwinApp onOpenDashboard={switchToDashboard} />
         </Suspense>
-        <div className="scene-vignette" />
-
-        {/* AQI KPI Panel */}
-        <section className="aqi-panel glass-panel">
-          <div className="aqi-primary">
-            <span>DELHI AQI · SIMULATED</span>
-            <strong>{city.aqi}</strong>
-            <b>{aqiLabel(city.aqi)}</b>
-          </div>
-          <div className="aqi-readings">
-            <span>
-              PM2.5 <b>{city.pm25}</b>
-              <small>µg/m³</small>
-            </span>
-            <span>
-              PM10 <b>{city.pm10}</b>
-              <small>µg/m³</small>
-            </span>
-            <span>
-              NO₂ <b>{city.no2}</b>
-              <small>µg/m³</small>
-            </span>
-            <span>
-              CO₂ <b>{city.co2}</b>
-              <small>ppm</small>
-            </span>
-          </div>
-          <MiniGraph values={city.trend} />
-        </section>
-
-        {/* Pollution Scenario Toggle */}
-        <div
-          className="scenario-switch floating-switch"
-          role="group"
-          aria-label="Pollution scenario"
-        >
-          <button
-            className={scenario === "polluted" ? "active polluted" : ""}
-            onClick={() => setScenario("polluted")}
+      ) : (
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  display: "flex",
+                  height: "100%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  color: "var(--muted, #56616f)",
+                  fontFamily: "var(--font, sans-serif)",
+                }}
+              >
+                <Loader2 size={20} />
+                <span>Loading Owner Dashboard...</span>
+              </div>
+            }
           >
-            <Factory size={15} /> Polluted Delhi
-          </button>
-          <button
-            className={scenario === "clean" ? "active clean" : ""}
-            onClick={() => setScenario("clean")}
-          >
-            <Trees size={15} /> AIRcoin Delhi
-          </button>
+            <DashboardApp onOpenTwin={switchToTwin} />
+          </Suspense>
         </div>
-      </main>
+      )}
     </div>
   );
 }

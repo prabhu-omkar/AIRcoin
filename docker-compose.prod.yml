@@ -1,0 +1,141 @@
+# ==============================================================================
+# AIRcoin Production Docker Compose Architecture
+# ==============================================================================
+version: "3.8"
+
+services:
+  # ── Mosquitto MQTT Broker (TCP 1883 + WebSockets 9001) ──
+  mqtt:
+    image: eclipse-mosquitto:2.0.20
+    container_name: aircoin-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infra/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/broker/uptime", "-C", "1", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - aircoin-net
+
+  # ── Workstream C: Validator Oracle ──
+  validator:
+    build:
+      context: ./chain-market/validator
+      dockerfile: Dockerfile
+    container_name: aircoin-validator
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - RPC_URL=${RPC_URL:-https://rpc-amoy.polygon.technology}
+      - ADMIN_KEY=${ADMIN_KEY}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mqtt
+    networks:
+      - aircoin-net
+
+  # ── Workstream C: Event Indexer & C4 API ──
+  indexer:
+    build:
+      context: ./chain-market/indexer
+      dockerfile: Dockerfile
+    container_name: aircoin-indexer
+    restart: unless-stopped
+    environment:
+      - PORT=3002
+      - RPC_URL=${RPC_URL:-https://rpc-amoy.polygon.technology}
+    ports:
+      - "3002:3002"
+    depends_on:
+      - validator
+    volumes:
+      - indexer-data:/app/data
+    networks:
+      - aircoin-net
+
+  # ── Workstream B: Miner Core Daemon & PoUW Controller ──
+  miner:
+    build:
+      context: ./miner-core
+      dockerfile: Dockerfile
+    container_name: aircoin-miner
+    restart: unless-stopped
+    environment:
+      - MQTT_HOST=mqtt
+      - MQTT_PORT=1883
+      - VALIDATOR_URL=http://validator:3001
+      - CHAIN_RPC_URL=${RPC_URL:-https://rpc-amoy.polygon.technology}
+      - VISION_SOURCE=mock
+      - GPS_SOURCE=none
+    ports:
+      - "8090:8090"
+    depends_on:
+      - mqtt
+      - validator
+    volumes:
+      - miner-data:/app/var
+    networks:
+      - aircoin-net
+
+  # ── Workstream C: Chain-Market Web Platform ──
+  chain-web:
+    build:
+      context: ./chain-market/web
+      dockerfile: Dockerfile
+    container_name: aircoin-chain-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    networks:
+      - aircoin-net
+
+  # ── Workstream A: 3D Living Miner Digital Twin ──
+  twin-web:
+    build:
+      context: ./vision-twin/twin
+      dockerfile: Dockerfile
+    container_name: aircoin-twin-web
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    networks:
+      - aircoin-net
+
+  # ── Unified Reverse Proxy Gateway ──
+  nginx-gateway:
+    image: nginx:1.25-alpine
+    container_name: aircoin-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/aws/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    depends_on:
+      - validator
+      - miner
+      - chain-web
+      - twin-web
+      - mqtt
+    networks:
+      - aircoin-net
+
+volumes:
+  mosquitto-data:
+  indexer-data:
+  miner-data:
+  certbot-etc:
+  certbot-var:
+
+networks:
+  aircoin-net:
+    driver: bridge

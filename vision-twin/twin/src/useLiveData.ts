@@ -4,8 +4,8 @@ import { demoEpoch, demoTelemetry } from "./demo";
 import type { Balance, Epoch, Telemetry } from "./types";
 
 const MINER = import.meta.env.VITE_MINER_ID || "miner-001";
-const MQTT_URL = import.meta.env.VITE_MQTT_WS || "ws://localhost:9001";
-const C4_URL = import.meta.env.VITE_C4_URL || "http://localhost:3004";
+const MQTT_URL = import.meta.env.VITE_MQTT_WS || import.meta.env.VITE_MQTT_URL || "ws://localhost:9001";
+const C4_URL = (import.meta.env.VITE_C4_URL || import.meta.env.VITE_API_URL || "http://localhost:3002").replace(/\/+$/, "");
 
 export function useLiveData() {
   const [telemetry, setTelemetry] = useState<Telemetry>(demoTelemetry);

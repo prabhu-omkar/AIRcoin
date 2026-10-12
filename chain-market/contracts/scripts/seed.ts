@@ -56,7 +56,7 @@ async function main() {
     stickerSetHash1,
     "tdr1v9qtj"
   );
-  console.log("\n✓ Registered miner-001");
+  console.log("\n[OK] Registered miner-001");
   console.log("  Device address:", deviceWallet1.address);
   console.log("  Device private key:", deviceWallet1.privateKey);
   console.log("  Owner wallet:", minerOwner.address);
@@ -81,7 +81,7 @@ async function main() {
     stickerSetHash2,
     "tdr1w6u3j"
   );
-  console.log("\n✓ Registered miner-002 (virtual)");
+  console.log("\n[OK] Registered miner-002 (virtual)");
   console.log("  Device address:", deviceWallet2.address);
   console.log("  Owner wallet:", minerOwner2.address);
 
@@ -89,7 +89,7 @@ async function main() {
   const seedAmount = ethers.parseEther("100000"); // 100,000 tINR
   await testINR.mintTo(companyWallet.address, seedAmount);
   await testINR.mintTo(minerOwner.address, ethers.parseEther("1000"));
-  console.log("\n✓ Seeded tINR");
+  console.log("\n[OK] Seeded tINR");
   console.log("  Company:", ethers.formatEther(seedAmount), "tINR");
   console.log("  Miner Owner 1: 1,000 tINR");
 
@@ -99,7 +99,7 @@ async function main() {
     "2026",
     ethers.parseEther("5")  // 5 AIR obligation
   );
-  console.log("\n✓ Set compliance obligation");
+  console.log("\n[OK] Set compliance obligation");
   console.log("  Company:", companyWallet.address);
   console.log("  Period: 2026");
   console.log("  Amount: 5 AIR");
@@ -139,7 +139,7 @@ async function main() {
     seedDataPath,
     JSON.stringify(seedData, null, 2)
   );
-  console.log("\n✓ Seed data written to seed-data.json");
+  console.log("\n[OK] Seed data written to seed-data.json");
 }
 
 main().catch((error) => {

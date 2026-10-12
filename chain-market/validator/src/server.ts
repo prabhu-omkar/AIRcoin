@@ -11,27 +11,31 @@ const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 
 // Load deployments and registry
 const contractsDir = path.join(__dirname, "..", "..", "contracts");
-const deploymentsPath = path.join(contractsDir, "deployments.json");
-const seedDataPath = path.join(contractsDir, "seed-data.json");
-const registryPath = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "contracts-schema",
-  "examples",
-  "valid",
-  "registry.json"
-);
-const cataloguePath = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "contracts-schema",
-  "data",
-  "species-catalogue.json"
-);
+const deploymentsPath = process.env.DEPLOYMENTS_PATH || path.join(contractsDir, "deployments.json");
+const seedDataPath = process.env.SEED_DATA_PATH || path.join(contractsDir, "seed-data.json");
+const registryPath =
+  process.env.REGISTRY_PATH ||
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "contracts-schema",
+    "examples",
+    "valid",
+    "registry.json"
+  );
+const cataloguePath =
+  process.env.CATALOGUE_PATH ||
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "contracts-schema",
+    "data",
+    "species-catalogue.json"
+  );
 
 if (!fs.existsSync(deploymentsPath)) {
   console.error("deployments.json not found. Run `npm run deploy:local` in contracts/ first.");
