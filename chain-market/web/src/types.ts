@@ -50,6 +50,7 @@ export interface MarketplaceListing {
   price_tinr: string;
   status: "active" | "sold" | "cancelled";
   created_at: number;
+  tx_hash?: string;
 }
 
 export interface TradeItem {
