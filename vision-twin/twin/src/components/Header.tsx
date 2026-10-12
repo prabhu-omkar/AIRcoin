@@ -14,6 +14,19 @@ function aqiBand(aqi: number): [string, string] {
   return aqi <= 400 ? ["Very poor", "bad"] : ["Severe", "bad"];
 }
 
+const getMarketUrl = (): string => {
+  if (import.meta.env.VITE_MARKET_URL) {
+    return import.meta.env.VITE_MARKET_URL;
+  }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1" && !host.endsWith(".local")) {
+      return "https://aircoin-market.vercel.app/";
+    }
+  }
+  return "http://localhost:5173/";
+};
+
 export function Header({
   app,
   account,
@@ -54,7 +67,7 @@ export function Header({
             <span>3D Digital Twin</span>
           </button>
         )}
-        <a href={import.meta.env.VITE_MARKET_URL || "http://localhost:5173/"} target="_blank" rel="noreferrer">
+        <a href={getMarketUrl()} target="_blank" rel="noreferrer">
           <ExternalLink size={17} />
           <span>Open marketplace</span>
         </a>
@@ -74,7 +87,7 @@ export function Header({
       <div className="spacer" />
       {extraActions}
       <a
-        href={import.meta.env.VITE_MARKET_URL || "http://localhost:5173/"}
+        href={getMarketUrl()}
         target="_blank"
         rel="noreferrer"
         style={{

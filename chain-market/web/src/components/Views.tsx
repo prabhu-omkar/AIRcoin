@@ -54,6 +54,19 @@ const short = (a: string) =>
   a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—";
 const COMPLIANCE_PERIOD = "2026";
 
+const getTwinUrl = (): string => {
+  if (import.meta.env.VITE_TWIN_URL) {
+    return import.meta.env.VITE_TWIN_URL;
+  }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1" && !host.endsWith(".local")) {
+      return "https://aircoin-twin.vercel.app/";
+    }
+  }
+  return "http://localhost:5174/";
+};
+
 export function useListings() {
   const [items, setItems] = useState<MarketplaceListing[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -254,7 +267,7 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
           <div className="metric-footer-actions">
             {hasMiner ? (
               <a
-                href={import.meta.env.VITE_TWIN_URL || "http://localhost:5174/"}
+                href={getTwinUrl()}
                 target="_blank"
                 rel="noreferrer"
                 className="metric-btn primary w-full text-center"

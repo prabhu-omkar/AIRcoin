@@ -1,5 +1,14 @@
 import { C4MinerData, MarketplaceListing, TradeItem, BurnItem, RejectionRecord } from "../types";
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const getDefaultApiBase = (): string => {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1" && !host.endsWith(".local")) {
+      return "http://54.224.180.188";
+    }
+  }
+  return "";
+};
+const API_BASE = (import.meta.env.VITE_API_URL || getDefaultApiBase()).replace(/\/+$/, "");
 const INDEXER_URL = (import.meta.env.VITE_INDEXER_URL || (API_BASE ? API_BASE : "http://localhost:3002")).replace(/\/+$/, "");
 const VALIDATOR_URL = (import.meta.env.VITE_VALIDATOR_URL || (API_BASE ? API_BASE : "http://localhost:3001")).replace(/\/+$/, "");
 

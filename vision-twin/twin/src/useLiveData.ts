@@ -3,9 +3,14 @@ import type { MqttClient } from "mqtt";
 import { demoEpoch, demoTelemetry } from "./demo";
 import type { Balance, Epoch, Telemetry } from "./types";
 
+const isBrowser = typeof window !== "undefined";
+const isLocal = isBrowser && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.endsWith(".local"));
+const defaultMqtt = isLocal ? "ws://localhost:9001" : "ws://54.224.180.188/mqtt";
+const defaultC4 = isLocal ? "http://localhost:3002" : "http://54.224.180.188";
+
 const MINER = import.meta.env.VITE_MINER_ID || "miner-001";
-const MQTT_URL = import.meta.env.VITE_MQTT_WS || import.meta.env.VITE_MQTT_URL || "ws://localhost:9001";
-const C4_URL = (import.meta.env.VITE_C4_URL || import.meta.env.VITE_API_URL || "http://localhost:3002").replace(/\/+$/, "");
+const MQTT_URL = import.meta.env.VITE_MQTT_WS || import.meta.env.VITE_MQTT_URL || defaultMqtt;
+const C4_URL = (import.meta.env.VITE_C4_URL || import.meta.env.VITE_API_URL || defaultC4).replace(/\/+$/, "");
 
 export function useLiveData() {
   const [telemetry, setTelemetry] = useState<Telemetry>(demoTelemetry);
