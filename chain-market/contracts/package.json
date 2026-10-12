@@ -12,10 +12,11 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@types/node": "^20.0.0",
+    "dotenv": "^18.0.7",
     "hardhat": "^2.22.0",
-    "typescript": "^5.4.0",
     "ts-node": "^10.9.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.4.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.0"

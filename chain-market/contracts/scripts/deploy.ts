@@ -1,80 +1,119 @@
 import { ethers } from "hardhat";
+import * as fs from "fs";
+import * as path from "path";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with account:", deployer.address);
-  console.log("Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
+  const net = await ethers.provider.getNetwork();
+  const isLive = net.chainId !== 31337n;
+
+  console.log("=== AIRcoin Smart Contract Deployment ===");
+  console.log("Network:", net.name, `(Chain ID: ${net.chainId})`);
+  console.log("Deployer:", deployer.address);
+  const bal = await ethers.provider.getBalance(deployer.address);
+  console.log("Balance:", ethers.formatEther(bal), "POL/ETH");
+
+  const deployFile = path.join(__dirname, "../deployments.json");
+  let addresses: any = {
+    chainId: Number(net.chainId),
+    network: net.name,
+    deployer: deployer.address,
+  };
+
+  if (fs.existsSync(deployFile)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(deployFile, "utf-8"));
+      if (existing.chainId === Number(net.chainId)) {
+        addresses = { ...existing };
+      }
+    } catch {}
+  }
+
+  const save = () => {
+    addresses.deployedAt = new Date().toISOString();
+    fs.writeFileSync(deployFile, JSON.stringify(addresses, null, 2));
+  };
+
+  async function getOrDeploy(
+    name: string,
+    deployFn: () => Promise<any>
+  ): Promise<{ contract: any; address: string }> {
+    const existingAddr = addresses[name];
+    if (existingAddr) {
+      const code = await ethers.provider.getCode(existingAddr);
+      if (code && code !== "0x") {
+        console.log(`[Reusing] ${name} already deployed at: ${existingAddr}`);
+        const factory = await ethers.getContractFactory(name);
+        return { contract: factory.attach(existingAddr), address: existingAddr };
+      }
+    }
+
+    console.log(`[Deploying] ${name}...`);
+    const contract = await deployFn();
+    await contract.waitForDeployment();
+    const addr = await contract.getAddress();
+    console.log(`[Deployed] ${name} at: ${addr}`);
+    addresses[name] = addr;
+    save();
+    return { contract, address: addr };
+  }
 
   // 1. AIRToken
   const AIRToken = await ethers.getContractFactory("AIRToken");
-  const airToken = await AIRToken.deploy(deployer.address);
-  await airToken.waitForDeployment();
-  const airAddr = await airToken.getAddress();
-  console.log("AIRToken deployed to:", airAddr);
+  const { contract: airToken, address: airAddr } = await getOrDeploy("AIRToken", () =>
+    AIRToken.deploy(deployer.address)
+  );
 
   // 2. TestINR
   const TestINR = await ethers.getContractFactory("TestINR");
-  const testINR = await TestINR.deploy();
-  await testINR.waitForDeployment();
-  const tinrAddr = await testINR.getAddress();
-  console.log("TestINR deployed to:", tinrAddr);
+  const { contract: testINR, address: tinrAddr } = await getOrDeploy("TestINR", () =>
+    TestINR.deploy()
+  );
 
   // 3. MinerRegistry
   const MinerRegistry = await ethers.getContractFactory("MinerRegistry");
-  const minerRegistry = await MinerRegistry.deploy(deployer.address);
-  await minerRegistry.waitForDeployment();
-  const registryAddr = await minerRegistry.getAddress();
-  console.log("MinerRegistry deployed to:", registryAddr);
+  const { contract: minerRegistry, address: registryAddr } = await getOrDeploy("MinerRegistry", () =>
+    MinerRegistry.deploy(deployer.address)
+  );
+
+  const deployOpts = isLive ? { gasLimit: 1100000 } : {};
 
   // 4. MintController
   const MintController = await ethers.getContractFactory("MintController");
-  const mintController = await MintController.deploy(airAddr, registryAddr, deployer.address);
-  await mintController.waitForDeployment();
-  const controllerAddr = await mintController.getAddress();
-  console.log("MintController deployed to:", controllerAddr);
+  const { contract: mintController, address: controllerAddr } = await getOrDeploy("MintController", () =>
+    MintController.deploy(airAddr, registryAddr, deployer.address, deployOpts)
+  );
 
   // Grant MINTER_ROLE to MintController on AIRToken
   const MINTER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("MINTER_ROLE"));
-  await airToken.grantRole(MINTER_ROLE, controllerAddr);
-  console.log("Granted MINTER_ROLE to MintController");
+  const hasRole = await airToken.hasRole(MINTER_ROLE, controllerAddr);
+  if (!hasRole) {
+    console.log("Granting MINTER_ROLE to MintController...");
+    const tx = await airToken.grantRole(MINTER_ROLE, controllerAddr, deployOpts);
+    await tx.wait();
+    console.log("[OK] Granted MINTER_ROLE to MintController");
+  } else {
+    console.log("[OK] MintController already has MINTER_ROLE");
+  }
 
   // 5. Marketplace
   const Marketplace = await ethers.getContractFactory("Marketplace");
-  const marketplace = await Marketplace.deploy(airAddr, tinrAddr);
-  await marketplace.waitForDeployment();
-  const marketAddr = await marketplace.getAddress();
-  console.log("Marketplace deployed to:", marketAddr);
+  const { address: marketAddr } = await getOrDeploy("Marketplace", () =>
+    Marketplace.deploy(airAddr, tinrAddr, deployOpts)
+  );
 
   // 6. ComplianceRegistry
   const ComplianceRegistry = await ethers.getContractFactory("ComplianceRegistry");
-  const complianceRegistry = await ComplianceRegistry.deploy(deployer.address, airAddr);
-  await complianceRegistry.waitForDeployment();
-  const complianceAddr = await complianceRegistry.getAddress();
-  console.log("ComplianceRegistry deployed to:", complianceAddr);
-
-  // Write deployment addresses to a JSON file for the validator/indexer/web
-  const fs = await import("fs");
-  const addresses = {
-    chainId: 31337,
-    deployer: deployer.address,
-    AIRToken: airAddr,
-    TestINR: tinrAddr,
-    MinerRegistry: registryAddr,
-    MintController: controllerAddr,
-    Marketplace: marketAddr,
-    ComplianceRegistry: complianceAddr,
-    deployedAt: new Date().toISOString(),
-  };
-
-  fs.writeFileSync(
-    __dirname + "/../deployments.json",
-    JSON.stringify(addresses, null, 2)
+  const { address: complianceAddr } = await getOrDeploy("ComplianceRegistry", () =>
+    ComplianceRegistry.deploy(deployer.address, airAddr, deployOpts)
   );
-  console.log("\nDeployment addresses written to deployments.json");
+
+  save();
+  console.log("\n[OK] All contracts deployed successfully!");
   console.log(JSON.stringify(addresses, null, 2));
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error("Deployment failed:", error);
   process.exitCode = 1;
 });

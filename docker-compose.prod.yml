@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3001
-      - RPC_URL=${RPC_URL:-https://rpc-amoy.polygon.technology}
+      - RPC_URL=${RPC_URL:-https://80002.rpc.thirdweb.com}
       - ADMIN_KEY=${ADMIN_KEY}
     ports:
       - "3001:3001"
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3002
-      - RPC_URL=${RPC_URL:-https://rpc-amoy.polygon.technology}
+      - RPC_URL=${RPC_URL:-https://80002.rpc.thirdweb.com}
     ports:
       - "3002:3002"
     depends_on:
@@ -71,7 +71,7 @@ services:
       - MQTT_HOST=mqtt
       - MQTT_PORT=1883
       - VALIDATOR_URL=http://validator:3001
-      - CHAIN_RPC_URL=${RPC_URL:-https://rpc-amoy.polygon.technology}
+      - CHAIN_RPC_URL=${RPC_URL:-https://80002.rpc.thirdweb.com}
       - VISION_SOURCE=mock
       - GPS_SOURCE=none
     ports:

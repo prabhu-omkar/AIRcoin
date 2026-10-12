@@ -47,7 +47,7 @@ echo "=== [3/6] Generating Production Environment Configuration ==="
 if [ ! -f "${INSTALL_DIR}/.env" ]; then
   cat <<'EOF' > "${INSTALL_DIR}/.env"
 # ── Network & Blockchain (Polygon Amoy Testnet) ──
-RPC_URL=https://rpc-amoy.polygon.technology
+RPC_URL=https://80002.rpc.thirdweb.com
 CHAIN_ID=80002
 
 # ── Keys (Replace with your KMS / Secrets Manager populated keys) ──

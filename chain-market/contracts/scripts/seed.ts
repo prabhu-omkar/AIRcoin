@@ -19,9 +19,9 @@ async function main() {
 
   const signers = await ethers.getSigners();
   const admin = signers[0];
-  const minerOwner = signers[1];     // citizen / miner owner
-  const companyWallet = signers[2];  // company (polluter)
-  const minerOwner2 = signers[3];    // second miner owner
+  const minerOwner = signers[1] || (existingSeed?.accounts?.minerOwner1?.address ? { address: existingSeed.accounts.minerOwner1.address } : ethers.Wallet.createRandom());
+  const companyWallet = signers[2] || (existingSeed?.accounts?.company?.address ? { address: existingSeed.accounts.company.address } : ethers.Wallet.createRandom());
+  const minerOwner2 = signers[3] || (existingSeed?.accounts?.minerOwner2?.address ? { address: existingSeed.accounts.minerOwner2.address } : ethers.Wallet.createRandom());
 
   console.log("=== Demo Accounts ===");
   console.log("Admin (gov):", admin.address);
@@ -49,14 +49,20 @@ async function main() {
     )
   );
 
-  await minerRegistry.registerMiner(
-    minerId1,
-    deviceWallet1.address,
-    minerOwner.address,
-    stickerSetHash1,
-    "tdr1v9qtj"
-  );
-  console.log("\n[OK] Registered miner-001");
+  const m1 = await minerRegistry.miners(minerId1);
+  if (m1.registeredAt === 0n) {
+    const tx = await minerRegistry.registerMiner(
+      minerId1,
+      deviceWallet1.address,
+      minerOwner.address,
+      stickerSetHash1,
+      "tdr1v9qtj"
+    );
+    await tx.wait();
+    console.log("\n[OK] Registered miner-001");
+  } else {
+    console.log("\n[OK] miner-001 already registered on-chain");
+  }
   console.log("  Device address:", deviceWallet1.address);
   console.log("  Device private key:", deviceWallet1.privateKey);
   console.log("  Owner wallet:", minerOwner.address);
@@ -74,35 +80,55 @@ async function main() {
     )
   );
 
-  await minerRegistry.registerMiner(
-    minerId2,
-    deviceWallet2.address,
-    minerOwner2.address,
-    stickerSetHash2,
-    "tdr1w6u3j"
-  );
-  console.log("\n[OK] Registered miner-002 (virtual)");
+  const m2 = await minerRegistry.miners(minerId2);
+  if (m2.registeredAt === 0n) {
+    const tx = await minerRegistry.registerMiner(
+      minerId2,
+      deviceWallet2.address,
+      minerOwner2.address,
+      stickerSetHash2,
+      "tdr1w6u3j"
+    );
+    await tx.wait();
+    console.log("\n[OK] Registered miner-002 (virtual)");
+  } else {
+    console.log("\n[OK] miner-002 already registered on-chain");
+  }
   console.log("  Device address:", deviceWallet2.address);
   console.log("  Owner wallet:", minerOwner2.address);
 
   // --- Seed tINR to company ---
-  const seedAmount = ethers.parseEther("100000"); // 100,000 tINR
-  await testINR.mintTo(companyWallet.address, seedAmount);
-  await testINR.mintTo(minerOwner.address, ethers.parseEther("1000"));
-  console.log("\n[OK] Seeded tINR");
-  console.log("  Company:", ethers.formatEther(seedAmount), "tINR");
-  console.log("  Miner Owner 1: 1,000 tINR");
+  const compBal = await testINR.balanceOf(companyWallet.address);
+  if (compBal === 0n) {
+    const seedAmount = ethers.parseEther("100000"); // 100,000 tINR
+    let tx = await testINR.mintTo(companyWallet.address, seedAmount);
+    await tx.wait();
+    tx = await testINR.mintTo(minerOwner.address, ethers.parseEther("1000"));
+    await tx.wait();
+    console.log("\n[OK] Seeded tINR");
+    console.log("  Company:", ethers.formatEther(seedAmount), "tINR");
+    console.log("  Miner Owner 1: 1,000 tINR");
+  } else {
+    console.log("\n[OK] tINR already seeded");
+  }
 
   // --- Set compliance obligation for company ---
-  await complianceRegistry.setObligation(
-    companyWallet.address,
-    "2026",
-    ethers.parseEther("5")  // 5 AIR obligation
-  );
-  console.log("\n[OK] Set compliance obligation");
-  console.log("  Company:", companyWallet.address);
-  console.log("  Period: 2026");
-  console.log("  Amount: 5 AIR");
+  const periodHash = ethers.keccak256(ethers.toUtf8Bytes("2026"));
+  const ob = await complianceRegistry.obligations(companyWallet.address, periodHash);
+  if (!ob.exists) {
+    const tx = await complianceRegistry.setObligation(
+      companyWallet.address,
+      "2026",
+      ethers.parseEther("5")  // 5 AIR obligation
+    );
+    await tx.wait();
+    console.log("\n[OK] Set compliance obligation");
+    console.log("  Company:", companyWallet.address);
+    console.log("  Period: 2026");
+    console.log("  Amount: 5 AIR");
+  } else {
+    console.log("\n[OK] Compliance obligation already set");
+  }
 
   // --- Write seed data ---
   const seedData = {
