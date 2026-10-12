@@ -8,6 +8,15 @@
 set -euo pipefail
 
 echo "=== [1/6] Installing System Dependencies & Docker ==="
+# Add swap if RAM is <= 2GB to prevent OOM during Docker builds
+if [ ! -f /swapfile ] && [ $(free -m | awk '/^Mem:/{print $2}') -le 2048 ]; then
+  echo "Adding 2GB swap space for low-memory instance..."
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab || true
+fi
 if [ -f /etc/amazon-linux-release ]; then
   # Amazon Linux 2023
   dnf update -y

@@ -11,13 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+COPY miner-core/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy contracts-schema dependencies needed for calibration & species catalogue
-COPY ../contracts-schema /contracts-schema
+COPY contracts-schema /contracts-schema
 
-COPY . .
+COPY miner-core .
 
 # Create directory for durable SQLite DB and queues
 RUN mkdir -p /app/var

@@ -6,7 +6,7 @@
   "scripts": {
     "assets": "python scripts/build_city_atlas.py",
     "dev": "vite --port 5174",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --base=./",
     "preview": "vite preview"
   },
   "dependencies": {

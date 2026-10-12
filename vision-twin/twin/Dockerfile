@@ -1,17 +1,19 @@
 # ── AIRcoin Delhi Isometric Digital Twin Dockerfile ──
 FROM node:20-alpine AS builder
 
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+WORKDIR /workspace
+COPY contracts-schema ./contracts-schema
+COPY vision-twin/config ./vision-twin/config
+COPY vision-twin/twin ./vision-twin/twin
 
-COPY . .
+WORKDIR /workspace/vision-twin/twin
+RUN npm ci
 RUN npm run build
 
 # ── Production NGINX Image ──
 FROM nginx:1.25-alpine AS runner
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /workspace/vision-twin/twin/dist /usr/share/nginx/html
 
 RUN printf 'server {\n\
     listen 80;\n\

@@ -32,8 +32,16 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3001
-      - RPC_URL=${RPC_URL:-https://80002.rpc.thirdweb.com}
+      - RPC_URL=${RPC_URL:-https://polygon-amoy-bor-rpc.publicnode.com}
       - ADMIN_KEY=${ADMIN_KEY}
+      - DEPLOYMENTS_PATH=/app/config/deployments.json
+      - SEED_DATA_PATH=/app/config/seed-data.json
+      - REGISTRY_PATH=/contracts-schema/examples/valid/registry.json
+      - CATALOGUE_PATH=/contracts-schema/data/species-catalogue.json
+    volumes:
+      - ./chain-market/contracts/deployments.json:/app/config/deployments.json:ro
+      - ./chain-market/contracts/seed-data.json:/app/config/seed-data.json:ro
+      - ./contracts-schema:/contracts-schema:ro
     ports:
       - "3001:3001"
     depends_on:
@@ -50,12 +58,16 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3002
-      - RPC_URL=${RPC_URL:-https://80002.rpc.thirdweb.com}
+      - RPC_URL=${RPC_URL:-https://polygon-amoy-bor-rpc.publicnode.com}
+      - DEPLOYMENTS_PATH=/app/config/deployments.json
+      - REGISTRY_PATH=/contracts-schema/examples/valid/registry.json
     ports:
       - "3002:3002"
     depends_on:
       - validator
     volumes:
+      - ./chain-market/contracts/deployments.json:/app/config/deployments.json:ro
+      - ./contracts-schema:/contracts-schema:ro
       - indexer-data:/app/data
     networks:
       - aircoin-net
@@ -63,48 +75,26 @@ services:
   # ── Workstream B: Miner Core Daemon & PoUW Controller ──
   miner:
     build:
-      context: ./miner-core
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: miner-core/Dockerfile
     container_name: aircoin-miner
     restart: unless-stopped
     environment:
       - MQTT_HOST=mqtt
       - MQTT_PORT=1883
       - VALIDATOR_URL=http://validator:3001
-      - CHAIN_RPC_URL=${RPC_URL:-https://80002.rpc.thirdweb.com}
+      - CHAIN_RPC_URL=${RPC_URL:-https://polygon-amoy-bor-rpc.publicnode.com}
       - VISION_SOURCE=mock
       - GPS_SOURCE=none
+      - SEED_DATA_PATH=/app/seed-data.json
     ports:
       - "8090:8090"
     depends_on:
       - mqtt
       - validator
     volumes:
+      - ./chain-market/contracts/seed-data.json:/app/seed-data.json:ro
       - miner-data:/app/var
-    networks:
-      - aircoin-net
-
-  # ── Workstream C: Chain-Market Web Platform ──
-  chain-web:
-    build:
-      context: ./chain-market/web
-      dockerfile: Dockerfile
-    container_name: aircoin-chain-web
-    restart: unless-stopped
-    ports:
-      - "5173:80"
-    networks:
-      - aircoin-net
-
-  # ── Workstream A: 3D Living Miner Digital Twin ──
-  twin-web:
-    build:
-      context: ./vision-twin/twin
-      dockerfile: Dockerfile
-    container_name: aircoin-twin-web
-    restart: unless-stopped
-    ports:
-      - "5174:80"
     networks:
       - aircoin-net
 
@@ -123,8 +113,6 @@ services:
     depends_on:
       - validator
       - miner
-      - chain-web
-      - twin-web
       - mqtt
     networks:
       - aircoin-net
