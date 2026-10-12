@@ -5,37 +5,106 @@
 
 ---
 
-## Specification Overview
+## Hackathon Submission Overview
 
-| Parameter | Specification | Details |
-|---|---|---|
-| **Consensus Mechanism** | Proof of Useful Work (PoUW) | Replaces arbitrary hashing with verified botanical atmospheric de-pollution |
-| **Unit of Minting** | 1.0 AIR | Health damage avoided by removing 1.0 mg PM2.5-equivalent |
-| **Blockchain Network** | Polygon Amoy Testnet | Chain ID: `80002` |
-| **Token Standard** | ERC-20 (AIR) | 18 Decimals, mint controlled strictly by `MintController.sol` |
-| **Settlement Currency** | Test INR (`tINR`) | Mock fiat stablecoin for enterprise offset purchases |
-| **Epoch Duration** | 60 Seconds | Real-time edge attestation and validation interval |
-| **Protocol Schemas** | C1, C2, C3, C4 | Frozen JSON schemas v1 in [`contracts-schema/`](file:///Users/umashankar/Downloads/AIRcoin/contracts-schema) |
-| **Edge Hardware** | Raspberry Pi 4/5 | Laser scatter sensors (PMS5003), Gas (MQ-135), NoIR Camera |
-
----
-
-## 1. System Overview & Core Proposition
-
-Traditional Proof of Work burns massive amounts of electrical power to solve arbitrary mathematical puzzles with zero real-world value. **AIRcoin redirects computing incentives toward physical atmospheric remediation**:
-
-1. **Botanical Particulate Capture**: Specialized botanical racks with species-specific phytoremediation properties (Snake Plant, Peace Lily, Areca Palm, Tulsi, Neem) capture particulate matter (PM2.5, PM10), nitrogen oxides (NO2), sulfur dioxide (SO2), and volatile organic compounds (VOCs).
-2. **Edge Cryptographic Proofs**: Laser scatter sensors and gas chambers capture ambient and intake concentrations in real time. An edge daemon executes a verified leaf-area bio-absorption model, signs the epoch with secp256k1 device keys, and generates immutable cryptographic attestations.
-3. **Decentralized Validation**: An oracle validator verifies biometric ArUco plant tags, device hardware signatures, and geographical boundaries before authorizing minting on the Polygon blockchain.
-4. **Institutional Compliance Loop**: Obligated industrial polluters purchase AIR tokens on the decentralized marketplace using fiat test currency (`tINR`) and burn them on-chain against statutory environmental quotas.
+| Parameter | Details |
+|---|---|
+| **Event** | **Environmental Hacks** (Event 02 · Bharat Builds Tour by **WeMakeDevs & AWS**) |
+| **Track** | **Track 01: Air** (*Help people breathe easier. Track what is in the air, warn the people most exposed to it, and change what happens on the bad days.*) |
+| **Core Problem** | Toxic urban air pollution (Delhi AQI 400+ smog events, stubble burning, industrial particulate emissions, indoor exposure). |
+| **Proposed Solution** | Active, verified botanical atmospheric bio-scrubbing incentivized via a decentralized Proof of Useful Work protocol and compliance marketplace. |
+| **AWS Cloud Infrastructure** | **AWS EC2 (`54.224.180.188`)**: Dockerized backend orchestrator running NGINX Reverse Proxy, Mosquitto MQTT Broker, Node.js Attestation Oracle, C4 Event Indexer, and Edge Miner Daemon. |
+| **Blockchain Network** | **Polygon Amoy Testnet (Chain ID `80002`)**: 6 smart contracts deployed and verified on-chain. |
+| **Live Deployments** | Market Portal: [aircoin-market.vercel.app](https://aircoin-market.vercel.app) \| 3D Digital Twin: [aircoin-twin.vercel.app](https://aircoin-twin.vercel.app) \| AWS API: `http://54.224.180.188` |
 
 ---
 
-## 2. Mathematical Formulation & Bio-Absorption Model
+## 1. Problem Statement & Track Alignment (Track 01: Air)
+
+In cities across India, toxic air pollution is an escalating public health catastrophe. During winter temperature inversions, Delhi-NCR and northern plains regularly experience sustained AQI levels exceeding 400, characterized by hazardous concentrations of PM2.5, PM10, nitrogen dioxide (NO2), and sulfur dioxide (SO2).
+
+### The Limits of Existing Solutions
+
+1. **Passive Monitoring Without Remediation**: Conventional air quality apps display alarming AQI numbers, but do nothing to actively remove pollutants from the air people breathe in schools, homes, and offices.
+2. **Opaque Carbon Offsets**: Traditional carbon offset markets are centralized, prone to double-counting, and plagued by "phantom credits" where buyers have zero real-time mathematical proof that any pollution was actually removed.
+3. **Wasteful Cryptographic Proof of Work**: Traditional blockchain consensus mechanisms consume megawatts of electricity to compute meaningless hashing puzzles, compounding energy consumption without producing tangible environmental utility.
+
+### The AIRcoin Solution
+
+AIRcoin shifts the paradigm from **passive monitoring** to **active, cryptographically verified atmospheric de-pollution**:
+
+1. **Biological Capture**: Specialized 20-pot botanical arrays deploy species with proven phytoremediation and high particulate deposition velocities (Snake Plant, Peace Lily, Areca Palm, Tulsi, Neem).
+2. **Edge Sensor Verification**: Laser scatter particulate counters (PMS5003) and gas chambers (MQ-135) capture real-time ambient and post-filtration concentrations.
+3. **Mathematical Bio-Absorption Modeling**: An onboard daemon runs empirical leaf-area absorption equations to compute exact milligrams of pollutants scrubbed.
+4. **Hardware Cryptographic Attestation**: The edge miner signs telemetry epochs with a device-specific secp256k1 private key.
+5. **Decentralized Validation & Minting**: An oracle verifies hardware signatures, ArUco biometric plant markers, and NDVI plant liveness before authorizing the on-chain minting of AIR tokens on the Polygon blockchain.
+6. **Institutional Compliance Loop**: Obligated industrial polluters buy AIR credits on the marketplace and permanently burn them on-chain to retire statutory emissions obligations.
+
+- **Unit of Remediation**: 1.0 AIR = 1.0 mg PM2.5-equivalent removed from the atmosphere.
+- **Epoch Duration**: 60 seconds (real-time demo cadence).
+
+---
+
+## 2. AWS Architecture & Cloud Infrastructure
+
+The AIRcoin production backend is architected for high-throughput IoT ingestion, cryptographic signature verification, and decentralized query serving, powered by **Amazon Web Services (AWS)**:
+
+### 2.1 Backend Microservices on AWS EC2 (`54.224.180.188`)
+
+The backend runs as a multi-container Docker orchestration deployed on an AWS EC2 instance:
+
+```
+[IoT Edge Miners / Simulators]
+            │
+            ▼  (TCP :1883 / WSS :9001)
+┌─────────────────────────────────────────────────────────────┐
+│  AWS EC2 Backend Instance (54.224.180.188)                  │
+│                                                             │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │ NGINX Reverse Proxy & API Gateway (:80 / :443)      │   │
+│   │ - Path-based proxying, rate limiting, and CORS      │   │
+│   └──────────┬──────────────────────┬───────────────────┘   │
+│              │                      │                       │
+│              ▼                      ▼                       │
+│   ┌────────────────────┐   ┌────────────────────────────┐   │
+│   │ Mosquitto MQTT     │   │ Attestation Oracle (:3001) │   │
+│   │ IoT Message Broker │   │ - secp256k1 Verification   │   │
+│   │ (:1883 & :9001)    │   │ - Polygon Amoy Submitter   │   │
+│   └──────────┬─────────┘   └──────────────┬─────────────┘   │
+│              │                            │                 │
+│              ▼                            ▼                 │
+│   ┌────────────────────┐   ┌────────────────────────────┐   │
+│   │ Miner Core Engine  │   │ C4 Event Indexer (:3002)   │   │
+│   │ - Bio-Uptake Math  │   │ - Real-time SQLite Sync    │   │
+│   │ - Scenario Daemon  │   │ - REST & WebSocket Feed    │   │
+│   └────────────────────┘   └────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+            │                               │
+            ▼                               ▼
+ [Polygon Amoy Blockchain]      [Vercel Edge Frontends]
+ (Smart Contract Layer)         (Marketplace & 3D Twin)
+```
+
+- **NGINX Reverse Proxy & API Gateway**: Serves as the central security and routing boundary. Routes `/v1/*` to the Indexer, `/attestations` to the Validator Oracle, `/mqtt` to the Mosquitto WebSocket bridge, and handles global CORS for Vercel edge clients.
+- **Mosquitto MQTT Message Broker**: Provides ultra-low-latency publish/subscribe channels for high-frequency sensor telemetry (`miner/{id}/telemetry`) and epoch claims (`miner/{id}/epoch`).
+- **Attestation Oracle Service (Node.js)**: Listens for signed edge attestation claims, checks registration status and geofencing against `MinerRegistry.sol`, recovers the ECDSA signer address via `ecrecover`, and submits verified transactions to `MintController.sol`.
+- **C4 Event Indexer (Node.js / SQLite)**: Continuously syncs on-chain events (`Minted`, `Listed`, `Purchased`, `Burned`) and serves RESTful C4 queries and live WebSocket feeds to client applications.
+- **Miner Core Daemon & Scenario Controller (Python / FastAPI)**: Houses the bio-absorption engine, multi-scenario pollution generator, and anti-cheat validation harness.
+
+### 2.2 Enterprise AWS Cloud Readiness
+
+The platform includes production specifications for enterprise cloud deployment documented in [`infra/AWS-DEPLOYMENT-GUIDE.md`](file:///Users/umashankar/Downloads/AIRcoin/infra/AWS-DEPLOYMENT-GUIDE.md):
+- **AWS ECS Fargate**: Blueprint for running the Validator, Indexer, and Gateway as autoscaling serverless container tasks.
+- **AWS IoT Core**: Migration path for device provisioning, X.509 device certificates, and managed MQTT topics.
+- **Amazon CloudWatch**: Centralized log streaming and automated alerts for oracle rejected attestations.
+
+---
+
+## 3. Mathematical Formulation & Bio-Absorption Model
 
 AIRcoin establishes a deterministic, mathematically verifiable relationship between physical plant biology, sensor measurements, and token minting.
 
-### 2.1 The Bio-Uptake Engine
+### 3.1 The Bio-Uptake Engine
 
 For each plant slot $i$ and pollutant $p$, the instantaneous pollutant removal rate $R_{i,p}$ ($mg/h$) is computed by the edge daemon:
 
@@ -50,7 +119,7 @@ Where:
 - $f(x)$: Non-linear concentration response curve, capped at $5.0\times$ baseline to prevent artificial sensor saturation attacks.
 - $\Delta t$: Epoch duration time interval ($h$).
 
-### 2.2 Damage-Cost Equivalence (PM2.5-Equivalent)
+### 3.2 Damage-Cost Equivalence (PM2.5-Equivalent)
 
 To aggregate disparate pollutants into a single unified token metric, AIRcoin weights each pollutant by its societal health damage cost based on the **CE Delft Environmental Prices Handbook (EU28 central values)**:
 
@@ -68,29 +137,30 @@ $$\text{Total AIR Minted} = \sum_{p} \left( \text{Weight}(p) \times \sum_{i=1}^{
 | **CO2** | Carbon Dioxide | EUR 0.057 | **0.0015** | 420 ppm |
 | **CO** | Carbon Monoxide | EUR 0.0526 | **0.0014** | 1.0 ppm |
 
-### 2.3 Cryptographic Safety Caps
-To prevent oracle abuse or runaway minting:
+### 3.3 Cryptographic Safety Caps
+
+To protect against runaway minting, oracle compromise, or sensor malfunction:
 - **Per-Plant Cap**: Maximum $0.01\text{ AIR}$ per plant per epoch ($60\text{ s}$).
 - **Per-Miner Cap**: Maximum $0.20\text{ AIR}$ per miner per epoch ($20\text{ plants} \times 0.01$).
 - **Single-Mint Guarantee**: `MintController.sol` enforces that each epoch index can only be minted once per registered hardware device.
 
 ---
 
-## 3. Multi-Layer Anti-Cheat & Physical Attestation
+## 4. Multi-Layer Anti-Cheat & Physical Attestation
 
-Physical Proof of Useful Work requires defense against physical and cryptographic spoofing:
+Physical Proof of Useful Work requires multi-tier defense against spoofing, hardware tampering, and fake plants:
 
 1. **Optical ArUco Tag Tracking**: Each plant pot carries a registered waterproof ArUco fiducial marker. The vision pipeline continuously decodes marker IDs and verifies that each tag belongs to the miner's authorized registry set.
 2. **Species Re-Identification**: A MobileNetV3 visual embedding model extracts high-dimensional feature vectors of each plant. Swapping an enrolled plant with a different species immediately flags the slot as `suspect`.
 3. **NDVI Spectral Liveness Filter**: Using a NoIR camera module with a dual-band blue filter, the pipeline computes the Normalized Difference Vegetation Index:
    $$\text{NDVI} = \frac{\text{NIR} - \text{Red}}{\text{NIR} + \text{Red}}$$
    Live photosynthetic plant tissue reflects strongly in near-infrared while absorbing visible red. Plastic artificial plants, paper photographs, and dead foliage fail this threshold and receive a health score of zero.
-4. **Physical Airflow Differential**: Dual optical particulate sensors measure both incoming ambient air and post-canopy filtered exhaust to confirm measurable physical particulate drop.
+4. **Physical Airflow Differential**: Dual optical particulate sensors measure both incoming ambient air and post-canopy filtered exhaust to confirm measurable physical particulate drop across the rack.
 5. **secp256k1 Device Key Signing**: Each physical miner possesses an onboard secp256k1 private key generated inside hardware security. All telemetry epochs are signed before dispatch. The validator recovers the signer address on-chain via `ecrecover`.
 
 ---
 
-## 4. End-to-End System Architecture
+## 5. End-to-End System Architecture
 
 ```mermaid
 graph TD
@@ -101,15 +171,11 @@ graph TD
         Signer["secp256k1 Hardware Signer"]
     end
 
-    subgraph Messaging ["Message Bus (Mosquitto MQTT)"]
-        C1["C1: Vision Event (Plant Tags, Area, NDVI)"]
-        C2["C2: Telemetry Epoch (Concentrations, Yields)"]
-    end
-
-    subgraph Oracle ["Validation & Indexing Layer"]
-        C3["C3: Signed Attestation"]
-        Validator["Validator Oracle (:3001)"]
-        Indexer["Event Indexer & C4 API (:3002)"]
+    subgraph AWSCloud ["AWS Cloud Infrastructure (EC2 : 54.224.180.188)"]
+        Gateway["NGINX Gateway & Reverse Proxy"]
+        MQTT["Mosquitto MQTT Broker (:1883 / :9001)"]
+        Validator["Attestation Oracle Service (:3001)"]
+        Indexer["C4 Event Indexer & REST API (:3002)"]
     end
 
     subgraph Blockchain ["Polygon Amoy Blockchain (Chain ID 80002)"]
@@ -120,18 +186,19 @@ graph TD
         CR["ComplianceRegistry.sol"]
     end
 
-    subgraph Applications ["Application Layer"]
+    subgraph ClientApps ["Client Applications (Vercel Edge CDN)"]
         Twin["3D Digital Twin Viewer (Three.js + React)"]
         Market["Chain-Market Web Platform (React + Vite)"]
     end
 
-    Cam -->|Publish C1| C1
+    Cam -->|Publish C1| MQTT
     Sensors -->|Raw ADC Readings| Daemon
-    C1 -->|Subscribe| Daemon
+    MQTT -->|Subscribe C1| Daemon
     Daemon --> Signer
-    Signer -->|Publish C2| C2
-    Daemon -->|Submit C3| Validator
+    Signer -->|Publish C2| MQTT
+    Daemon -->|Submit C3| Gateway
 
+    Gateway -->|Forward Attestation| Validator
     Validator -->|Verify Signature & Geofence| MR
     Validator -->|mintForEpoch| MC
     MC -->|Mint Tokens| AIR
@@ -140,15 +207,15 @@ graph TD
     Indexer -->|Sync Orders & Trades| MP
     Indexer -->|Sync Retirements & Burns| CR
 
-    C2 -->|Real-Time Telemetry| Twin
-    Indexer -->|Query C4 Data| Twin
-    Indexer -->|Query C4 Data| Market
+    MQTT -->|Real-Time WSS Telemetry| Twin
+    Gateway -->|C4 REST & WebSocket| Twin
+    Gateway -->|C4 REST & WebSocket| Market
     Market -->|Order Execution & Burn| MP
 ```
 
 ---
 
-## 5. Smart Contracts & Polygon Amoy State
+## 6. Smart Contracts & Polygon Amoy State
 
 All six protocol smart contracts are deployed and verified on the **Polygon Amoy Testnet** (Chain ID `80002`):
 
@@ -165,7 +232,7 @@ Live contract deployment metadata is stored in [`chain-market/contracts/deployme
 
 ---
 
-## 6. Interface Schemas (C1–C4 Protocol)
+## 7. Protocol Interface Schemas (C1–C4)
 
 All inter-service messaging conforms to immutable, versioned contracts defined in [`contracts-schema/`](file:///Users/umashankar/Downloads/AIRcoin/contracts-schema):
 
@@ -176,7 +243,7 @@ All inter-service messaging conforms to immutable, versioned contracts defined i
 
 ---
 
-## 7. Phytoremediation Botanical Catalogue
+## 8. Phytoremediation Botanical Catalogue
 
 AIRcoin integrates botanical species tested in the **NASA Clean Air Study (Wolverton et al., 1989)** and urban phytoremediation field literature:
 
@@ -192,7 +259,40 @@ Full species definitions, base rates, and calibration curves are codified in [`c
 
 ---
 
-## 8. Monorepo Workstreams & Repository Layout
+## 9. Alignment with Hackathon Judging Criteria
+
+The project is structured to directly address each of the five official judging criteria for **Environmental Hacks (Event 02 · Bharat Builds Tour)**:
+
+### 1. Idea and Impact
+- **Real Environmental Problem**: Tackles the severe air quality crisis in Indian cities where PM2.5 and PM10 levels frequently exceed 10x WHO safety thresholds.
+- **Measurable Human Impact**: Moves beyond passive sensor observation to physically scrubbing toxic particulate matter from residential and commercial micro-environments.
+- **Avoided Health Costs**: Quantifies ecological work using recognized public health damage costs from the CE Delft Environmental Prices Handbook.
+
+### 2. Built on AWS
+- **Live AWS Cloud Deployment**: Production backend fully containerized and hosted on an AWS EC2 instance (`54.224.180.188`).
+- **Full-Stack Orchestration**: Leverages NGINX, Mosquitto MQTT broker, Node.js attestation oracle, SQLite event indexer, and FastAPI edge daemon.
+- **Enterprise Cloud Blueprint**: Comprehensive architecture specifications for AWS ECS Fargate, AWS IoT Core, and CloudWatch in [`infra/AWS-DEPLOYMENT-GUIDE.md`](file:///Users/umashankar/Downloads/AIRcoin/infra/AWS-DEPLOYMENT-GUIDE.md).
+
+### 3. Design and Usability
+- **3D Living Miner Digital Twin**: Interactive Three.js model with exploded hardware inspection, slot-by-slot botanical health monitoring, and NDVI false-color camera PiP.
+- **Intuitive Web Platform**: Role-tailored user journeys for Citizens (Alice), Corporate Buyers (Apex Steel Works), and Government Regulators with clear visual feedback.
+- **Zero Confusion Onboarding**: Integrated `tINR` test fiat faucet allows immediate one-click testing of marketplace trades and compliance burns without external crypto onboarding friction.
+
+### 4. The Execution
+- **100% Working End-to-End Pipeline**: From sensor telemetry and computer vision inference through secp256k1 signing, oracle attestation, on-chain Polygon Amoy minting, and marketplace order execution.
+- **Robust Test Coverage**: 44+ passing pytest unit tests for the bio-uptake engine and anti-cheat, 23 passing Hardhat smart contract tests, and full JSON schema validation.
+
+### 5. Live Demonstration & Verifiability
+- **Publicly Accessible Endpoints**:
+  - Carbon Credit Marketplace: [https://aircoin-market.vercel.app](https://aircoin-market.vercel.app)
+  - 3D Living Miner Digital Twin: [https://aircoin-twin.vercel.app](https://aircoin-twin.vercel.app)
+  - AWS Backend Health API: `http://54.224.180.188/healthz`
+  - Indexer C4 API: `http://54.224.180.188/v1/miners/miner-001`
+  - Polygon Amoy Verified Contracts on Polygonscan.
+
+---
+
+## 10. Monorepo Workstreams & Repository Layout
 
 This repository is organized into distinct workstreams communicating exclusively through versioned contracts:
 
@@ -224,9 +324,9 @@ AIRcoin/
 
 ---
 
-## 9. Interactive Local Demo & Quickstart
+## 11. Interactive Local Demo & Quickstart
 
-The entire AIRcoin stack can be launched locally with a single script. The runner manages background microservices, sets up local blockchain nodes, initializes the MQTT broker, and spins up both frontend interfaces.
+The entire AIRcoin stack can be launched locally with a single script for local evaluation:
 
 ### Quickstart
 
@@ -261,10 +361,10 @@ scripts\demo.cmd start
 
 ---
 
-## 10. Guided Feature Walkthrough
+## 12. Guided Feature Walkthrough
 
 ### 1. Verify Connectivity
-Navigate to `http://localhost:8090/health`. Confirm that all four diagnostic indicators (Miner Daemon, Mosquitto MQTT, Validator Oracle, Blockchain Node) display healthy green states.
+Navigate to `http://localhost:8090/health` (or `http://54.224.180.188/healthz` on AWS). Confirm that all diagnostic indicators display healthy states.
 
 ### 2. Simulate Atmospheric Scenarios
 Open the Scenario Controller at `http://localhost:8090/`:
@@ -273,14 +373,14 @@ Open the Scenario Controller at `http://localhost:8090/`:
 - **Festival Smog (AQI ~400)**: Severe atmospheric pollution; bio-uptake engine reaches peak operational capacity.
 
 ### 3. Explore the 3D Living Miner Digital Twin
-Open `http://localhost:5174`:
+Open [https://aircoin-twin.vercel.app](https://aircoin-twin.vercel.app) (or `http://localhost:5174` locally):
 - **Orbit Controls**: Left-click to rotate, right-click to pan, scroll to zoom around the 20-slot living botanical array.
 - **Hardware Exploded View**: Hover over the central sensor housing to trigger the HUD hint, then click to animate the exploded inspection view of the internal PMS5003 laser sensor, MQ-135 chamber, Raspberry Pi controller, and power bus.
 - **Optical & NDVI Vision**: Toggle between real-time RGB optical monitoring and false-color NDVI plant vigor maps in the camera PiP display.
 - **Anti-Cheat Verification**: Drag botanical pots to simulate tampering and observe immediate anti-cheat invalidation in the telemetry HUD.
 
 ### 4. Trade and Retire Credits on the Marketplace
-Open `http://localhost:5173`:
+Open [https://aircoin-market.vercel.app](https://aircoin-market.vercel.app) (or `http://localhost:5173` locally):
 - **Citizen Account (Alice)**: Review verified AIR token balances minted from miner `miner-001`. Create a sell listing on the decentralized exchange.
 - **Corporate Account (Apex Steel Works)**: View statutory carbon offset quotas for the 2026 fiscal year. Purchase available AIR credits using `tINR` liquidity.
 - **Retirement / Burn Portal**: Execute an on-chain compliance burn. The smart contract burns tokens irreversibly and registers the reduction in `ComplianceRegistry.sol`.
@@ -288,7 +388,7 @@ Open `http://localhost:5173`:
 
 ---
 
-## 11. Test Suites & Verification
+## 13. Test Suites & Verification
 
 Verify system guarantees and mathematical invariant correctness locally:
 
@@ -312,9 +412,10 @@ cd ../../chain-market/web && npm run build
 
 ---
 
-## 12. Technical Specifications & References
+## 14. Technical Specifications & References
 
 - **Botanical Calibration Protocol**: [`miner-core/docs/calibration-protocol.md`](file:///Users/umashankar/Downloads/AIRcoin/miner-core/docs/calibration-protocol.md) — Mathematical formulations for particulate deposition velocity, aerodynamic resistance, and leaf area indexing.
 - **Workstream Handoff Specifications**: [`miner-core/docs/handoff-vision-twin.md`](file:///Users/umashankar/Downloads/AIRcoin/miner-core/docs/handoff-vision-twin.md) — Contract-driven interfaces between edge computer vision and the living digital twin.
 - **Frozen Protocol Schemas**: [`contracts-schema/README.md`](file:///Users/umashankar/Downloads/AIRcoin/contracts-schema/README.md) — Specification for C1, C2, C3, and C4 data schemas.
 - **Smart Contract Architecture**: [`chain-market/README.md`](file:///Users/umashankar/Downloads/AIRcoin/chain-market/README.md) — On-chain security rules, role permissions, and tokenomics.
+- **AWS Infrastructure Specification**: [`infra/AWS-DEPLOYMENT-GUIDE.md`](file:///Users/umashankar/Downloads/AIRcoin/infra/AWS-DEPLOYMENT-GUIDE.md) — Production architecture specification for AWS EC2, ECS Fargate, NGINX Gateway, and Mosquitto MQTT.
