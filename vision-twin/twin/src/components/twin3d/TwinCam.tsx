@@ -11,7 +11,7 @@ import { markerCorners, PLANT_LAYER, PLANT_MAX_H, Rig, RIG, slotPosition } from 
 import { Atmosphere, CAMERA_VFOV, Floor, LENS_WORLD, Lights, Studio } from "./Stage";
 
 const FPS = 15;
-const COLORS: Record<PlantStatus, string> = { present: "#3fb950", suspect: "#f85149", missing: "#d29922", removed: "#6e7681" };
+const COLORS: Record<PlantStatus, string> = { present: "#7bd389", suspect: "#ff6b5a", missing: "#f2b33d", removed: "#9aa7a3" };
 
 interface Box { tag: number; x0: number; y0: number; x1: number; y1: number }
 
@@ -85,7 +85,7 @@ function CameraRender({ ndvi, focus, overlay, boxes }: { ndvi: boolean; focus?: 
       return [(v.x * 0.5 + 0.5) * W, (-v.y * 0.5 + 0.5) * H] as const;
     };
     const fs = Math.max(8, Math.min(12, W / 64));
-    g.font = `600 ${fs}px "JetBrains Mono", ui-monospace, monospace`;
+    g.font = `600 ${fs}px "IBM Plex Mono", ui-monospace, monospace`;
     g.lineJoin = "round";
     const out: Box[] = [];
     for (const { rp, marker, base: expectedBase } of corners) {

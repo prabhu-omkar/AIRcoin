@@ -3,7 +3,7 @@
 import { config } from "../config";
 import { useTwin } from "../store";
 import { startLive } from "./live";
-import { MockMiner, type MockOutput, type PlantOverride } from "./mock";
+import { MockMiner, type MockOutput, type PlantOverride, type Scenario } from "./mock";
 
 /** Messages on the hub's event stream: the same outputs the local mock produces. */
 export type HubMessage = MockOutput;
@@ -24,6 +24,7 @@ let localMock: MockMiner | undefined;
 function startLocalMock(): () => void {
   const miner = new MockMiner(config.minerId, Date.now());
   localMock = miner;
+  useTwin.setState({ scenario: miner.scenario });
   useTwin.getState().setLink("c2", "online");
   useTwin.getState().setLink("c4", "online");
   miner.snapshot().forEach(apply);
@@ -50,6 +51,19 @@ export async function setDemoPlant(tag: number, override?: PlantOverride) {
   } catch {
     return false;
   }
+}
+
+/** Demo control: switch the simulated air (only meaningful for the local mock). */
+export function setDemoScenario(scenario: Scenario): boolean {
+  if (config.source !== "mock" || !localMock) return false;
+  localMock.setScenario(scenario);
+  localMock.tick(Date.now()).forEach(apply);
+  useTwin.setState({ scenario });
+  return true;
+}
+
+export function demoScenario(): Scenario | undefined {
+  return localMock?.scenario;
 }
 
 function startHub(base: string): () => void {

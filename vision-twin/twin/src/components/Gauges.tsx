@@ -1,62 +1,73 @@
 import type { SensorReadings } from "../contracts";
 import { useTwin } from "../store";
+import { aqiBand, AQI_BANDS } from "../ui";
 
 interface ReadoutDef {
-  key: keyof SensorReadings | "aqi";
+  key: keyof SensorReadings;
   label: string;
   unit: string;
+  /** WHO / CPCB-style guide value; above it the reading is shown as elevated. */
+  guide: number;
   max: number;
-  warn: number;
-  bad: number;
   digits?: number;
 }
 
 const READOUTS: ReadoutDef[] = [
-  { key: "aqi", label: "AQI", unit: "NAQI", max: 500, warn: 101, bad: 201 },
-  { key: "pm25_ugm3", label: "PM2.5", unit: "µg/m³", max: 300, warn: 60, bad: 120 },
-  { key: "pm10_ugm3", label: "PM10", unit: "µg/m³", max: 400, warn: 100, bad: 250 },
-  { key: "no2_ppb", label: "NO₂", unit: "ppb", max: 200, warn: 53, bad: 100 },
-  { key: "voc_index", label: "VOC", unit: "index", max: 500, warn: 150, bad: 250 },
-  { key: "co2_ppm", label: "CO₂", unit: "ppm", max: 2000, warn: 800, bad: 1200 },
-  { key: "temp_c", label: "Temperature", unit: "°C", max: 50, warn: 35, bad: 40, digits: 1 },
-  { key: "humidity_pct", label: "Humidity", unit: "%", max: 100, warn: 101, bad: 101 },
+  { key: "pm25_ugm3", label: "PM2.5", unit: "µg/m³", guide: 60, max: 300 },
+  { key: "pm10_ugm3", label: "PM10", unit: "µg/m³", guide: 100, max: 450 },
+  { key: "no2_ppb", label: "NO₂", unit: "ppb", guide: 42, max: 200 },
+  { key: "voc_index", label: "VOC", unit: "index", guide: 150, max: 500 },
+  { key: "co2_ppm", label: "CO₂", unit: "ppm", guide: 800, max: 2000 },
+  { key: "temp_c", label: "Temp", unit: "°C", guide: 35, max: 50, digits: 1 },
+  { key: "humidity_pct", label: "Humidity", unit: "%", guide: 101, max: 100 },
 ];
 
 const pct = (v: number, max: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
 
-/** One instrument readout: value, unit and a banded scale with a needle. */
-function Readout({ def, value }: { def: ReadoutDef; value?: number }) {
-  const tone = value === undefined ? "" : value >= def.bad ? "bad" : value >= def.warn ? "warn" : "";
+/** The AQI on India's six CPCB bands, with a marker at the live value. */
+export function AqiMeter() {
+  const aqi = useTwin((s) => s.telemetry?.aqi);
+  const band = aqiBand(aqi);
   return (
-    <div className="readout">
-      <div className="ro-label">{def.label}</div>
-      <div className={`ro-value ${tone}`}>
-        {value === undefined ? "—" : value.toFixed(def.digits ?? 0)}
-        <span>{def.unit}</span>
+    <div className="aqi-meter">
+      <div className="aqi-meter-head">
+        <b className="num big">{aqi !== undefined ? Math.round(aqi) : "–"}</b>
+        <div>
+          <span className={`band-chip ${band.key}`}>{band.name}</span>
+          <small>India National AQI</small>
+        </div>
       </div>
-      <div className="ro-scale" aria-hidden>
-        <i className="z-ok" style={{ width: pct(def.warn, def.max) }} />
-        {def.warn < def.max && <i className="z-warn" style={{ left: pct(def.warn, def.max), width: pct(Math.min(def.bad, def.max) - def.warn, def.max) }} />}
-        {def.bad < def.max && <i className="z-bad" style={{ left: pct(def.bad, def.max), right: 0 }} />}
-        {value !== undefined && <b style={{ left: pct(value, def.max) }} />}
+      <div className="aqi-track" aria-hidden>
+        {AQI_BANDS.map((b) => <i key={b.key} className={b.key} />)}
+        {aqi !== undefined && <b style={{ left: pct(aqi, 500) }} />}
       </div>
+      <div className="aqi-ticks" aria-hidden><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span></div>
     </div>
   );
 }
 
-/** Air sensors (C2). Simulated in the hackathon build; the header says so. */
+/** Air sensors (C2). Simulated in the hackathon build. */
 export function Gauges() {
   const t = useTwin((s) => s.telemetry);
   return (
-    <section className="panel area-gauges">
-      <h2>
-        Air sensors
-      </h2>
-      <div className="body readouts">
-        {READOUTS.map((d) => (
-          <Readout key={d.key} def={d} value={d.key === "aqi" ? t?.aqi : t?.sensors[d.key]} />
-        ))}
-      </div>
-    </section>
+    <div className="readouts">
+      {READOUTS.map((d) => {
+        const v = t?.sensors[d.key];
+        const high = v !== undefined && v > d.guide;
+        return (
+          <div key={d.key} className={`readout ${high ? "high" : ""}`}>
+            <span className="ro-label">{d.label}</span>
+            <span className="ro-value">
+              <b className="num">{v === undefined ? "–" : v.toFixed(d.digits ?? 0)}</b>
+              <small>{d.unit}</small>
+            </span>
+            <span className="ro-track" aria-hidden>
+              <i style={{ width: pct(v ?? 0, d.max) }} />
+              {d.guide < d.max && <em style={{ left: pct(d.guide, d.max) }} />}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }

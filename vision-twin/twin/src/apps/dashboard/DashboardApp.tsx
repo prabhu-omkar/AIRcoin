@@ -1,74 +1,135 @@
-// Miner owner's dashboard: camera, plants, sensors, wallet. Sign-in required.
-import { useEffect, useState } from "react";
+// Miner owner's dashboard: camera, plants, air, earnings and proofs. Sign-in required.
+import { useEffect, useState, type ReactNode } from "react";
 import { currentOwner, signOut, type Owner } from "../../auth";
 import { AntiCheatLog } from "../../components/AntiCheatLog";
 import { AqiChart } from "../../components/AqiChart";
 import { CameraPanel } from "../../components/CameraPanel";
-import { Gauges } from "../../components/Gauges";
-import { Header, type DashboardView } from "../../components/Header";
+import { AqiMeter, Gauges } from "../../components/Gauges";
+import { DashboardNav, getMarketUrl, type DashboardView } from "../../components/Header";
 import { Login } from "../../components/Login";
 import { MapPanel } from "../../components/MapPanel";
-import { PlantGrid } from "../../components/PlantGrid";
+import { PlantDetail, SpecimenLegend, SpecimenSheet } from "../../components/PlantGrid";
 import { Wallet } from "../../components/Wallet";
 import { config } from "../../config";
 import { startSource } from "../../sources";
 import { useTwin } from "../../store";
+import { aqiBand, earningRate, fmt, SCENARIO_LABEL } from "../../ui";
+import "../../styles.css";
 
-function DashboardTop() {
-  const t = useTwin((s) => s.telemetry);
-  const earning = t?.plants.reduce((sum, p) => sum + p.rate_air_per_h, 0) ?? 0;
-  const aqi = Math.round(t?.aqi ?? 0);
-  const aqiCategory = aqi <= 50 ? "Good" : aqi <= 100 ? "Moderate" : aqi <= 200 ? "Poor" : "Severe";
-  const aqiClass = aqi <= 50 ? "tag-good" : aqi <= 100 ? "tag-moderate" : "tag-bad";
-
+function Panel({ title, tools, className = "", children }: { title: string; tools?: ReactNode; className?: string; children: ReactNode }) {
   return (
-    <div className="dashboard-topbar compact">
-      <div className="topbar-left">
-        <h1>Overview</h1>
-        <span className="miner-status-chip">
-          <i className="status-dot-pulse" />
-          {t?.miner_id ?? config.minerId} · Active
-        </span>
+    <section className={`panel ${className}`}>
+      <header className="panel-head">
+        <h2>{title}</h2>
+        {tools && <div className="panel-tools">{tools}</div>}
+      </header>
+      <div className="panel-body">{children}</div>
+    </section>
+  );
+}
+
+const PAGES: Record<DashboardView, { title: string; lead: string }> = {
+  overview: { title: "Overview", lead: "What your miner sees, the air it's working in, and what it has earned." },
+  plants: { title: "Plants", lead: "Every pot on the rig, tinted by how alive the camera finds it." },
+  earnings_security: { title: "Earnings & proofs", lead: "Signed proofs, minted AIR and everything anti-cheat refused to pay for." },
+};
+
+function PageHead({ view }: { view: DashboardView }) {
+  const t = useTwin((s) => s.telemetry);
+  const scenario = useTwin((s) => s.scenario);
+  const band = aqiBand(t?.aqi);
+  return (
+    <div className="page-head">
+      <div>
+        <h1>{PAGES[view].title}</h1>
+        <p>{PAGES[view].lead}</p>
       </div>
-      <div className="topbar-metrics-strip">
-        <div className="topbar-metric-card">
-          <span className="tb-label">Air Quality</span>
-          <div className="tb-val-row">
-            <strong className="tb-val">{aqi}</strong>
-            <span className={`tb-tag ${aqiClass}`}>{aqiCategory}</span>
-          </div>
+      <dl className="page-stats">
+        <div>
+          <dt>Earning now</dt>
+          <dd><b className="num">{fmt(earningRate(t), 2)}</b> AIR/h</dd>
         </div>
-        <div className="topbar-metric-card highlight">
-          <span className="tb-label">Earning Rate</span>
-          <div className="tb-val-row">
-            <strong className="tb-val">{earning.toFixed(3)}</strong>
-            <span className="tb-unit">AIR/h</span>
-          </div>
+        <div>
+          <dt>Air outside</dt>
+          <dd><b className="num">{t?.aqi !== undefined ? Math.round(t.aqi) : "–"}</b> <span className={`band-chip ${band.key}`}>{band.name}</span></dd>
         </div>
-      </div>
+        {scenario && (
+          <div className="hide-sm">
+            <dt>Simulated air</dt>
+            <dd>{SCENARIO_LABEL[scenario] ?? scenario}</dd>
+          </div>
+        )}
+      </dl>
     </div>
   );
 }
 
-const PAGE_COPY: Record<Exclude<DashboardView, "overview">, string> = {
-  plants: "Plant fleet",
-  earnings_security: "Earnings & security",
-};
+function Overview() {
+  return (
+    <main className="page grid-overview">
+      <CameraPanel />
+      <Panel title="Specimen sheet" tools={<SpecimenLegend />} className="area-specimens">
+        <SpecimenSheet />
+      </Panel>
+      <Panel title="Air quality" className="area-air">
+        <AqiMeter />
+        <AqiChart />
+      </Panel>
+      <Panel title="Earnings" className="area-wallet">
+        <Wallet rows={4} />
+      </Panel>
+      <Panel title="Sensors" className="area-sensors">
+        <Gauges />
+      </Panel>
+    </main>
+  );
+}
 
-function PageIntro({ view }: { view: Exclude<DashboardView, "overview"> }) {
-  return <div className="section-intro"><div><h1>{PAGE_COPY[view]}</h1></div></div>;
+function Plants() {
+  return (
+    <main className="page grid-plants">
+      <Panel title="All plants" tools={<SpecimenLegend />} className="area-specimens">
+        <SpecimenSheet />
+      </Panel>
+      <div className="stack">
+        <CameraPanel />
+        <Panel title="Selected plant">
+          <PlantDetail />
+        </Panel>
+      </div>
+    </main>
+  );
+}
+
+function Earnings() {
+  return (
+    <main className="page grid-earnings">
+      <Panel title="Minted AIR" className="area-wallet">
+        <Wallet rows={10} />
+      </Panel>
+      <div className="stack">
+        <Panel title="Anti-cheat log">
+          <AntiCheatLog />
+        </Panel>
+        <Panel title="Location" className="map-panel">
+          <MapPanel />
+        </Panel>
+      </div>
+    </main>
+  );
 }
 
 function Dashboard({ owner, onSignOut, onOpenTwin }: { owner: Owner; onSignOut: () => void; onOpenTwin?: () => void }) {
   const [view, setView] = useState<DashboardView>("overview");
   useEffect(() => startSource(), []);
   return (
-    <div className="app dashboard-shell">
-      <Header app="dashboard" account={owner.name} onSignOut={onSignOut} view={view} onNavigate={setView} onOpenTwin={onOpenTwin} />
-      <div className="dashboard-workspace">
-        {view === "overview" && <><DashboardTop /><main className="dashboard-page overview-page"><CameraPanel /><AqiChart /><Gauges /></main></>}
-        {view === "plants" && <><PageIntro view="plants" /><main className="dashboard-page plants-page"><CameraPanel /><PlantGrid /></main></>}
-        {view === "earnings_security" && <><PageIntro view="earnings_security" /><main className="dashboard-page earnings-security-page"><Wallet /><AntiCheatLog /><MapPanel /></main></>}
+    <div className="dash">
+      <DashboardNav account={owner.name} onSignOut={onSignOut} view={view} onNavigate={setView} onOpenTwin={onOpenTwin} />
+      <div className="dash-main">
+        <PageHead view={view} />
+        {view === "overview" && <Overview />}
+        {view === "plants" && <Plants />}
+        {view === "earnings_security" && <Earnings />}
       </div>
     </div>
   );
@@ -76,14 +137,18 @@ function Dashboard({ owner, onSignOut, onOpenTwin }: { owner: Owner; onSignOut: 
 
 function NoMiner({ owner, onSignOut }: { owner: Owner; onSignOut: () => void }) {
   return (
-    <div className="login">
-      <div className="login-card">
-        <h1>{owner.minerId ? `${owner.minerId} isn't online` : "No miner on this account"}</h1>
-        <p className="sub">{owner.minerId
-          ? `${owner.name}, your miner hasn't sent any data to this dashboard yet. It appears here as soon as it connects.`
-          : `${owner.name}, you don't own a miner yet. Request one in the marketplace; its camera, plants and earnings show up here once it is installed.`}</p>
-        {!owner.minerId && <a className="primary button-link" href="http://localhost:3000/">Request a miner</a>}
-        <button className="quiet" onClick={onSignOut}>Sign out</button>
+    <div className="no-miner">
+      <div className="no-miner-card">
+        <h1>{owner.minerId ? `${owner.minerId} hasn't connected yet` : "No miner on this account yet"}</h1>
+        <p>
+          {owner.minerId
+            ? `${owner.name}, your miner hasn't sent any data to this console. Its camera, plants and earnings appear here as soon as it comes online.`
+            : `${owner.name}, request a miner on the marketplace. Once it's installed, its camera, plants and earnings show up here.`}
+        </p>
+        <div className="row">
+          {!owner.minerId && <a className="btn ink" href={getMarketUrl()}>Request a miner</a>}
+          <button className="btn ghost" onClick={onSignOut}>Sign out</button>
+        </div>
       </div>
     </div>
   );

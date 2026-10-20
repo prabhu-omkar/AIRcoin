@@ -3,6 +3,7 @@ import { Environment, Lightformer, RoundedBox } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
+import { useTwin } from "../../store";
 import { sharedTime } from "./materials";
 import { LENS_LOCAL, MINER_BOTTOM } from "./Miner";
 import { RACK_H } from "./Rig";
@@ -15,21 +16,33 @@ export const LENS_WORLD = LENS_LOCAL.clone().applyAxisAngle(new THREE.Vector3(0,
 export const CAMERA_VFOV = 67;
 export const CAMERA_ASPECT = 2304 / 1296;
 
-const BG = new THREE.Color("#e9edf1"); // light studio backdrop
+const CLEAN = new THREE.Color("#e3e9e6"); // cool mineral studio backdrop
+const SMOG = new THREE.Color("#c9bda5"); // particulate haze at severe AQI
 
-/** Background and depth fog. The main canvas also advances the shared shader clock (`drive`). */
+/**
+ * Background and depth fog. The haze follows the live AQI: clean air keeps the studio crisp, smog
+ * thickens and warms it, so the room itself shows what the plants are working against.
+ * The main canvas also advances the shared shader clock (`drive`).
+ */
 export function Atmosphere({ drive = false }: { drive?: boolean }) {
   const { scene } = useThree();
+  const state = useMemo(() => ({ bg: CLEAN.clone(), fog: new THREE.FogExp2(CLEAN.clone(), 0.01), k: 0 }), []);
   useEffect(() => {
-    scene.fog = new THREE.FogExp2(BG, 0.012);
-    scene.background = BG;
+    scene.fog = state.fog;
+    scene.background = state.bg;
     return () => {
       scene.fog = null;
       scene.background = null;
     };
-  }, [scene]);
+  }, [scene, state]);
   useFrame((_, dt) => {
     if (drive) sharedTime.value += Math.min(dt, 0.1);
+    const aqi = useTwin.getState().telemetry?.aqi ?? 0;
+    const target = Math.max(0, Math.min(1, (aqi - 50) / 350));
+    state.k += (target - state.k) * Math.min(1, dt * 0.8);
+    state.bg.copy(CLEAN).lerp(SMOG, state.k * 0.55);
+    state.fog.color.copy(CLEAN).lerp(SMOG, state.k);
+    state.fog.density = 0.009 + state.k * 0.02;
   });
   return null;
 }
@@ -76,7 +89,7 @@ export function Floor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 5]} receiveShadow>
       <planeGeometry args={[90, 90]} />
-      <meshStandardMaterial color="#d4d9de" roughness={0.92} />
+      <meshStandardMaterial color="#cfd7d3" roughness={0.92} />
     </mesh>
   );
 }

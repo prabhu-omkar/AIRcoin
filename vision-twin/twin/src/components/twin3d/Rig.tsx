@@ -169,7 +169,13 @@ function PlantSlot({ rp, vision: _vision, selected, labels: _labels, ndvi, onSel
   const setDemoOverride = useTwin((s) => s.setDemoOverride);
   const pos = useMemo(() => storedPosition ? new THREE.Vector3(...storedPosition) : home, [storedPosition, home]);
   const model = useMemo(() => buildPlant(rp.species, rp.tag_id + 1, RIG.potR), [rp.species, rp.tag_id]);
-  const mat = useMemo(() => makePlantMaterial(), []);
+  // the suspect glow eases in from zero; starting at three.js's default intensity of 1 tinted every plant pink
+  const mat = useMemo(() => {
+    const m = makePlantMaterial();
+    m.emissive.setRGB(0.9, 0.2, 0.18);
+    m.emissiveIntensity = 0;
+    return m;
+  }, []);
   const ndviMat = useMemo(() => new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), []);
   const ghostMat = useMemo(() => new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }), []);
   const ringMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#f4f4f5", transparent: true, opacity: 0, depthWrite: false }), []);

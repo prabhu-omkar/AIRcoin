@@ -5,6 +5,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { rigLayout } from "../config";
 import { speciesInfo, speciesName } from "../species";
+import { STATUS_LABEL, STATUS_NOTE } from "../ui";
 import { useTwin } from "../store";
 import { Miner, PARTS } from "./twin3d/Miner";
 import { Rig, slotPosition } from "./twin3d/Rig";
@@ -34,8 +35,6 @@ function CameraRig({ view, focus, enabled = true }: { view: View; focus?: number
   return <CameraControls ref={ref} makeDefault enabled={enabled} minDistance={1.2} maxDistance={40} maxPolarAngle={Math.PI / 2 - 0.04} smoothTime={0.6} />;
 }
 
-const STATUS_LABEL = { present: "Healthy", missing: "Missing", removed: "Removed", suspect: "Suspect" } as const;
-
 function PlantCard({ tag, onClose }: { tag: number; onClose: () => void }) {
   const rp = rigLayout.plants.find((p) => p.tag_id === tag);
   const p = useTwin((s) => s.telemetry?.plants.find((x) => x.tag_id === tag));
@@ -43,21 +42,29 @@ function PlantCard({ tag, onClose }: { tag: number; onClose: () => void }) {
   const info = speciesInfo(rp.species);
   const status = p?.status ?? "missing";
   const lost = status === "missing" || status === "removed";
+  const alive = p && !lost ? p.alive_score : 0;
   const rows: [string, string][] = [
-    ["Status", STATUS_LABEL[status]],
-    ["Leaf area", p && !lost ? `${Math.round(p.leaf_area_cm2)} cm²` : "—"],
-    ["Alive score", p && !lost ? p.alive_score.toFixed(2) : "—"],
-    ["Plant match", p?.species_conf !== undefined && !lost ? `${Math.round(p.species_conf * 100)} %` : "—"],
-    ["Earning", p ? `${p.rate_air_per_h.toFixed(3)} AIR/h` : "—"],
+    ["Leaf area", p && !lost ? `${Math.round(p.leaf_area_cm2)} cm²` : "–"],
+    ["Matches enrolment", p?.species_conf !== undefined && !lost ? `${Math.round(p.species_conf * 100)}%` : "–"],
+    ["Earning", p ? `${p.rate_air_per_h.toFixed(3)} AIR/h` : "–"],
   ];
   return (
-    <div className="overlay part-card">
-      <button className="close" onClick={onClose} aria-label="Close">×</button>
-      <div className="eyebrow">Tag #{tag} · slot {rp.slot + 1}</div>
-      <h3><span className={`status-dot ${status}`} />{speciesName(rp.species)}</h3>
-      {info && <p><i>{info.scientific_name}</i></p>}
+    <aside className="overlay inspector" aria-label={`Plant ${tag}`}>
+      <button className="icon-btn close" onClick={onClose} aria-label="Close">×</button>
+      <p className="inspector-kicker">Tag {tag}, slot {rp.slot + 1}</p>
+      <h3>{speciesName(rp.species)}</h3>
+      {info && <p className="inspector-sub"><i>{info.scientific_name}</i>. Removes {info.main_targets.toLowerCase()}.</p>}
+      <div className={`status-line ${status}`}>
+        <i className={`status-dot ${status}`} />
+        <b>{STATUS_LABEL[status]}</b>
+        <span>{STATUS_NOTE[status]}</span>
+      </div>
+      <div className="liveness">
+        <div className="liveness-head"><span>Liveness (NDVI)</span><b className="num">{lost ? "–" : alive.toFixed(2)}</b></div>
+        <div className="liveness-bar"><i style={{ left: `${alive * 100}%` }} /></div>
+      </div>
       <div className="kv">{rows.map(([k, v]) => <Fragment key={k}><span>{k}</span><b>{v}</b></Fragment>)}</div>
-    </div>
+    </aside>
   );
 }
 
@@ -128,34 +135,32 @@ export function MinerModel() {
         <CameraRig view={view} focus={plant} enabled={!dragging} />
       </Canvas>
 
-      <div className="overlay twin-toolbar">
-        <div className="seg">
-          <button className={view === "rig" ? "active" : ""} onClick={() => go("rig")}>Digital twin</button>
-          <button className={view === "device" ? "active" : ""} onClick={() => go("device")}>Device exploded</button>
+      <div className="overlay view-dock">
+        <div className="seg" role="tablist" aria-label="Twin view">
+          <button role="tab" aria-selected={view === "rig"} className={view === "rig" ? "active" : ""} onClick={() => go("rig")}>Plant rig</button>
+          <button role="tab" aria-selected={view === "device"} className={view === "device" ? "active" : ""} onClick={() => go("device")}>Inside the miner</button>
         </div>
-      </div>
-      <div className="overlay twin-hud">
         <span className="hint">
           {deviceHover && view === "rig"
-            ? "click to explode"
+            ? "Click the miner to open it up"
             : dragging
-            ? "Release to drop"
+            ? "Release to drop the pot"
             : plant !== undefined
             ? "Esc to go back"
             : view === "rig"
-            ? "Drag a pot away, or drag a fake plant onto a slot"
-            : "Click a part for its readings"}
+            ? "Drag a pot off the rack, or drop the fake plant into a slot"
+            : "Click a part to see its live reading"}
         </span>
       </div>
 
       {def && (
-        <div className="overlay part-card">
-          <button className="close" onClick={() => setPart(undefined)} aria-label="Close">×</button>
-          <div className="eyebrow">{def.hardware}</div>
+        <aside className="overlay inspector" aria-label={def.name}>
+          <button className="icon-btn close" onClick={() => setPart(undefined)} aria-label="Close">×</button>
+          <p className="inspector-kicker">{def.hardware}</p>
           <h3>{def.name}</h3>
-          <p>{def.role}</p>
+          <p className="inspector-sub">{def.role}</p>
           <div className="kv">{def.readings(telemetry).map(([k, v]) => <Fragment key={k}><span>{k}</span><b>{v}</b></Fragment>)}</div>
-        </div>
+        </aside>
       )}
       {plant !== undefined && <PlantCard tag={plant} onClose={() => selectPlant(undefined)} />}
     </div>

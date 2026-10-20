@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ArrowRight, Building2, Eye, EyeOff, Leaf, Sprout } from "lucide-react";
+import { ArrowRight, Building2, Eye, EyeOff, Sprout } from "lucide-react";
 import { ACCOUNTS, DEMO_PASSWORD, signIn, type Account } from "../auth";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Mark } from "./Mark";
+
+const roleOf = (a: Account) => (a.wallet.minerId ? `Owns ${a.wallet.minerId}` : a.wallet.role === "company" ? "Compliance buyer" : "Citizen, no miner yet");
 
 export function Login({ onSignedIn }: { onSignedIn: (a: Account) => void }) {
   const [email, setEmail] = useState(ACCOUNTS[0].email);
@@ -13,42 +14,46 @@ export function Login({ onSignedIn }: { onSignedIn: (a: Account) => void }) {
     e.preventDefault();
     const account = signIn(email, password);
     if (account) onSignedIn(account);
-    else setError("Those details do not match a demo account.");
+    else setError("That email and password don't match a demo account. Pick a profile below to fill them in.");
   };
   const choose = (account: Account) => {
-    setEmail(account.email); setPassword(DEMO_PASSWORD); setError("");
+    setEmail(account.email);
+    setPassword(DEMO_PASSWORD);
+    setError("");
   };
   return (
-    <div className="auth-shell">
+    <div className="auth">
       <section className="auth-story">
-        <div className="auth-brand"><span><Leaf size={20} /></span><b>AIRcoin</b></div>
-        <div className="story-copy">
-          <h1>Clean air.<br /><em>Measured and rewarded.</em></h1>
+        <div className="auth-brand"><Mark size={32} /><b>AIRcoin</b></div>
+        <div className="auth-flow" aria-hidden>
+          <div className="flow-step"><Sprout size={18} /><b>Plants clean the air</b><span>A miner's camera verifies 20 living plants</span></div>
+          <div className="flow-step"><Mark size={18} /><b>AIR is minted</b><span>1 AIR per mg of PM2.5-equivalent removed</span></div>
+          <div className="flow-step"><Building2 size={18} /><b>Polluters retire it</b><span>Burned for good against a regulator's obligation</span></div>
+        </div>
+        <div className="auth-copy">
+          <h1>A market for air that was actually cleaned.</h1>
+          <p>Citizens earn AIR when their plants remove pollution. Companies buy it to meet the obligations set by the regulator.</p>
         </div>
       </section>
       <section className="auth-panel">
         <form onSubmit={submit} className="auth-card">
-          <div className="auth-heading">
-            <h2>Welcome back</h2><p>Sign in to manage your AIR, miners, and impact.</p>
+          <h2>Sign in</h2>
+          <p className="sub">Use a demo profile; each one has a funded testnet wallet.</p>
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
+          <label htmlFor="password">Password</label>
+          <div className="password-field">
+            <input id="password" type={show ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} />
+            <button type="button" className="icon-btn" onClick={() => setShow((v) => !v)} aria-label={show ? "Hide password" : "Show password"}>{show ? <EyeOff size={16} /> : <Eye size={16} />}</button>
           </div>
-          <div className="auth-fields">
-            <label htmlFor="email">Email address</label>
-            <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
-            <div className="password-label"><label htmlFor="password">Password</label><button type="button">Forgot password?</button></div>
-            <div className="password-wrap">
-              <Input id="password" type={show ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} />
-              <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Hide password" : "Show password"}>{show ? <EyeOff size={17} /> : <Eye size={17} />}</button>
-            </div>
-            {error && <p className="auth-error">{error}</p>}
-            <Button type="submit" className="auth-submit">Enter workspace <ArrowRight size={17} /></Button>
-          </div>
-          <div className="demo-divider"><span>or explore with a demo profile</span></div>
-          <div className="demo-profiles">
+          {error && <p className="error" role="alert">{error}</p>}
+          <button type="submit" className="btn ink block">Sign in <ArrowRight size={16} /></button>
+          <div className="profiles">
+            <span>Demo profiles</span>
             {ACCOUNTS.map((account) => (
               <button type="button" key={account.email} onClick={() => choose(account)} className={email === account.email ? "selected" : ""}>
-                <span className="profile-icon">{account.wallet.role === "company" ? <Building2 size={17} /> : <Sprout size={17} />}</span>
-                <span><b>{account.name}</b><small>{account.wallet.minerId ? account.wallet.minerId + " owner" : account.wallet.role === "company" ? "Compliance buyer" : "Citizen / no miner"}</small></span>
-                <ArrowRight size={15} />
+                <span className="avatar">{account.wallet.role === "company" ? <Building2 size={15} /> : account.name.split(" ").map((x) => x[0]).join("")}</span>
+                <span><b>{account.name}</b><small>{roleOf(account)}</small></span>
               </button>
             ))}
           </div>
