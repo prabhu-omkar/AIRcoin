@@ -13,7 +13,7 @@ import { Wallet } from "../../components/Wallet";
 import { config } from "../../config";
 import { startSource } from "../../sources";
 import { useTwin } from "../../store";
-import { aqiBand, earningRate, fmt, SCENARIO_LABEL } from "../../ui";
+import { aqiBand, earningRate, fmt } from "../../ui";
 import "../../styles.css";
 
 function Panel({ title, tools, className = "", children }: { title: string; tools?: ReactNode; className?: string; children: ReactNode }) {
@@ -36,7 +36,6 @@ const PAGES: Record<DashboardView, { title: string; lead: string }> = {
 
 function PageHead({ view }: { view: DashboardView }) {
   const t = useTwin((s) => s.telemetry);
-  const scenario = useTwin((s) => s.scenario);
   const band = aqiBand(t?.aqi);
   return (
     <div className="page-head">
@@ -53,12 +52,6 @@ function PageHead({ view }: { view: DashboardView }) {
           <dt>Air outside</dt>
           <dd><b className="num">{t?.aqi !== undefined ? Math.round(t.aqi) : "–"}</b> <span className={`band-chip ${band.key}`}>{band.name}</span></dd>
         </div>
-        {scenario && (
-          <div className="hide-sm">
-            <dt>Simulated air</dt>
-            <dd>{SCENARIO_LABEL[scenario] ?? scenario}</dd>
-          </div>
-        )}
       </dl>
     </div>
   );

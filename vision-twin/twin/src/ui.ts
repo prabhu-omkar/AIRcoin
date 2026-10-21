@@ -75,13 +75,6 @@ export function earningRate(t?: Telemetry): number {
   return t?.plants.reduce((sum, p) => sum + p.rate_air_per_h, 0) ?? 0;
 }
 
-export const SCENARIO_LABEL: Record<string, string> = {
-  clean_morning: "Clean morning",
-  rush_hour: "Rush hour",
-  festival_smog: "Festival smog",
-  rain_washout: "Rain washout",
-};
-
 export function fmt(v: number | undefined, digits = 0): string {
   if (v === undefined || Number.isNaN(v)) return "–";
   return v.toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits });

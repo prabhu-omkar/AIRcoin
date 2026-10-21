@@ -25,8 +25,6 @@ export type ScenePosition = [number, number, number];
 
 interface TwinState {
   source: "mock" | "live";
-  /** Simulated air scenario, when the local mock is driving the twin. */
-  scenario?: string;
   links: { c2: LinkState; c4: LinkState };
   telemetry?: Telemetry;
   lastTelemetryAt?: number;

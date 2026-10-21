@@ -1,15 +1,13 @@
 // Judges' demo: the full-screen 3D digital twin of one miner and its 20-plant rig.
 import { useEffect, useRef, useState } from "react";
-import { CloudRain, Factory, Minus, Plus, Sun, Wind } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { Header } from "../../components/Header";
 import { MinerModel } from "../../components/MinerModel";
 import { TwinCam } from "../../components/twin3d/TwinCam";
 import { config } from "../../config";
 import { fromBaseUnits } from "../../contracts";
-import { setDemoScenario, startSource } from "../../sources";
-import type { Scenario } from "../../sources/mock";
+import { startSource } from "../../sources";
 import { useTwin } from "../../store";
-import { SCENARIO_LABEL } from "../../ui";
 import "../../styles.css";
 
 type CamMode = "twin" | "ndvi" | "live";
@@ -48,35 +46,6 @@ function CameraPip() {
           )}
         </div>
       )}
-    </section>
-  );
-}
-
-const SCENARIOS: { id: Scenario; icon: typeof Sun; aqi: string }[] = [
-  { id: "rain_washout", icon: CloudRain, aqi: "~15" },
-  { id: "clean_morning", icon: Sun, aqi: "~45" },
-  { id: "rush_hour", icon: Wind, aqi: "~180" },
-  { id: "festival_smog", icon: Factory, aqi: "~400" },
-];
-
-/** Demo control for the simulated air sensors. Hidden when the twin runs on live data. */
-function ScenarioDock() {
-  const source = useTwin((s) => s.source);
-  const scenario = useTwin((s) => s.scenario);
-  if (source !== "mock") return null;
-  return (
-    <section className="dock scenario-dock" aria-label="Air scenario">
-      <h2>Simulated air</h2>
-      <div className="scenario-list" role="radiogroup">
-        {SCENARIOS.map(({ id, icon: Icon, aqi }) => (
-          <button key={id} role="radio" aria-checked={scenario === id} className={scenario === id ? "active" : ""} onClick={() => setDemoScenario(id)}>
-            <Icon size={15} />
-            <span>{SCENARIO_LABEL[id]}</span>
-            <small>AQI {aqi}</small>
-          </button>
-        ))}
-      </div>
-      <p>Dirtier air means each plant removes more, so the mint rate rises.</p>
     </section>
   );
 }
@@ -143,7 +112,6 @@ export function TwinApp({ onOpenDashboard }: { onOpenDashboard?: () => void }) {
     <div className="twin-app">
       <MinerModel />
       <Header onOpenDashboard={onOpenDashboard} />
-      <ScenarioDock />
       <EventToasts />
       <CameraPip />
     </div>

@@ -53,3 +53,16 @@ export const STATUS_COLOR = {
 
 export const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 export const easeOut = (t: number) => 1 - (1 - t) ** 3;
+
+/** How polluted the air looks, 0 = clean, 1 = severe. Eased from the live AQI once per frame by Atmosphere. */
+export const airState = { k: 0 };
+
+/** Sky and haze palettes for clean air and for smog; everything atmospheric lerps between them. */
+export const SKY = {
+  zenithClean: new THREE.Color("#6f9fc4"),
+  horizonClean: new THREE.Color("#f3dcb8"),
+  zenithSmog: new THREE.Color("#8d8576"),
+  horizonSmog: new THREE.Color("#d2b48a"),
+  sunClean: new THREE.Color("#fff1d6"),
+  sunSmog: new THREE.Color("#ff9a4d"),
+};

@@ -1,10 +1,10 @@
 // Shared scene setup used by both the twin canvas and the miner camera canvas, so they show the same world.
 import { Environment, Lightformer, RoundedBox } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useTwin } from "../../store";
-import { sharedTime } from "./materials";
+import { airState, sharedTime, SKY } from "./materials";
 import { LENS_LOCAL, MINER_BOTTOM } from "./Miner";
 import { RACK_H } from "./Rig";
 
@@ -16,17 +16,14 @@ export const LENS_WORLD = LENS_LOCAL.clone().applyAxisAngle(new THREE.Vector3(0,
 export const CAMERA_VFOV = 67;
 export const CAMERA_ASPECT = 2304 / 1296;
 
-const CLEAN = new THREE.Color("#e3e9e6"); // cool mineral studio backdrop
-const SMOG = new THREE.Color("#c9bda5"); // particulate haze at severe AQI
-
 /**
- * Background and depth fog. The haze follows the live AQI: clean air keeps the studio crisp, smog
- * thickens and warms it, so the room itself shows what the plants are working against.
- * The main canvas also advances the shared shader clock (`drive`).
+ * Background and depth fog, tied to the live AQI: clean air keeps the rooftop crisp and blue, smog
+ * thickens the haze and turns it the brown-gold of a Delhi winter afternoon. Also publishes the eased
+ * pollution level (airState.k) for the sky, sun and particles. The main canvas advances the shader clock.
  */
 export function Atmosphere({ drive = false }: { drive?: boolean }) {
   const { scene } = useThree();
-  const state = useMemo(() => ({ bg: CLEAN.clone(), fog: new THREE.FogExp2(CLEAN.clone(), 0.01), k: 0 }), []);
+  const state = useMemo(() => ({ bg: SKY.horizonClean.clone(), fog: new THREE.FogExp2(SKY.horizonClean.clone(), 0.008) }), []);
   useEffect(() => {
     scene.fog = state.fog;
     scene.background = state.bg;
@@ -38,11 +35,12 @@ export function Atmosphere({ drive = false }: { drive?: boolean }) {
   useFrame((_, dt) => {
     if (drive) sharedTime.value += Math.min(dt, 0.1);
     const aqi = useTwin.getState().telemetry?.aqi ?? 0;
-    const target = Math.max(0, Math.min(1, (aqi - 50) / 350));
-    state.k += (target - state.k) * Math.min(1, dt * 0.8);
-    state.bg.copy(CLEAN).lerp(SMOG, state.k * 0.55);
-    state.fog.color.copy(CLEAN).lerp(SMOG, state.k);
-    state.fog.density = 0.009 + state.k * 0.02;
+    const target = Math.max(0, Math.min(1, (aqi - 40) / 360));
+    if (drive) airState.k += (target - airState.k) * Math.min(1, dt * 0.6);
+    const k = airState.k;
+    state.fog.color.copy(SKY.horizonClean).lerp(SKY.horizonSmog, k);
+    state.bg.copy(state.fog.color);
+    state.fog.density = 0.006 + k * 0.016;
   });
   return null;
 }
@@ -85,36 +83,72 @@ export function Tripod() {
   );
 }
 
+/** Rooftop terrace: square tiles with grout, the way Delhi terraces are laid. */
 export function Floor() {
+  const map = useMemo(() => terraceTexture(), []);
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 5]} receiveShadow>
-      <planeGeometry args={[90, 90]} />
-      <meshStandardMaterial color="#cfd7d3" roughness={0.92} />
+      <planeGeometry args={[220, 220]} />
+      <meshStandardMaterial map={map} color="#d9d0c1" roughness={0.88} />
     </mesh>
   );
 }
 
+function terraceTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#ece6da";
+  g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 1400; i++) {
+    g.fillStyle = `rgba(${120 + Math.random() * 60},${110 + Math.random() * 50},${90 + Math.random() * 40},${Math.random() * 0.08})`;
+    g.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 2 + Math.random() * 3);
+  }
+  g.strokeStyle = "rgba(120,104,84,0.55)";
+  g.lineWidth = 3;
+  g.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(36, 36);
+  t.anisotropy = 8;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/** Low golden-hour sun from the back left (rim light through the leaves) plus sky fill; dims and reddens in smog. */
 export function Lights({ shadowSize = 2048 }: { shadowSize?: number }) {
+  const sun = useRef<THREE.DirectionalLight>(null);
+  const hemi = useRef<THREE.HemisphereLight>(null);
+  useFrame(() => {
+    const k = airState.k;
+    if (sun.current) {
+      sun.current.color.copy(SKY.sunClean).lerp(SKY.sunSmog, k);
+      sun.current.intensity = 2.6 - k * 1.2;
+    }
+    if (hemi.current) {
+      hemi.current.color.copy(SKY.zenithClean).lerp(SKY.zenithSmog, k).lerp(new THREE.Color("#ffffff"), 0.55);
+    }
+  });
   return (
     <>
-      <hemisphereLight args={["#ffffff", "#b9c0c7", 0.9]} />
+      <hemisphereLight ref={hemi} args={["#ffffff", "#c9bba4", 0.85]} />
       <directionalLight
-        position={[9, 16, 16]}
-        intensity={2.2}
-        color="#fff8ef"
+        ref={sun}
+        position={[-14, 15, -10]}
+        intensity={2.6}
         castShadow
         shadow-mapSize={[shadowSize, shadowSize]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.03}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-3}
+        shadow-camera-left={-16}
+        shadow-camera-right={16}
+        shadow-camera-top={18}
+        shadow-camera-bottom={-6}
         shadow-camera-near={1}
-        shadow-camera-far={50}
+        shadow-camera-far={60}
       />
-      <directionalLight position={[-10, 8, 12]} intensity={0.7} color="#eef4ff" />
-      <spotLight position={[0, 13, 14]} angle={0.5} penumbra={0.8} intensity={60} distance={32} color="#e8fff4" />
+      <directionalLight position={[9, 12, 18]} intensity={1.15} color="#fff8ef" />
+      <spotLight position={[0, 13, 14]} angle={0.5} penumbra={0.8} intensity={40} distance={32} color="#fff4e2" />
       <pointLight position={[MINER_POS.x - 1.5, MINER_POS.y + 1.5, MINER_POS.z + 1.5]} intensity={4} distance={6} color="#cfe" />
     </>
   );

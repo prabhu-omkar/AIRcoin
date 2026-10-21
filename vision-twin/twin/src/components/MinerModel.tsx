@@ -1,6 +1,6 @@
 // Digital twin: the miner on its tripod watching the 20-plant rack, driven live by C2.
 import { CameraControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Fragment, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { rigLayout } from "../config";
@@ -10,6 +10,7 @@ import { useTwin } from "../store";
 import { Miner, PARTS } from "./twin3d/Miner";
 import { Rig, slotPosition } from "./twin3d/Rig";
 import { Atmosphere, Floor, Lights, MINER_POS, MINER_ROT, Studio, Tripod } from "./twin3d/Stage";
+import { AirParticles, MintStream, ScanSweep, SkyDome, Skyline, Terrace } from "./twin3d/World";
 
 type View = "rig" | "device";
 
@@ -18,21 +19,64 @@ const SHOTS: Record<View, { pos: THREE.Vector3; target: THREE.Vector3 }> = {
   device: { pos: MINER_POS.clone().add(new THREE.Vector3(-3.4, 1.9, -3.9)), target: MINER_POS.clone().add(new THREE.Vector3(0, 0, 0)) },
 };
 
+const INTRO = { pos: new THREE.Vector3(-26, 22, 46), target: new THREE.Vector3(0, 6, -2) };
+
+/**
+ * Camera director: a one-time fly-in when the twin loads, smooth moves between views, and a slow
+ * drift around the rig when nobody has touched the controls for a while.
+ */
 function CameraRig({ view, focus, enabled = true }: { view: View; focus?: number; enabled?: boolean }) {
   const ref = useRef<CameraControls>(null);
+  const lastTouch = useRef(0);
+  const idle = useRef<{ base: number; since: number } | null>(null);
+  const introDone = useRef(false);
+
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
+    const touch = () => { lastTouch.current = performance.now(); idle.current = null; };
+    c.addEventListener("controlstart", touch);
+    return () => c.removeEventListener("controlstart", touch);
+  }, []);
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    idle.current = null;
+    lastTouch.current = performance.now();
     const rp = focus !== undefined ? rigLayout.plants.find((p) => p.tag_id === focus) : undefined;
     if (rp) {
       const p = slotPosition(rp.slot);
+      c.smoothTime = 0.6;
       c.setLookAt(p.x + 2.2, p.y + 1.6, p.z + 7.2, p.x, p.y + 0.55, p.z, true);
       return;
     }
     const v = SHOTS[view];
+    if (!introDone.current) {
+      introDone.current = true;
+      c.setLookAt(INTRO.pos.x, INTRO.pos.y, INTRO.pos.z, INTRO.target.x, INTRO.target.y, INTRO.target.z, false);
+      c.smoothTime = 1.6;
+      const id = setTimeout(() => {
+        c.setLookAt(v.pos.x, v.pos.y, v.pos.z, v.target.x, v.target.y, v.target.z, true);
+        setTimeout(() => (c.smoothTime = 0.6), 2600);
+      }, 250);
+      return () => clearTimeout(id);
+    }
+    c.smoothTime = 0.6;
     c.setLookAt(v.pos.x, v.pos.y, v.pos.z, v.target.x, v.target.y, v.target.z, true);
   }, [view, focus]);
-  return <CameraControls ref={ref} makeDefault enabled={enabled} minDistance={1.2} maxDistance={40} maxPolarAngle={Math.PI / 2 - 0.04} smoothTime={0.6} />;
+
+  useFrame(({ clock }) => {
+    const c = ref.current;
+    if (!c || !enabled || focus !== undefined || view !== "rig") return;
+    if (performance.now() - lastTouch.current < 9000) return;
+    if (!idle.current) idle.current = { base: c.azimuthAngle, since: clock.elapsedTime };
+    const t = clock.elapsedTime - idle.current.since;
+    const ease = Math.min(1, t / 6);
+    c.rotateAzimuthTo(idle.current.base + Math.sin(t * 0.11) * 0.2 * ease, false);
+  });
+
+  return <CameraControls ref={ref} makeDefault enabled={enabled} minDistance={1.2} maxDistance={60} maxPolarAngle={Math.PI / 2 - 0.04} smoothTime={0.6} />;
 }
 
 function PlantCard({ tag, onClose }: { tag: number; onClose: () => void }) {
@@ -109,7 +153,8 @@ export function MinerModel() {
       <Canvas
         shadows="soft"
         dpr={[1, 1.75]}
-        camera={{ position: SHOTS.rig.pos.toArray(), fov: 38, near: 0.1, far: 140 }}
+        camera={{ position: INTRO.pos.toArray(), fov: 38, near: 0.1, far: 300 }}
+        gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         onPointerDown={(e) => (downAt.current = [e.clientX, e.clientY])}
         onPointerMissed={(e) => {
           if (Math.hypot(e.clientX - downAt.current[0], e.clientY - downAt.current[1]) > 6) return;
@@ -118,9 +163,15 @@ export function MinerModel() {
         }}
       >
         <Atmosphere drive />
+        <SkyDome />
         <Studio />
         <Lights />
         <Floor />
+        <Skyline />
+        <Terrace />
+        <AirParticles />
+        <ScanSweep visible={view === "rig" && plant === undefined && !dragging} />
+        <MintStream />
         <Rig interactive={view === "rig"} onDragChange={setDragging} vision={view === "rig" && plant === undefined} selected={plant} onSelect={(t) => { setPart(undefined); selectPlant(plant === t ? undefined : t); }} />
         <group position={MINER_POS} rotation={[0, MINER_ROT, 0]}>
           <Miner
