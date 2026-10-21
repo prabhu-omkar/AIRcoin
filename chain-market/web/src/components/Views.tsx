@@ -553,7 +553,7 @@ export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({ initialSubtab 
               <span>AIR retired, equal to {cert ? cert.amount : burnAmount || "0"} mg of PM2.5-equivalent removed from the air</span>
             </div>
             <dl className="cert-meta">
-              <div><dt>Retired by</dt><dd>{currentWallet.companyName ?? currentWallet.name}</dd></div>
+              <div><dt>Retired by</dt><dd>{currentWallet.companyName ?? currentWallet.name.replace(/\s*\(.*\)$/, "")}</dd></div>
               <div><dt>Wallet</dt><dd><code>{short(currentWallet.address)}</code></dd></div>
               <div><dt>Counted towards</dt><dd>{obligation ? `${COMPLIANCE_PERIOD} obligation` : "Voluntary retirement"}</dd></div>
               <div>

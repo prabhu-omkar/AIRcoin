@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Mark } from "./components/Mark";
 
 const TwinApp = lazy(() => import("./apps/twin/TwinApp"));
@@ -21,6 +21,13 @@ export function App() {
     const param = new URLSearchParams(window.location.search).get("view");
     return param === "dashboard" || window.location.hash.includes("dashboard") ? "dashboard" : "twin";
   });
+
+  // follow #twin / #dashboard links and the back button after the first load
+  useEffect(() => {
+    const onHash = () => setViewMode(window.location.hash.includes("dashboard") ? "dashboard" : "twin");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const go = (mode: ViewMode) => {
     setViewMode(mode);

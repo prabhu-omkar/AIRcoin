@@ -90,7 +90,7 @@ const Shell = ({ account, onSignOut }: { account: Account; onSignOut: () => void
         <header className="topbar">
           <button className="icon-btn menu-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu"><Menu size={20} /></button>
           <div>
-            <h1>{tab === "overview" ? `Hello, ${account.name.split(" ")[0]}` : "Market"}</h1>
+            <h1>{tab === "overview" ? (account.wallet.role === "company" ? account.name : `Hello, ${account.name.split(" ")[0]}`) : "Market"}</h1>
             <p>
               {tab === "overview"
                 ? account.wallet.role === "company"
