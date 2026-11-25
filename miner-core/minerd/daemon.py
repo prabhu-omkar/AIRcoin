@@ -40,7 +40,7 @@ def run(cfg: Config, duration_s: float = 0) -> int:
             return
         bus.publish(t_epoch, doc, qos=1, retain=True)
 
-    uplink = UplinkQueue(cfg.db_path, cfg.validator_url, publish_epoch).start()
+    uplink = UplinkQueue(cfg.db_path, cfg.chain_url, publish_epoch).start()
 
     def replay_epochs() -> None:
         messages = uplink.epoch_messages()
@@ -52,7 +52,7 @@ def run(cfg: Config, duration_s: float = 0) -> int:
     bus.on_connect(replay_epochs)
     mock_vision = MockVision(reg.miner_id, reg.sticker_ids) if cfg.vision_source == "mock" else None
     controller_state = ControllerState(
-        engine.sensors, mock_vision, engine.gps, uplink, bus, cfg.validator_url, cfg.chain_rpc_url
+        engine.sensors, mock_vision, engine.gps, uplink, bus, cfg.chain_url
     )
     controller = ControllerServer(controller_state, cfg.controller_port).start()
 
@@ -76,7 +76,7 @@ def run(cfg: Config, duration_s: float = 0) -> int:
     signal.signal(signal.SIGTERM, stop)
     started = time.monotonic()
     log.info("minerd started: vision=%s gps=%s validator=%s", cfg.vision_source, cfg.gps_source,
-             cfg.validator_url)
+             cfg.chain_url)
     log.info("scenario controller: http://localhost:%s", cfg.controller_port)
     try:
         while not stopping and (not duration_s or time.monotonic() - started < duration_s):

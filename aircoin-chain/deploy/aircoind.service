@@ -1,0 +1,18 @@
+# AIRcoin chain node on a Raspberry Pi miner.
+#   sudo cp aircoind-linux-arm64 /opt/aircoin/aircoind
+#   sudo cp -r nodeN /opt/aircoin/node     (from `aircoind testnet --hosts …` or `aircoind init`)
+#   sudo cp deploy/aircoind.service /etc/systemd/system/ && sudo systemctl enable --now aircoind
+[Unit]
+Description=AIRcoin chain node (aircoind)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=aircoin
+ExecStart=/opt/aircoin/aircoind start --home /opt/aircoin/node
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

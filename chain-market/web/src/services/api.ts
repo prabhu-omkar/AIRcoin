@@ -1,116 +1,88 @@
-import { C4MinerData, MarketplaceListing, TradeItem, BurnItem, RejectionRecord } from "../types";
-const getDefaultApiBase = (): string => {
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host !== "localhost" && host !== "127.0.0.1" && !host.endsWith(".local")) {
-      return "http://54.224.180.188";
-    }
-  }
-  return "";
-};
-const API_BASE = (import.meta.env.VITE_API_URL || getDefaultApiBase()).replace(/\/+$/, "");
-const INDEXER_URL = (import.meta.env.VITE_INDEXER_URL || (API_BASE ? API_BASE : "http://localhost:3002")).replace(/\/+$/, "");
-const VALIDATOR_URL = (import.meta.env.VITE_VALIDATOR_URL || (API_BASE ? API_BASE : "http://localhost:3001")).replace(/\/+$/, "");
+// Reads from an AIRcoin node's gateway (aircoind). Every miner node serves the same API.
+import type { BurnItem, C4MinerData, MarketplaceListing, RejectionRecord, TradeItem } from "../types";
 
-export async function fetchMiner(minerId: string): Promise<C4MinerData | null> {
+export const CHAIN_URL = (import.meta.env.VITE_CHAIN_URL || "http://localhost:8700").replace(/\/+$/, "");
+
+async function get<T>(path: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(`${INDEXER_URL}/v1/miners/${minerId}`);
-    if (!res.ok) return null;
-    return await res.json();
+    const res = await fetch(`${CHAIN_URL}${path}`);
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
   } catch {
-    return null;
+    return fallback;
   }
 }
 
-export async function fetchMinerBalance(minerId: string) {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/miners/${minerId}/balance`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+const items = async <T>(path: string): Promise<T[]> => (await get<{ items?: T[] }>(path, {})).items ?? [];
+
+export interface AccountInfo {
+  address: string;
+  air: string;
+  tinr: string;
+  nonce: number;
+  is_admin: boolean;
+  miners: string[];
+  block_number: number;
 }
 
-export async function fetchAddressBalance(address: string) {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/balance/${address}`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+export interface ChainStatus {
+  chain_id: string;
+  height: number;
+  peers: number;
+  catching_up: boolean;
+  moniker: string;
+  epoch: number;
 }
 
-export async function fetchMinerMints(minerId: string, limit = 20) {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/miners/${minerId}/mints?limit=${limit}`);
-    if (!res.ok) return { v: 1, miner_id: minerId, items: [] };
-    return await res.json();
-  } catch {
-    return { v: 1, miner_id: minerId, items: [] };
-  }
+export interface Obligation {
+  company: string;
+  company_name: string;
+  period: string;
+  amount: string;
+  burned: string;
 }
 
-export async function fetchListings(): Promise<MarketplaceListing[]> {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/listings`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.items || [];
-  } catch {
-    return [];
-  }
+export interface Totals {
+  block_number: number;
+  minted: string;
+  burned: string;
+  circulating: string;
+  miners: number;
+  active_miners: number;
+  open_listings: number;
+  pending_applications: number;
 }
 
-export async function fetchTrades(): Promise<TradeItem[]> {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/trades`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.items || [];
-  } catch {
-    return [];
-  }
+export const fetchStatus = () => get<ChainStatus | null>("/v1/status", null);
+export const fetchAccount = (address: string) => get<AccountInfo | null>(`/v1/accounts/${address.toLowerCase()}`, null);
+export const fetchMiner = (minerId: string) => get<C4MinerData | null>(`/v1/miners/${minerId}`, null);
+export const fetchMinerMints = (minerId: string, limit = 20) =>
+  get<{ items: any[] }>(`/v1/miners/${minerId}/mints?limit=${limit}`, { items: [] });
+export const fetchListings = () => items<MarketplaceListing>("/v1/listings");
+export const fetchTrades = () => items<TradeItem>("/v1/trades");
+export const fetchBurns = () => items<BurnItem>("/v1/burns");
+export const fetchObligations = () => items<Obligation>("/v1/obligations");
+export const fetchRejections = (minerId?: string) =>
+  items<RejectionRecord>(`/v1/rejections${minerId ? `?miner_id=${minerId}` : ""}`);
+export const fetchTotals = () => get<Totals | null>("/v1/totals", null);
+
+export interface Application {
+  id: number;
+  applicant: string;
+  name: string;
+  location: { lat: number; lon: number; geofence_m: number; label?: string };
+  plants_planned: number;
+  note?: string;
+  status: "pending" | "approved" | "rejected";
+  miner_id?: string;
+  reason?: string;
+  submitted_at: number;
+  decided_at?: number;
 }
 
-export async function fetchBurns(): Promise<BurnItem[]> {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/burns`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.items || [];
-  } catch {
-    return [];
-  }
+export interface MinerRow extends C4MinerData {
+  node: { validator_address: string; power: number; blocks_proposed: number; proposer_rewards: string };
 }
 
-export async function fetchTotals() {
-  try {
-    const res = await fetch(`${INDEXER_URL}/v1/totals`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-export async function fetchRejections(): Promise<RejectionRecord[]> {
-  try {
-    const res = await fetch(`${VALIDATOR_URL}/v1/rejections`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.items || [];
-  } catch {
-    return [];
-  }
-}
-
-export async function submitAttestation(attestation: any) {
-  const res = await fetch(`${VALIDATOR_URL}/v1/attestations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(attestation),
-  });
-  return await res.json();
-}
+export const fetchApplications = () => items<Application>("/v1/applications");
+export const fetchMinerList = () => items<MinerRow>("/v1/miners");

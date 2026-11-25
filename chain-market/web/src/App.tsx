@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Flame,
   LayoutDashboard,
+  Landmark,
   Leaf,
   LogOut,
   Menu,
@@ -21,9 +22,10 @@ import { WalletProvider, useWallet } from "./context/WalletContext";
 import { currentAccount, signOut, type Account } from "./auth";
 import { Login } from "./components/Login";
 import { UnifiedOverviewView, UnifiedMarketView } from "./components/Views";
+import { RegulatorView } from "./components/Regulator";
 import { cn } from "./lib/utils";
 
-type Tab = "overview" | "market";
+type Tab = "overview" | "market" | "regulator";
 
 const Shell = ({
   account,
@@ -32,8 +34,9 @@ const Shell = ({
   account: Account;
   onSignOut: () => void;
 }) => {
-  const { switchWallet, toast } = useWallet();
-  const [tab, setTab] = useState<Tab>("overview");
+  const { switchWallet, toast, isChainOnline, blockHeight } = useWallet();
+  const isRegulator = account.wallet.role === "admin";
+  const [tab, setTab] = useState<Tab>(isRegulator ? "regulator" : "overview");
   const [marketSubtab, setMarketSubtab] = useState<"buy" | "burn" | "sell">(
     "buy"
   );
@@ -63,7 +66,7 @@ const Shell = ({
             <span className="brand-title">AIRcoin</span>
             <span className="brand-network-pill">
               <span className="network-live-dot" />
-              Polygon Amoy
+              {isChainOnline ? `AIRcoin chain · block ${blockHeight}` : "Chain offline"}
             </span>
           </div>
           <button
@@ -78,8 +81,8 @@ const Shell = ({
         {/* Live Epoch Status Widget */}
         <div className="sidebar-epoch-widget">
           <div className="epoch-header">
-            <span className="epoch-title">PoUW Consensus</span>
-            <span className="epoch-live-tag">Live · 60s</span>
+            <span className="epoch-title">PoUW minting · BFT blocks</span>
+            <span className="epoch-live-tag">{isChainOnline ? "Live · 60s epochs" : "Offline"}</span>
           </div>
           <div className="epoch-details">
             <span>
@@ -121,6 +124,22 @@ const Shell = ({
                 <span className="nav-desc">Buy, Burn & Trade</span>
               </div>
             </button>
+
+            {isRegulator && (
+              <button
+                onClick={() => {
+                  setTab("regulator");
+                  setMobileOpen(false);
+                }}
+                className={cn("nav-item", tab === "regulator" && "active")}
+              >
+                <Landmark size={17} />
+                <div className="nav-text">
+                  <span className="nav-title">Regulator</span>
+                  <span className="nav-desc">Approve miners, audit, obligations</span>
+                </div>
+              </button>
+            )}
           </nav>
         </div>
 
@@ -143,6 +162,8 @@ const Shell = ({
                   ? "Miner Operator"
                   : account.wallet.role === "company"
                   ? "Compliance Buyer"
+                  : isRegulator
+                  ? "Regulator"
                   : "Citizen Member"}
               </span>
             </div>
@@ -194,13 +215,15 @@ const Shell = ({
               <span>AIRcoin Network</span>
               <span className="separator">/</span>
               <span className="current-page">
-                {tab === "overview" ? "Overview & Miner" : "Market & Retire"}
+                {tab === "overview" ? "Overview & Miner" : tab === "market" ? "Market & Retire" : "Regulator"}
               </span>
             </div>
             <h1 className="pro-page-title">
               {tab === "overview"
                 ? "Overview & Hardware Miner"
-                : "Marketplace & Compliance Retirement"}
+                : tab === "market"
+                ? "Marketplace & Compliance Retirement"
+                : "Regulator Console"}
             </h1>
           </div>
         </header>
@@ -213,6 +236,7 @@ const Shell = ({
           {tab === "market" && (
             <UnifiedMarketView initialSubtab={marketSubtab} />
           )}
+          {tab === "regulator" && isRegulator && <RegulatorView />}
         </main>
       </section>
 

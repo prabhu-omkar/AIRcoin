@@ -6,7 +6,7 @@
 | Produces | Consumes |
 |----------|----------|
 | **C2** telemetry → MQTT `miner/{miner_id}/telemetry` (1/s) and epoch summaries → `miner/{miner_id}/epoch` (retained) | **C1** `miner/{miner_id}/vision` from vision-twin |
-| **C3** signed attestations → `POST /v1/attestations` on chain-market's validator | |
+| **C3** signed attestations → `POST /v1/attestations` on any AIRcoin chain node (`aircoind`) | |
 
 Also owns the numbers in `contracts-schema/data/species-catalogue.json` (multipliers, base rates, reference concentrations, caps). Schemas and signing rules: [`../contracts-schema`](../contracts-schema/README.md). Do not change them on your own.
 
@@ -19,7 +19,7 @@ Also owns the numbers in `contracts-schema/data/species-catalogue.json` (multipl
 5. **Species catalogue and calibration table:** versioned; its keccak256 goes into every attestation as `calibration_hash`.
 6. **Estimation engine:** `R_i,p = k_s(i),p × A_i × H_i × f(C_p / C_p,ref) × Δt`, then `AIR = Σ_p w_p Σ_i R_i,p`. Caps per plant and per epoch. Missing plants count zero; suspect plants count zero and raise a flag.
 7. **Epoch manager:** 60 s epochs in real time for the demo (`epoch = floor(start_ms / 60000)`).
-8. **Attestation signer:** builds the C3 payload, computes `evidence_hash`, signs with the device key (secp256k1). Key generated on first boot and registered with chain-market's registry.
+8. **Attestation signer:** builds the C3 payload, computes `evidence_hash`, signs with the device key (secp256k1). Key generated on first boot and registered on-chain when the regulator approves the miner.
 9. **Uplink:** posts C3 with retry and an offline queue so no epoch is lost if Wi-Fi drops.
 10. **Telemetry:** publishes C2 every second and every epoch.
 11. **Device-side anti-cheat flags:** unknown sticker, species mismatch, low liveness, GPS > 50 m from the registered spot, frozen camera (identical frame hashes), too many plants appearing at once, clock drift.
@@ -60,7 +60,7 @@ python -m minerd daemon
 ```
 
 The daemon emits C2 once per second, closes a signed epoch every 60 seconds and stores C3
-in `var/minerd.sqlite` before delivery. Network and validator failures are retried with
+in `var/minerd.sqlite` before delivery. Network and chain failures are retried with
 backoff; accepted/rejected status is re-published on the retained C2 epoch topic.
 
 The Phase 3 controller starts with the daemon at `http://localhost:8090`. Its panel can
@@ -68,19 +68,20 @@ switch AQI scenarios, remove/restore or fake a plant, freeze the camera, inject 
 sticker, move the simulated GPS outside its geofence, and reset the demo. Machine-readable
 state is available at `GET /api/status`; OpenAPI documentation is at `/docs`.
 
-**Live Shreyas → Umashankar integration tests** (requires the local chain and validator):
+**Live integration tests** against the AIRcoin chain (start it with `python scripts/demo.py start`
+or `aircoin-chain/scripts/localnet.sh`):
 
 ```bash
 python -m pytest integration_tests -q
 ```
 
-These tests submit real signed C3 payloads, verify the transaction receipt and exact
-AIRToken balance increase, reject tampered evidence and an unapproved calibration hash,
-and confirm that removing a plant lowers an accepted mint.
+These tests submit real signed C3 payloads to a node, check the owner's exact AIR balance
+increase and the 409 on replay, and check that tampered evidence and an out-of-geofence
+proof are rejected (the latter is recorded in the on-chain anti-cheat log).
 
-For the local mint path, start Hardhat with `npm run node`, deploy and seed from
-`chain-market/contracts`, then run `node dist/server.js` from `chain-market/validator`.
-The daemon posts to `http://localhost:3001` by default.
+The daemon posts to `CHAIN_URL` (default `http://127.0.0.1:8700`, node 0's gateway). Its
+demo device key comes from `aircoin-chain/demo/demo-accounts.json` unless `MINER_PRIVATE_KEY`
+or `var/device-key.hex` is set.
 
 **One command, one signed attestation** (synthetic 60 s epoch, mock plants, simulated sensors):
 
@@ -102,8 +103,8 @@ Scenarios: `rain_washout` < `clean_morning` < `rush_hour` < `festival_smog` (AQI
 | Command | For | What it does |
 |---------|-----|--------------|
 | `python -m mock.c1_vision [--drop 3 --fake 12 --swap 5:neem --unknown 42 --frozen]` | miner-core itself | Stand-in for vision-twin: 20 plants on `miner/{id}/vision` at 1 Hz |
-| `python -m mock.c2_emitter [--scenario rush_hour --cycle 3 --reject-every 5]` | vision-twin, chain-market | Real pipeline on mock inputs: telemetry 1/s, retained epoch messages going pending → submitted → accepted. **Never calls the validator**; tx_hash is fake |
-| `python -m mock.c3_emitter [--post http://localhost:3001] [--tamper amount\|epoch\|plant\|gps\|signature]` | chain-market | Prints or POSTs a signed attestation for the last closed epoch |
+| `python -m mock.c2_emitter [--scenario rush_hour --cycle 3 --reject-every 5]` | vision-twin | Real pipeline on mock inputs: telemetry 1/s, retained epoch messages going pending → submitted → accepted. **Never calls the chain**; tx_hash is fake |
+| `python -m mock.c3_emitter [--post http://localhost:8700] [--tamper amount\|epoch\|plant\|gps\|signature]` | aircoin-chain | Prints or POSTs a signed attestation for the last closed epoch |
 
 The approved literature-seeded calibration catalogue is frozen as v1.0.0. Its decision
 record and caveats are in [`docs/catalogue-v0-proposal.md`](docs/catalogue-v0-proposal.md).
@@ -118,7 +119,7 @@ record and caveats are in [`docs/catalogue-v0-proposal.md`](docs/catalogue-v0-pr
 
 **Phase 2 · Integration**
 - [x] Live epochs every 60 s with no manual step (daemon plus accelerated soak verification)
-- [x] Unplugging Wi-Fi / validator for 2 minutes loses no epochs (queued and recovered)
+- [x] Unplugging Wi-Fi / the chain node for 2 minutes loses no epochs (queued and recovered)
 - [x] Removing a plant lowers the next epoch's estimate by that plant's share
 - [x] Calibration table v1 frozen and documented (`status: "frozen"` in the catalogue)
 

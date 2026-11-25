@@ -30,7 +30,7 @@ type Settings struct {
 func SettingsPath(home string) string { return filepath.Join(home, "config", "aircoin.json") }
 
 func LoadSettings(home string) Settings {
-	s := Settings{APIAddr: "0.0.0.0:8080"}
+	s := Settings{APIAddr: "0.0.0.0:8700"}
 	if b, err := os.ReadFile(SettingsPath(home)); err == nil {
 		_ = json.Unmarshal(b, &s)
 	}

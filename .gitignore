@@ -19,18 +19,14 @@ build/
 coverage/
 .vite/
 
-# Hardhat / Foundry
-cache/
-artifacts/
-typechain-types/
-out/
-broadcast/
+# Go (aircoin-chain)
+aircoin-chain/bin/
+aircoin-chain/localnet/
 
 # Secrets and local state
 .env
 .env.*
 !.env.example
-!.env.production
 *.key
 *.pem
 keys/

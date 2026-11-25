@@ -10,7 +10,7 @@ Polygon, no Hardhat, no gas.
 ┌────────────────────────────────────────────┐          ┌──────────────────┐
 │ miner-core (Python)  ── C3 POST ──┐        │          │     aircoind     │
 │                                   ▼        │  p2p     │                  │
-│ aircoind ─ gateway :8080 (C3/C4 + WS)      │◄────────►│        …         │
+│ aircoind ─ gateway :8700 (C3/C4 + WS)      │◄────────►│        …         │
 │          ─ AIRcoin state machine (Go)      │ 26656    └──────────────────┘
 │          ─ CometBFT consensus + p2p        │
 └────────────────────────────────────────────┘
@@ -48,8 +48,14 @@ All the rules live in `internal/chain` and run identically on every node.
   `gps_outside_geofence`, `amount_over_cap` (per-miner cap 0.2 AIR/epoch, per-plant cap
   0.01, and the amount may not exceed the plants' sum). Epochs older than 10 epochs can't
   be claimed.
-* **Tokens.** AIR (minted only by attestations) and tINR (test rupee for the market,
-  issued by the regulator's faucet). Both use 18-decimal base-unit strings.
+* **Anti-cheat log.** A refused proof that the miner's own device signed is still put into
+  a block, as a failed transaction, and kept on the miner (`/v1/rejections`). Every node
+  then holds the same record, and the miner's `epochs_rejected` count is real. Unsigned
+  junk is dropped at the mempool, and honest retries (`epoch_already_minted`) are not
+  counted.
+* **Tokens.** AIR (minted only by attestations) and tINR (a test rupee for the market).
+  Anyone may take up to 1,000 tINR per transaction from the faucet for themselves; the
+  regulator may send any amount. Both use 18-decimal base-unit strings.
 * **Marketplace.** `list` escrows AIR, `buy` swaps tINR for AIR atomically, `cancel`
   refunds the escrow.
 * **Compliance.** The regulator sets obligations (`set_obligation`), companies `burn` AIR
@@ -73,13 +79,16 @@ Needs Go 1.21+ (it downloads the Go 1.26 toolchain it needs automatically).
 ```bash
 cd aircoin-chain
 make test               # unit tests (rules, determinism, Python-signed proof)
-make localnet           # 4 miner nodes on this machine → gateways :8080–:8083
+make localnet           # 4 miner nodes on this machine → gateways :8700–:8703
 make simulate           # each node gets a simulated miner signing a proof every epoch
 make stop
 ```
 
-Keys for the demo accounts (regulator, a polluting company, a citizen, and every miner's
-owner and device key) are in `localnet/accounts.json`.
+The network is seeded from [`demo/demo-accounts.json`](demo/demo-accounts.json) (`testnet
+--seed`). The regulator, Apex Steel, Meera, and the owners and device keys of `miner-001`
+and `miner-002` match the marketplace's demo logins and miner-core's demo device key. Extra
+nodes get fresh keys. Every key is in `localnet/accounts.json`. For the whole product
+(miner daemon, marketplace, twin), use `python scripts/demo.py start` from the repo root.
 
 Example transactions (`from` and `nonce` are filled in for you):
 
@@ -95,7 +104,7 @@ CO=$(jq -r .company.private_key localnet/accounts.json)
 
 ```bash
 ./bin/aircoind init --home ./miner5 --moniker miner-005 --genesis localnet/genesis.json \
-    --peers <node_id>@<host>:26656 --p2p-port 27056 --rpc-port 27057 --api-port 8084
+    --peers <node_id>@<host>:26656 --p2p-port 27056 --rpc-port 27057 --api-port 8704
 ./bin/aircoind start --home ./miner5          # syncs the chain as a non-voting node
 # owner:     tx --type apply_miner   --body '{"name":…,"location":{…},"plants_planned":20}'
 # regulator: tx --type approve_miner --body '{"application_id":1,"miner_id":"miner-005",
@@ -111,16 +120,20 @@ After approval, the new node joins the validator set and starts proposing blocks
 make pi                                    # bin/aircoind-linux-arm64 (static, ~24 MB)
 ./bin/aircoind testnet --validators 4 --out net --hosts 192.168.1.21,192.168.1.22,192.168.1.23,192.168.1.24
 # copy net/nodeI to Pi I, then on each Pi:
-./aircoind-linux-arm64 start --home nodeI
+./aircoind-linux-arm64 start --home nodeI     # or install deploy/aircoind.service
 ```
 
-## Gateway API (each node, default :8080)
+On each Pi, point miner-core at its own node (`CHAIN_URL=http://127.0.0.1:8700`).
+
+## Gateway API (each node, default :8700)
 
 | Method | Path | |
 |---|---|---|
 | POST | `/v1/attestations` | C3. Body is the signed attestation, response is `c3-attestation-response` (200 accepted/pending, 409 already minted, 422 rejected). |
 | GET | `/v1/miners/{id}` · `/balance` · `/mints?before_epoch=&limit=` | C4 `miner`, `balance`, `mint_list` (schema-valid) |
 | WS | `/v1/events?miner_id=…` or `?address=…` | C4 `mint` / `transfer` / `trade` / `burn` events |
+| GET | `/v1/trades` · `/v1/burns` | market history from chain state, so a late-joining node has it too |
+| GET | `/v1/rejections?miner_id=` | the on-chain anti-cheat log |
 | GET | `/v1/events/recent` · `/v1/miners` · `/v1/accounts/{addr}` · `/v1/validators` · `/v1/applications` · `/v1/obligations` · `/v1/listings` · `/v1/totals` · `/v1/status` · `/v1/params` | extras for the dashboard and admin pages |
 | POST | `/v1/tx` | submit a signed `{type, body, sig}` |
 | POST | `/v1/tx/prepare` | returns the exact text to `personal_sign` (lets a browser wallet sign) |
@@ -139,6 +152,9 @@ make pi                                    # bin/aircoind-linux-arm64 (static, ~
   proposes blocks.
 * Gateway responses pass `contracts-schema/scripts/validate.py` (C3 response, C4 miner,
   balance, mint_list, error, chain-event).
+* Full product loop: camera frames → vision pipeline → C1 → miner-core daemon → C3 → chain
+  → marketplace and twin. The marketplace was driven in a real browser: list → buy → burn,
+  and request → regulator approval → the new miner mints.
 
 ## Limits
 

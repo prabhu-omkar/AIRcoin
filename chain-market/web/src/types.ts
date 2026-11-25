@@ -48,9 +48,10 @@ export interface MarketplaceListing {
   seller: string;
   amount_air: string;
   price_tinr: string;
-  status: "active" | "sold" | "cancelled";
+  status: "open" | "sold" | "cancelled";
   created_at: number;
-  tx_hash?: string;
+  buyer?: string;
+  closed_at?: number;
 }
 
 export interface TradeItem {
@@ -79,13 +80,14 @@ export interface BurnItem {
 }
 
 export interface RejectionRecord {
-  id: number;
   miner_id: string;
   epoch: number;
   status: "rejected";
   reason_code: string;
   reason: string;
-  created_at: string;
+  tx_hash: string;
+  block_number: number;
+  ts: number;
 }
 
 export interface MinerApplication {

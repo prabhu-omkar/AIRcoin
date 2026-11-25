@@ -33,12 +33,10 @@ class MoveRequest(BaseModel):
 
 class ControllerState:
     def __init__(self, sensors: SensorSimulator, vision: MockVision | None, gps: Any, uplink: Any = None,
-                 bus: Any = None, validator_url: str = "http://localhost:3001",
-                 chain_rpc_url: str = "http://localhost:8545"):
+                 bus: Any = None, chain_url: str = "http://localhost:8700"):
         self.sensors, self.vision, self.gps, self.uplink = sensors, vision, gps, uplink
         self.bus = bus
-        self.validator_url = validator_url
-        self.chain_rpc_url = chain_rpc_url
+        self.chain_url = chain_url
         self._latest: dict = {}
         self._lock = threading.Lock()
 
@@ -81,25 +79,19 @@ class ControllerState:
         services = {
             "miner": {"ok": True, "detail": "controller responding"},
             "mqtt": {"ok": bool(self.bus and self.bus.connected), "detail": "broker connection"},
-            "validator": {"ok": False, "detail": self.validator_url},
-            "blockchain": {"ok": False, "detail": self.chain_rpc_url},
+            "chain": {"ok": False, "detail": self.chain_url},
         }
         try:
-            response = httpx.get(f"{self.validator_url}/health", timeout=1.0)
-            services["validator"]["ok"] = response.is_success
-        except httpx.HTTPError:
-            pass
-        try:
-            response = httpx.post(
-                self.chain_rpc_url,
-                json={"jsonrpc": "2.0", "id": 1, "method": "eth_chainId", "params": []},
-                timeout=1.0,
-            )
-            services["blockchain"]["ok"] = response.is_success and bool(response.json().get("result"))
+            response = httpx.get(f"{self.chain_url}/v1/status", timeout=1.0)
+            if response.is_success:
+                st = response.json()
+                services["chain"]["ok"] = not st.get("catching_up", False)
+                services["chain"]["height"] = st.get("height")
+                services["chain"]["peers"] = st.get("peers")
         except (httpx.HTTPError, ValueError):
             pass
         if self.uplink:
-            services["validator"]["queued_attestations"] = self.uplink.queued_count()
+            services["chain"]["queued_attestations"] = self.uplink.queued_count()
         return {
             "ok": all(item["ok"] for item in services.values()),
             "checked_at_ms": int(time.time() * 1000),

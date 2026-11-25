@@ -114,8 +114,11 @@ func (a *App) CheckTx(_ context.Context, req *abci.RequestCheckTx) (*abci.Respon
 	// not even a nonce bump.
 	trial := a.check.Clone()
 	r := chain.Exec(trial, ctx, req.Tx)
-	if r.Code == 0 {
+	if r.Code == 0 || r.Recorded {
 		a.check = trial
+	}
+	if r.Recorded { // let it into a block so the rejection is on the record everywhere
+		return &abci.ResponseCheckTx{Code: 0, Log: r.Log, Info: r.ReasonCode}, nil
 	}
 	return &abci.ResponseCheckTx{Code: r.Code, Log: r.Log, Info: r.ReasonCode, Codespace: codespace(r)}, nil
 }
@@ -134,6 +137,7 @@ func (a *App) FinalizeBlock(_ context.Context, req *abci.RequestFinalizeBlock) (
 		data, _ := json.Marshal(map[string]string{"amount": r.Amount, "reason_code": r.ReasonCode})
 		results[i] = &abci.ExecTxResult{Code: r.Code, Log: r.Log, Info: r.ReasonCode, Data: data, Codespace: codespace(r)}
 		a.pending = append(a.pending, r.Events...)
+		a.working.Record(r.Events)
 	}
 	chain.PayProposer(a.working, req.ProposerAddress, minted)
 	var vu []abci.ValidatorUpdate

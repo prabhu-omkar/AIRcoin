@@ -1,11 +1,11 @@
 # AIRcoin
 
-AIRcoin pays people for growing pollution-absorbing plants. A low-cost camera "miner" (Raspberry Pi + NoIR camera + GPS) watches up to 20 tagged plants, estimates the pollution they remove, and signs a proof each epoch. A validator checks the proof and mints AIRcoin to the owner's wallet. Polluting companies buy AIRcoin on a marketplace and burn it to meet a compliance obligation set by the regulator.
+AIRcoin pays people for growing pollution-absorbing plants. A low-cost camera "miner" (Raspberry Pi + NoIR camera + GPS) watches up to 20 tagged plants, estimates the pollution they remove, and signs a proof each epoch. AIRcoin runs its own blockchain (`aircoind`, CometBFT consensus among regulator-approved miners): every miner node re-checks each proof and mints AIRcoin to the owner's wallet. Polluting companies buy AIRcoin on a marketplace and burn it to meet a compliance obligation set by the regulator.
 
 - **1 AIR = 1 mg PM2.5-equivalent** removed. Other pollutants are weighted by health damage cost (weights in `contracts-schema/data/species-catalogue.json`).
-- **Hackathon build (3 days):** camera, Pi, GPS, vision, miner software, validator, contracts (Polygon Amoy, local Hardhat as fallback), wallet, marketplace and twin are real. Air sensors and calibration coefficients are simulated / literature-seeded estimates.
+- **Hackathon build:** camera, Pi, GPS, vision, miner software, the AIRcoin chain, wallet, marketplace and twin are real. Air sensors and calibration coefficients are simulated / literature-seeded estimates.
 - **Epochs** are 60 s in real time for the demo.
-- The full spec is the PRD PDF in the repo root (`AIRcoin — Product Requirements Document.pdf`).
+- The full spec is `PRD.md` (written before the move from Polygon to our own chain; `aircoin-chain/README.md` has the current chain design).
 
 ## Repository layout and ownership
 
@@ -15,7 +15,8 @@ This is a monorepo. Each workstream owns one folder end to end; they share nothi
 |--------|-----------|-------|----------|----------|
 | `vision-twin/` | A · Vision and digital twin | **Omkar** | C1 | C2, C4 |
 | `miner-core/` | B · Miner core and PoUW engine | **Shreyas** | C2, C3 | C1 |
-| `chain-market/` | C · Token, wallet and marketplace | **Umashankar** | C4 | C2, C3 |
+| `aircoin-chain/` | The AIRcoin blockchain node (`aircoind`): PoUW minting rules, gateway | **Omkar** | C4 | C3 |
+| `chain-market/web/` | C · Wallet and marketplace web app (citizen, company, regulator) | **Umashankar** | — | C4 |
 | `contracts-schema/` | Interface contracts C1–C4, registry, species catalogue | **All three, jointly** | — | — |
 | `infra/`, `docker-compose.yml` | Shared local infrastructure (Mosquitto MQTT broker) | All three | — | — |
 
@@ -38,22 +39,28 @@ When working in this repo (human or Claude):
 |----|-----------|-----------|
 | C1 | A → B | MQTT `miner/{miner_id}/vision`, ~1 msg/s |
 | C2 | B → A, C | MQTT `miner/{miner_id}/telemetry` (1/s) and `miner/{miner_id}/epoch` (per epoch, retained) |
-| C3 | B → C | HTTPS `POST /v1/attestations`, secp256k1-signed |
-| C4 | C → A and apps | REST `GET /v1/miners/{id}`, `/balance`, `/mints`; WebSocket events `mint`, `transfer`, `trade`, `burn` |
+| C3 | miner-core → chain | `POST /v1/attestations` on any `aircoind` node (gateway :8700), secp256k1-signed |
+| C4 | chain → twin, web | REST `GET /v1/miners/{id}`, `/balance`, `/mints`; WebSocket events `mint`, `transfer`, `trade`, `burn` |
+
+Other chain writes (market, burns, miner applications, regulator actions) are signed `{type, body, sig}` transactions sent to `POST /v1/tx`; see `aircoin-chain/README.md`.
 
 Conventions: timestamps are Unix ms; token amounts are 18-decimal base-unit strings; pollutant keys are `pm25, pm10, no2, so2, voc, co2, co`; every message has `"v": 1`.
 
 ## Working agreements
 
 - Phases: Day 1 Foundations (everyone builds against mocks), Day 2 Integration (one live loop), Day 3 Demo hardening. Nobody starts the next phase until the whole team passes the gate.
-- Each workstream ships a mock emitter for the interface it produces, so nobody is blocked. `contracts-schema/examples/valid/` has a sample of every message.
+- Each workstream ships a mock emitter for the interface it produces, so nobody is blocked. `contracts-schema/examples/valid/` has a sample of every message. For C3/C4 the mock is a real local chain: `aircoin-chain/scripts/localnet.sh`.
 - Integration happens only at gates; between gates, test against the others' mocks.
 - Shared UI style (colours, fonts) so twin, wallet and marketplace look like one product.
 
 ## Common commands
 
 ```bash
-docker compose up -d mqtt                         # MQTT broker: mqtt://localhost:1883, ws://localhost:9001
-pip install -r contracts-schema/requirements.txt
-python contracts-schema/scripts/validate.py       # validate schemas, examples and species catalogue
+python scripts/demo.py start [--camera synthetic]  # MQTT, 4-node chain, miner, marketplace :3000, twin :5174
+python scripts/demo.py status | stop               # kill-node N / restart nodeN to show fault tolerance
+docker compose up -d mqtt                          # MQTT broker: mqtt://localhost:1883, ws://localhost:9001
+cd aircoin-chain && go test ./... && make localnet  # chain tests; chain-only network on :8700…
+python contracts-schema/scripts/validate.py        # validate schemas, examples and species catalogue
 ```
+
+Changing the chain's state format (anything in `aircoin-chain/internal/chain/state.go` or the rules in `exec.go`) is a network upgrade: every node must run the new binary from a fresh chain (`demo.py start --fresh`).

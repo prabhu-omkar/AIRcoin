@@ -24,7 +24,7 @@ const getMarketUrl = (): string => {
       return "https://aircoin-market.vercel.app/";
     }
   }
-  return "http://localhost:5173/";
+  return "http://localhost:3000/";
 };
 
 export function Header({

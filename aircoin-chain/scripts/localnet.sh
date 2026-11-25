@@ -10,11 +10,11 @@ N=${1:-4}
 go build -o bin/aircoind ./cmd/aircoind
 pkill -f "aircoind start --home $OUT" 2>/dev/null || true; sleep 1
 rm -rf "$OUT"
-./bin/aircoind testnet --validators "$N" --out "$OUT"
+./bin/aircoind testnet --validators "$N" --out "$OUT" --seed demo/demo-accounts.json
 for ((i = 0; i < N; i++)); do
   nohup ./bin/aircoind start --home "$OUT/node$i" > "$OUT/node$i.log" 2>&1 &
 done
 sleep 5
-for ((i = 0; i < N; i++)); do curl -s "http://127.0.0.1:$((8080 + i))/v1/status" | python3 -c 'import sys,json; d=json.load(sys.stdin); print("  %s: height %s, %s peers" % (d["moniker"], d["height"], d["peers"]))'; done
-echo "gateways: http://127.0.0.1:8080 … :$((8080 + N - 1))   keys: $OUT/accounts.json"
+for ((i = 0; i < N; i++)); do curl -s "http://127.0.0.1:$((8700 + i))/v1/status" | python3 -c 'import sys,json; d=json.load(sys.stdin); print("  %s: height %s, %s peers" % (d["moniker"], d["height"], d["peers"]))'; done
+echo "gateways: http://127.0.0.1:8700 … :$((8700 + N - 1))   keys: $OUT/accounts.json"
 echo "start the simulated miners: scripts/simulate.sh"

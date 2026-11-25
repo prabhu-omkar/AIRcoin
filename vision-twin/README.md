@@ -5,7 +5,7 @@
 
 | Produces | Consumes |
 |----------|----------|
-| **C1** vision events → MQTT `miner/{miner_id}/vision` (~1/s) | **C2** `miner/{miner_id}/telemetry` and `miner/{miner_id}/epoch` from miner-core; **C4** REST + WebSocket from chain-market |
+| **C1** vision events → MQTT `miner/{miner_id}/vision` (~1/s) | **C2** `miner/{miner_id}/telemetry` and `miner/{miner_id}/epoch` from miner-core; **C4** REST + WebSocket from any aircoin-chain node |
 
 Schemas and example payloads: [`../contracts-schema`](../contracts-schema/README.md). Do not change them on your own.
 
@@ -76,16 +76,15 @@ docker compose up -d mqtt
 cd miner-core
 python -m mock.c2_emitter --scenario rush_hour --cycle 3 --drop 7 --fake 12
 
-# Terminal 3, C4 balance + mint API
-cd chain-market
-npm run dev:mock
+# Terminal 3, C4 balance + mint API: a real local chain (gateways on :8700…)
+cd aircoin-chain && scripts/localnet.sh && scripts/simulate.sh
 
 # Terminal 4, digital twin at http://localhost:5174
 cd vision-twin/twin
 npm run dev
 ```
 
-The dashboard connects to MQTT over WebSockets on port 9001 and the C4 mock on port 3004. If
+The dashboard connects to MQTT over WebSockets on port 9001 and the chain gateway on port 8700. If
 either is unavailable it stays usable with clearly labelled demo data. Override the endpoints by
 copying `twin/.env.example` to `twin/.env`.
 
@@ -127,7 +126,7 @@ cd ../miner-core && python -m minerd c1check ../vision-twin/sample.jsonl
 cd ../vision-twin/twin && npm run build
 ```
 
-Until miner-core and chain-market are live, drive the twin from the example payloads in `contracts-schema/examples/valid/` (`c2-telemetry.json`, `c2-epoch.json`, `c4-*.json`) or the other workstreams' mock emitters. Validate what you publish:
+Without a running miner and chain, drive the twin from the example payloads in `contracts-schema/examples/valid/` (`c2-telemetry.json`, `c2-epoch.json`, `c4-*.json`) or the other workstreams' mock emitters. Validate what you publish:
 
 ```bash
 python contracts-schema/scripts/validate.py c1-vision-event my-c1-message.json

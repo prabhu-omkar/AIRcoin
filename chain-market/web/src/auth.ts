@@ -1,4 +1,4 @@
-// Demo sign-in for the local chain: each account maps to a funded Hardhat wallet.
+// Demo sign-in: each account maps to a wallet funded in aircoin-chain/demo/demo-accounts.json.
 import { DEMO_WALLETS } from "./constants";
 import type { DemoWallet } from "./types";
 
@@ -26,6 +26,7 @@ export const ACCOUNTS: Account[] = [
   { email: "rohan@aircoin.in", name: "Rohan Kulkarni", wallet: byRole("citizen", "miner-002") },
   { email: "meera@aircoin.in", name: "Meera Iyer", wallet: NO_MINER },
   { email: "compliance@apexsteel.in", name: "Apex Steel Works", wallet: byRole("company") },
+  { email: "regulator@cpcb.gov.in", name: "CPCB Regulator", wallet: byRole("admin") },
 ];
 
 const KEY = "aircoin.session";

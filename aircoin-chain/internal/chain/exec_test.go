@@ -138,8 +138,14 @@ func TestAttestationRules(t *testing.T) {
 	if r := f.attest(t, f.device, attestation("miner-001", closed, tags(20), 0.0015, 12.9716)); r.ReasonCode != "epoch_already_minted" {
 		t.Errorf("replay: got %q", r.ReasonCode)
 	}
-	if m := f.s.Miners["miner-001"]; m.EpochsMinted != 1 || m.EpochsRejected == 0 {
-		t.Errorf("totals: minted %d rejected %d", m.EpochsMinted, m.EpochsRejected)
+	m := f.s.Miners["miner-001"]
+	// Device-signed cheats are recorded (geofence, sticker, cap, future, old, inflated);
+	// unsigned junk and retries are not.
+	if m.EpochsMinted != 1 || m.EpochsRejected != 6 || len(m.Rejections) != 6 {
+		t.Errorf("totals: minted %d rejected %d log %d", m.EpochsMinted, m.EpochsRejected, len(m.Rejections))
+	}
+	if m.Rejections[0].ReasonCode != "gps_outside_geofence" {
+		t.Errorf("first rejection %+v", m.Rejections[0])
 	}
 }
 
@@ -166,8 +172,14 @@ func TestMarketAndBurn(t *testing.T) {
 	if r := f.send(t, f.company, "burn", map[string]any{"amount": "1"}); r.ReasonCode != "insufficient_funds" {
 		t.Errorf("overburn: %q", r.ReasonCode)
 	}
-	if r := f.send(t, f.owner, "faucet", map[string]any{"to": f.owner.Address(), "amount": "1"}); r.Code == 0 {
-		t.Error("non-admin faucet succeeded")
+	if r := f.send(t, f.owner, "faucet", map[string]any{"to": f.owner.Address(), "amount": "1000000000000000000000"}); r.Code != 0 {
+		t.Errorf("self faucet: %+v", r)
+	}
+	if r := f.send(t, f.owner, "faucet", map[string]any{"to": f.owner.Address(), "amount": "1000000000000000000001"}); r.Code == 0 {
+		t.Error("over-cap self faucet succeeded")
+	}
+	if r := f.send(t, f.owner, "faucet", map[string]any{"to": f.company.Address(), "amount": "1"}); r.Code == 0 {
+		t.Error("non-admin faucet to someone else succeeded")
 	}
 }
 

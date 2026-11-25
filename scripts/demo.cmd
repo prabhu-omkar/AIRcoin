@@ -1,2 +1,6 @@
 @echo off
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0demo.ps1" %*
+if exist "%~dp0..\.venv\Scripts\python.exe" (
+  "%~dp0..\.venv\Scripts\python.exe" "%~dp0demo.py" %*
+) else (
+  python "%~dp0demo.py" %*
+)

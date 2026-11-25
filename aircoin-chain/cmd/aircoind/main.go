@@ -78,16 +78,24 @@ func cmdTestnet(args []string) error {
 	hosts := fs.String("hosts", "", "comma-separated host per node (real devices / docker); default all on 127.0.0.1")
 	p2p := fs.Int("p2p-port", 26656, "base p2p port")
 	rpc := fs.Int("rpc-port", 26657, "base CometBFT RPC port")
-	api := fs.Int("api-port", 8080, "base gateway port")
+	api := fs.Int("api-port", 8700, "base gateway port")
 	epoch := fs.Int64("epoch-ms", 60000, "epoch length")
 	calib := fs.String("calibration-hash", "", "require this calibration_hash on attestations (empty: any)")
+	seedPath := fs.String("seed", "", "demo accounts file with fixed keys (e.g. demo/demo-accounts.json)")
 	_ = fs.Parse(args)
+	var seed *node.Seed
+	if *seedPath != "" {
+		var err error
+		if seed, err = node.LoadSeed(*seedPath); err != nil {
+			return err
+		}
+	}
 	var hl []string
 	if *hosts != "" {
 		hl = strings.Split(*hosts, ",")
 	}
 	acc, err := node.Testnet(node.TestnetOpts{N: *n, Out: *out, ChainID: *chainID, Hosts: hl, BaseP2P: *p2p,
-		BaseRPC: *rpc, BaseAPI: *api, EpochMs: *epoch, CalibHex: *calib})
+		BaseRPC: *rpc, BaseAPI: *api, EpochMs: *epoch, CalibHex: *calib, Seed: seed})
 	if err != nil {
 		return err
 	}
@@ -119,7 +127,7 @@ func cmdInit(args []string) error {
 	fs.StringVar(&o.Peers, "peers", "", "persistent peers id@host:port,...")
 	fs.IntVar(&o.P2PPort, "p2p-port", 26656, "p2p port")
 	fs.IntVar(&o.RPCPort, "rpc-port", 26657, "CometBFT RPC port")
-	fs.IntVar(&o.APIPort, "api-port", 8080, "gateway port")
+	fs.IntVar(&o.APIPort, "api-port", 8700, "gateway port")
 	_ = fs.Parse(args)
 	if o.Home == "" || o.Moniker == "" || o.GenesisFile == "" {
 		return fmt.Errorf("--home, --moniker and --genesis are required")
@@ -206,7 +214,7 @@ func SendTx(nodeURL string, k *crypto.Key, txType string, body map[string]any) (
 
 func cmdTx(args []string) error {
 	fs := flag.NewFlagSet("tx", flag.ExitOnError)
-	nodeURL := fs.String("node", "http://127.0.0.1:8080", "gateway URL")
+	nodeURL := fs.String("node", "http://127.0.0.1:8700", "gateway URL")
 	key := fs.String("key", "", "sender private key (hex)")
 	typ := fs.String("type", "", "tx type: transfer, burn, apply_miner, approve_miner, reject_application, set_miner_status, set_validator, set_obligation, faucet, list, buy, cancel")
 	bodyStr := fs.String("body", "{}", "tx body JSON (from and nonce are filled in)")
@@ -293,7 +301,7 @@ func BuildAttestation(minerID string, epoch, epochMs int64, lat, lon float64, ta
 
 func cmdSimulate(args []string) error {
 	fs := flag.NewFlagSet("simulate-miner", flag.ExitOnError)
-	nodeURL := fs.String("node", "http://127.0.0.1:8080", "gateway URL")
+	nodeURL := fs.String("node", "http://127.0.0.1:8700", "gateway URL")
 	minerID := fs.String("miner-id", "", "miner id")
 	key := fs.String("key", "", "device private key (hex)")
 	lat := fs.Float64("lat", math.NaN(), "GPS latitude (default: registered spot)")

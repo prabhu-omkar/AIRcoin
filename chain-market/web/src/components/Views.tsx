@@ -25,20 +25,20 @@ import {
   WalletCards,
   XCircle,
 } from "lucide-react";
-import { useWallet, creditWalletBalance } from "../context/WalletContext";
+import { useWallet } from "../context/WalletContext";
 import { fetchListings, fetchMiner, fetchMinerMints } from "../services/api";
 import {
   burnAir,
   burnForCompliance,
   buyListing,
+  cancelListing,
   listAirOnMarket,
   readObligation,
-  recordComplianceBurn,
 } from "../services/chain";
-import { ethers } from "ethers";
 import type { C4MinerData, MarketplaceListing } from "../types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { MinerRequestCard } from "./Regulator";
 
 const wei = (v: string | number) => Number(v) / 1e18;
 const air = (n: number) =>
@@ -69,67 +69,7 @@ const getTwinUrl = (): string => {
   return "http://localhost:5174/";
 };
 
-export const SEED_MARKET_LISTINGS: MarketplaceListing[] = [
-  {
-    id: 1,
-    seller: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Priya (Miner Owner 1)
-    amount_air: "250000000000000000", // 0.25 AIR
-    price_tinr: "250000000000000000000", // 250 tINR (₹1,000 / AIR)
-    status: "active",
-    created_at: 1776000000,
-    tx_hash: "0x9812a4b3f81e1948492040182470129487192847192847192847192847192847",
-  },
-  {
-    id: 2,
-    seller: "0x90F79bf6EB2c4f870365E785982E1f101E93b906", // Rohan (Miner Owner 2)
-    amount_air: "500000000000000000", // 0.50 AIR
-    price_tinr: "480000000000000000000", // 480 tINR (₹960 / AIR)
-    status: "active",
-    created_at: 1776000300,
-    tx_hash: "0x4a18293b48201948572019485720194857201948572019485720194857201948",
-  },
-  {
-    id: 3,
-    seller: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65", // Connaught Place Cluster
-    amount_air: "1000000000000000000", // 1.00 AIR
-    price_tinr: "950000000000000000000", // 950 tINR (₹950 / AIR)
-    status: "active",
-    created_at: 1776000600,
-    tx_hash: "0x5b29384729104857201948572019485720194857201948572019485720194857",
-  },
-  {
-    id: 4,
-    seller: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4df", // Anand Vihar Bio-Filter
-    amount_air: "150000000000000000", // 0.15 AIR
-    price_tinr: "160000000000000000000", // 160 tINR (₹1,066 / AIR)
-    status: "active",
-    created_at: 1776000900,
-    tx_hash: "0x6c30495830294857201948572019485720194857201948572019485720194857",
-  },
-];
-
-export function getStoredListings(): MarketplaceListing[] {
-  try {
-    const raw = localStorage.getItem("aircoin.marketplace.listings");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch {}
-  try {
-    localStorage.setItem("aircoin.marketplace.listings", JSON.stringify(SEED_MARKET_LISTINGS));
-  } catch {}
-  return SEED_MARKET_LISTINGS;
-}
-
-export function saveStoredListings(listings: MarketplaceListing[]) {
-  try {
-    localStorage.setItem("aircoin.marketplace.listings", JSON.stringify(listings));
-  } catch {}
-}
-
+/** Open listings on the chain, refreshed every few blocks. */
 export function useListings() {
   const [items, setItems] = useState<MarketplaceListing[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -137,22 +77,7 @@ export function useListings() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const local = getStoredListings();
-      let remote: MarketplaceListing[] = [];
-      try {
-        remote = await fetchListings();
-      } catch {}
-
-      const map = new Map<number, MarketplaceListing>();
-      local.forEach((l) => map.set(l.id, l));
-      remote.forEach((r) => map.set(r.id, r));
-
-      const merged = Array.from(map.values());
-      saveStoredListings(merged);
-      setItems(merged.filter((l) => l.status === "active"));
-    } catch {
-      const local = getStoredListings();
-      setItems(local.filter((l) => l.status === "active"));
+      setItems(await fetchListings());
     } finally {
       setLoading(false);
     }
@@ -160,6 +85,8 @@ export function useListings() {
 
   useEffect(() => {
     load();
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
   }, [load]);
 
   return { items, loading, reload: load };
@@ -176,8 +103,7 @@ interface UnifiedOverviewProps {
 export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
   onNavigateMarket,
 }) => {
-  const { currentWallet, airBalance, tinrBalance, claimFreeFaucet, showToast } =
-    useWallet();
+  const { currentWallet, airBalance, tinrBalance, claimFreeFaucet } = useWallet();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [miner, setMiner] = useState<C4MinerData | null>(null);
   const [mints, setMints] = useState<
@@ -188,28 +114,6 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
   const minerId = currentWallet.minerId;
   const hasMiner = Boolean(minerId);
 
-  // Request miner storage state
-  const reqKey = `aircoin.minerRequest.${currentWallet.address}`;
-  const [request, setRequest] = useState<{ address: string; at: number } | null>(
-    () => {
-      try {
-        return JSON.parse(localStorage.getItem(reqKey) ?? "null");
-      } catch {
-        return null;
-      }
-    }
-  );
-  const [reqAddress, setReqAddress] = useState("");
-
-  const submitMinerRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reqAddress.trim()) return;
-    const r = { address: reqAddress.trim(), at: Date.now() };
-    localStorage.setItem(reqKey, JSON.stringify(r));
-    setRequest(r);
-    showToast("Miner unit request dispatched to regulator network", "success");
-  };
-
   const handleFaucet = async () => {
     setFaucetBusy(true);
     await claimFreeFaucet();
@@ -217,13 +121,20 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
   };
 
   useEffect(() => {
-    if (minerId) {
+    setMiner(null);
+    setMints([]);
+    if (!minerId) return;
+    const load = () => {
       fetchMiner(minerId).then(setMiner);
-      setLoadingMints(true);
-      fetchMinerMints(minerId, 12)
-        .then((r) => setMints(r.items ?? []))
-        .finally(() => setLoadingMints(false));
-    }
+      fetchMinerMints(minerId, 12).then((r) => setMints(r.items ?? []));
+    };
+    setLoadingMints(true);
+    fetchMinerMints(minerId, 12)
+      .then((r) => setMints(r.items ?? []))
+      .finally(() => setLoadingMints(false));
+    fetchMiner(minerId).then(setMiner);
+    const t = setInterval(load, 10000);
+    return () => clearInterval(t);
   }, [minerId]);
 
   const airNum = parseFloat(airBalance) || 0;
@@ -274,7 +185,7 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
             <span className="metric-icon-wrap blue">
               <WalletCards size={18} />
             </span>
-            <span className="metric-badge neutral">Polygon Amoy</span>
+            <span className="metric-badge neutral">AIRcoin chain</span>
           </div>
           <div className="metric-body">
             <span className="metric-label">Test Rupee Reserve (tINR)</span>
@@ -292,7 +203,7 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
               className="metric-btn accent"
             >
               <Plus size={14} />
-              {faucetBusy ? "Minting Funds..." : "Add ₹1,000 Faucet"}
+              {faucetBusy ? "Requesting…" : "Add ₹1,000 Faucet"}
             </button>
             <button
               onClick={() => onNavigateMarket("sell")}
@@ -334,7 +245,7 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
             <p className="metric-subtext">
               {hasMiner
                 ? `Total Rig Yield: ${
-                    miner ? air(wei(miner.totals.minted)) : "0.4939"
+                    miner ? air(wei(miner.totals.minted)) : "—"
                   } AIR`
                 : "Eligible for carbon retirement certificates"}
             </p>
@@ -361,6 +272,8 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
         </div>
       </section>
 
+      {!hasMiner && currentWallet.role === "citizen" && <MinerRequestCard />}
+
       {/* 3. RECENT MINT EARNINGS & PROOF LEDGER */}
       <section className="pro-panel">
         <div className="panel-header">
@@ -371,8 +284,8 @@ export const UnifiedOverviewView: React.FC<UnifiedOverviewProps> = ({
             <div>
               <h3>Verified PoUW Mint Earnings Ledger</h3>
               <p className="panel-subtitle">
-                Direct on-chain Polygon Amoy mint transactions validated by
-                consensus.
+                Every mint was re-checked by every miner node before it was
+                finalised in a block.
               </p>
             </div>
           </div>
@@ -465,8 +378,7 @@ interface UnifiedMarketProps {
 export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({
   initialSubtab = "buy",
 }) => {
-  const { currentWallet, airBalance, tinrBalance, refreshBalances, showToast, adjustBalances } =
-    useWallet();
+  const { currentWallet, airBalance, tinrBalance, refreshBalances, showToast } = useWallet();
   const { items, reload, loading } = useListings();
 
   const [activeTab, setActiveTab] = useState<"buy" | "burn" | "sell">(
@@ -510,135 +422,71 @@ export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({
   // Buy action
   const handleBuy = async (listing: MarketplaceListing) => {
     setBuyingId(listing.id);
-    const costInr = wei(listing.price_tinr);
-    const amountAir = wei(listing.amount_air);
-
-    const res = await buyListing(
-      currentWallet.privateKey!,
-      listing.id,
-      String(costInr)
-    );
+    const res = await buyListing(currentWallet.privateKey!, listing.id);
     setBuyingId(null);
-
     if (res.success) {
-      // 1. Mark listing as sold in storage
-      const allListings = getStoredListings();
-      const updated = allListings.map((l) =>
-        l.id === listing.id ? { ...l, status: "sold" as const } : l
-      );
-      saveStoredListings(updated);
-
-      // 2. Adjust buyer balance
-      adjustBalances(amountAir, -costInr);
-
-      // 3. Credit seller if seller is a demo wallet
-      creditWalletBalance(listing.seller, 0, costInr);
-
       showToast(
-        `Successfully purchased ${air(amountAir)} AIR for ${inr(costInr)}!`,
+        `Bought ${air(wei(listing.amount_air))} AIR for ${inr(wei(listing.price_tinr))}`,
         "success"
       );
-
-      reload();
-      refreshBalances();
     } else {
-      showToast(`Purchase transaction failed: ${res.error}`, "error");
+      showToast(`Purchase failed: ${res.error}`, "error");
     }
+    reload();
+    refreshBalances();
   };
 
   // Sell action
   const handleListForSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sellAmount || !sellPrice) return;
     const amountNum = parseFloat(sellAmount);
     const priceNum = parseFloat(sellPrice);
     if (isNaN(amountNum) || amountNum <= 0 || isNaN(priceNum) || priceNum <= 0) return;
     if (amountNum > parseFloat(airBalance)) {
-      showToast("Insufficient AIR balance to create listing", "error");
+      showToast("Not enough AIR for this listing", "error");
       return;
     }
-
     setSellBusy(true);
-
-    const res = await listAirOnMarket(
-      currentWallet.privateKey!,
-      sellAmount,
-      sellPrice
-    );
+    const res = await listAirOnMarket(currentWallet.privateKey!, sellAmount, sellPrice);
     setSellBusy(false);
-
     if (res.success) {
-      const allListings = getStoredListings();
-      const nextId = allListings.reduce((max, l) => Math.max(max, l.id), 0) + 1;
-      const newListing: MarketplaceListing = {
-        id: nextId,
-        seller: currentWallet.address,
-        amount_air: ethers.parseEther(sellAmount).toString(),
-        price_tinr: ethers.parseEther(sellPrice).toString(),
-        status: "active",
-        created_at: Math.floor(Date.now() / 1000),
-        tx_hash: res.txHash,
-      };
-
-      saveStoredListings([...allListings, newListing]);
-
-      // Move AIR from wallet to escrow
-      adjustBalances(-amountNum, 0);
-
-      showToast(
-        `Listed ${sellAmount} AIR on marketplace for ₹${sellPrice}!`,
-        "success"
-      );
-
+      showToast(`Listed ${sellAmount} AIR for ₹${sellPrice}`, "success");
       setSellAmount("");
       setSellPrice("");
-      reload();
-      refreshBalances();
     } else {
       showToast(`Listing failed: ${res.error}`, "error");
     }
+    reload();
+    refreshBalances();
+  };
+
+  const handleCancel = async (listing: MarketplaceListing) => {
+    const res = await cancelListing(currentWallet.privateKey!, listing.id);
+    showToast(res.success ? `Listing #${listing.id} cancelled` : `Cancel failed: ${res.error}`, res.success ? "success" : "error");
+    reload();
+    refreshBalances();
   };
 
   // Burn action
   const handleRetire = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!burnAmount) return;
     const burnNum = parseFloat(burnAmount);
     if (isNaN(burnNum) || burnNum <= 0 || burnNum > parseFloat(airBalance)) {
-      showToast("Invalid burn amount or insufficient balance", "error");
+      showToast("Invalid amount or not enough AIR", "error");
       return;
     }
-
     setBurnBusy(true);
-
     const res = obligation
-      ? await burnForCompliance(
-          currentWallet.privateKey!,
-          COMPLIANCE_PERIOD,
-          burnAmount
-        )
+      ? await burnForCompliance(currentWallet.privateKey!, COMPLIANCE_PERIOD, burnAmount)
       : await burnAir(currentWallet.privateKey!, burnAmount);
     setBurnBusy(false);
-
     if (res.success) {
-      // Deduct burned AIR
-      adjustBalances(-burnNum, 0);
-
-      // Record in compliance registry if obligation exists
-      if (obligation) {
-        await recordComplianceBurn(currentWallet.address, COMPLIANCE_PERIOD, burnNum);
-      }
-
-      showToast(
-        `Permanently retired ${burnAmount} AIR credits!`,
-        "success"
-      );
-
-      loadObligation();
-      refreshBalances();
+      showToast(`Retired ${burnAmount} AIR permanently`, "success");
     } else {
-      showToast(`Retirement burn failed: ${res.error}`, "error");
+      showToast(`Burn failed: ${res.error}`, "error");
     }
+    loadObligation();
+    refreshBalances();
   };
 
   // Calculations
@@ -871,7 +719,7 @@ export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({
                   </h3>
                   <p className="panel-subtitle">
                     {obligation
-                      ? "Submit permanent cryptographic token burn receipts directly to the Regulatory ComplianceRegistry."
+                      ? "Burned AIR is destroyed on the AIRcoin chain and counted against your obligation on every node."
                       : "Permanently retire AIR tokens from circulation to claim verified atmospheric PM2.5-equivalent removal."}
                   </p>
                 </div>
@@ -909,7 +757,7 @@ export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({
                   <Info size={18} className="text-emerald-700 shrink-0 mt-0.5" />
                   <div className="text-xs leading-relaxed text-foreground/80">
                     <b>Irreversible Environmental Settlement:</b> Burning
-                    destroys AIR tokens forever on the smart contract. Each
+                    destroys AIR tokens forever on the AIRcoin chain. Each
                     retired AIR token represents exactly 1 milligram of
                     PM2.5-equivalent particulate matter filtered by monitored
                     plants.
@@ -1151,13 +999,18 @@ export const UnifiedMarketView: React.FC<UnifiedMarketProps> = ({
                           {air(wei(l.amount_air))} AIR
                         </span>
                       </div>
-                      <div className="text-right">
-                        <span className="font-bold text-emerald-800">
-                          {inr(wei(l.price_tinr))}
-                        </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {inr(wei(l.price_tinr) / wei(l.amount_air))} / AIR
-                        </span>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <span className="font-bold text-emerald-800">
+                            {inr(wei(l.price_tinr))}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {inr(wei(l.price_tinr) / wei(l.amount_air))} / AIR
+                          </span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => handleCancel(l)}>
+                          Cancel
+                        </Button>
                       </div>
                     </li>
                   ))}

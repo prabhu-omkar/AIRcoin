@@ -1,12 +1,12 @@
-"""Mock C3 emitter for chain-market: signed attestations to print or POST to a validator.
+"""Mock C3 emitter: signed attestations to print or POST to an AIRcoin chain node.
 
     python -m mock.c3_emitter                                  # print one attestation
-    python -m mock.c3_emitter --post http://localhost:3001     # POST /v1/attestations
+    python -m mock.c3_emitter --post http://localhost:8700     # POST /v1/attestations
     python -m mock.c3_emitter --post ... --tamper amount       # expect bad_signature
     python -m mock.c3_emitter --post ... --count 5 --interval 60
 
 Each attestation is the last closed epoch at send time, built from mock inputs and signed with
-the miner's device key, so a validator on the local chain should accept it.
+the miner's device key, so the local demo chain should accept it.
 """
 
 from __future__ import annotations

@@ -25,10 +25,10 @@ StatusHandler = Callable[[dict, dict], None]
 
 
 class UplinkQueue:
-    def __init__(self, db_path: Path, validator_url: str, on_status: StatusHandler | None = None,
+    def __init__(self, db_path: Path, chain_url: str, on_status: StatusHandler | None = None,
                  timeout_s: float = 5.0):
         self.db_path = Path(db_path)
-        self.validator_url = validator_url.rstrip("/")
+        self.chain_url = chain_url.rstrip("/")
         self.on_status = on_status
         self.timeout_s = timeout_s
         self._stop = threading.Event()
@@ -180,7 +180,7 @@ class UplinkQueue:
         self._notify(row, submitted)
         try:
             response = httpx.post(
-                f"{self.validator_url}/v1/attestations", json=att, timeout=self.timeout_s
+                f"{self.chain_url}/v1/attestations", json=att, timeout=self.timeout_s
             )
         except (httpx.NetworkError, httpx.TimeoutException) as exc:
             self._set_online(False)

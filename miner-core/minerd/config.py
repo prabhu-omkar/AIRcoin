@@ -50,8 +50,7 @@ class Config:
     miner_id: str = "miner-001"
     mqtt_host: str = "localhost"
     mqtt_port: int = 1883
-    validator_url: str = "http://127.0.0.1:3001"
-    chain_rpc_url: str = "http://127.0.0.1:8545"
+    chain_url: str = "http://127.0.0.1:8700"  # any aircoind node's gateway
     controller_port: int = 8090
     scenario: str = "clean_morning"
     gps_source: str = "gpsd"
@@ -60,7 +59,7 @@ class Config:
     catalogue_path: Path = CONTRACTS / "data" / "species-catalogue.json"
     overlay_path: Path = MINER_CORE / "config" / "coefficients-v0.json"
     registry_path: Path = CONTRACTS / "examples" / "valid" / "registry.json"
-    seed_data_path: Path = REPO_ROOT / "chain-market" / "contracts" / "seed-data.json"
+    seed_data_path: Path = REPO_ROOT / "aircoin-chain" / "demo" / "demo-accounts.json"
     var_dir: Path = MINER_CORE / "var"
     extra: dict = field(default_factory=dict)
 
@@ -71,8 +70,7 @@ class Config:
             miner_id=_env("MINER_ID", cls.miner_id),
             mqtt_host=_env("MQTT_HOST", cls.mqtt_host),
             mqtt_port=int(_env("MQTT_PORT", str(cls.mqtt_port))),
-            validator_url=_env("VALIDATOR_URL", cls.validator_url).rstrip("/"),
-            chain_rpc_url=_env("CHAIN_RPC_URL", cls.chain_rpc_url).rstrip("/"),
+            chain_url=(os.environ.get("CHAIN_URL") or _env("VALIDATOR_URL", cls.chain_url)).rstrip("/"),
             controller_port=int(_env("CONTROLLER_PORT", str(cls.controller_port))),
             scenario=_env("SCENARIO", cls.scenario),
             gps_source=_env("GPS_SOURCE", cls.gps_source),
@@ -110,10 +108,13 @@ class Config:
         if not self.seed_data_path.exists():
             return {}
         seed = json.loads(self.seed_data_path.read_text(encoding="utf-8"))
-        return seed.get("miners", {}).get(self.miner_id, {})
+        for m in seed.get("miners", []):
+            if m["miner_id"] == self.miner_id:
+                return {"deviceAddress": m["device"]["address"], "devicePrivateKey": m["device"]["private_key"]}
+        return {}
 
     def device_key(self) -> str:
-        """Device private key: env, then var/device-key.hex, then the local-chain demo key."""
+        """Device private key: env, then var/device-key.hex, then the demo key in aircoin-chain/demo."""
         if self.private_key:
             return self.private_key
         key_file = self.var_dir / "device-key.hex"

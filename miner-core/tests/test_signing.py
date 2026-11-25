@@ -51,5 +51,5 @@ def test_signature_from_other_key_rejected(attestation, device_address):
 
 
 def test_sticker_set_hash_matches_chain_seed():
-    # chain-market/contracts/scripts/seed.ts: keccak256(solidityPacked(uint16[] ...)) of tags 0..19
+    # keccak256 of the ids packed as uint16 (2 bytes each), as aircoin-chain computes it, for tags 0..19
     assert sticker_set_hash(list(range(20))).startswith("0x0d5181b9")

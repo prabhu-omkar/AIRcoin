@@ -49,6 +49,9 @@ func (g *Gateway) Handler() http.Handler {
 	m.HandleFunc("GET /v1/listings", g.listings)
 	m.HandleFunc("GET /v1/totals", g.totals)
 	m.HandleFunc("GET /v1/events/recent", g.recentEvents)
+	m.HandleFunc("GET /v1/trades", g.ledger("trade"))
+	m.HandleFunc("GET /v1/burns", g.ledger("burn"))
+	m.HandleFunc("GET /v1/rejections", g.rejections)
 	m.HandleFunc("GET /v1/events", g.events)
 	m.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -471,6 +474,52 @@ func (g *Gateway) totals(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, map[string]any{"v": 1, "block_number": s.Height, "minted": s.Supply.Minted, "burned": s.Supply.Burned,
 		"circulating": circ.String(), "miners": len(s.Miners), "active_miners": active, "open_listings": open,
 		"pending_applications": pending, "accounts": len(s.Accounts)})
+}
+
+// ledger serves trade or burn history from chain state, newest first, flattened so the
+// web app can read fields directly.
+func (g *Gateway) ledger(typ string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s := g.state(w)
+		if s == nil {
+			return
+		}
+		f := g.filter(r)
+		items := []map[string]any{}
+		for i := len(s.Ledger) - 1; i >= 0 && len(items) < 200; i-- {
+			e := s.Ledger[i]
+			if e.Type != typ || !f(e) {
+				continue
+			}
+			row := map[string]any{"tx_hash": e.TxHash, "block_number": e.BlockNumber, "ts": e.Ts}
+			for k, v := range e.Data {
+				row[k] = v
+			}
+			items = append(items, row)
+		}
+		writeJSON(w, 200, map[string]any{"v": 1, "items": items})
+	}
+}
+
+// rejections lists refused attestations recorded on-chain (?miner_id= to filter).
+func (g *Gateway) rejections(w http.ResponseWriter, r *http.Request) {
+	s := g.state(w)
+	if s == nil {
+		return
+	}
+	only := r.URL.Query().Get("miner_id")
+	items := []map[string]any{}
+	for id, m := range s.Miners {
+		if only != "" && id != only {
+			continue
+		}
+		for _, x := range m.Rejections {
+			items = append(items, map[string]any{"miner_id": id, "epoch": x.Epoch, "status": "rejected",
+				"reason_code": x.ReasonCode, "reason": x.Reason, "tx_hash": x.TxHash, "block_number": x.BlockNumber, "ts": x.Ts})
+		}
+	}
+	sort.Slice(items, func(i, j int) bool { return items[i]["ts"].(int64) > items[j]["ts"].(int64) })
+	writeJSON(w, 200, map[string]any{"v": 1, "items": items})
 }
 
 // ------------------------------------------------------------------ events

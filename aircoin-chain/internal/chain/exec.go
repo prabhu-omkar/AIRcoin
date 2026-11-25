@@ -32,7 +32,13 @@ type Result struct {
 	Log        string
 	Amount     string
 	Events     []Event
+	// Recorded: a rejection of a claim the miner's own device signed. These still go
+	// into a block (as a failed tx) so every node keeps the same anti-cheat record.
+	Recorded bool
 }
+
+// SelfFaucetMax is the most tINR a non-admin can take from the faucet per tx.
+var SelfFaucetMax, _ = new(big.Int).SetString("1000000000000000000000", 10)
 
 // EpochCloseSlackMs is how far before block time an epoch may end and still be attested.
 const EpochCloseSlackMs = 15_000
@@ -157,8 +163,18 @@ func execAttest(s *State, c *Ctx, body json.RawMessage) Result {
 	}
 	// From here the miner itself signed the claim, so a rejection counts against it.
 	reject := func(code, format string, args ...any) Result {
+		r := fail(code, format, args...)
+		if code == "epoch_already_minted" { // a retry, not cheating
+			return r
+		}
 		m.EpochsRejected++
-		return fail(code, format, args...)
+		m.Rejections = append(m.Rejections, Rejection{Epoch: a.Epoch, ReasonCode: code, Reason: r.Log,
+			TxHash: c.TxHash, BlockNumber: c.Height, Ts: c.TimeMs})
+		if len(m.Rejections) > MaxRejections {
+			m.Rejections = m.Rejections[len(m.Rejections)-MaxRejections:]
+		}
+		r.Recorded = true
+		return r
 	}
 	if m.Status != "active" {
 		return reject("miner_inactive", "miner %s is %s", a.MinerID, m.Status)
@@ -329,9 +345,6 @@ func execBurn(s *State, c *Ctx, from string, body json.RawMessage) Result {
 }
 
 func execFaucet(s *State, c *Ctx, from string, body json.RawMessage) Result {
-	if !s.IsAdmin(from) {
-		return fail("unauthorized", "only an admin can mint test INR")
-	}
 	b, err := decode[FaucetBody](body)
 	if err != nil {
 		return fail("malformed", "%v", err)
@@ -340,6 +353,11 @@ func execFaucet(s *State, c *Ctx, from string, body json.RawMessage) Result {
 	amt, err := ParseAmount(b.Amount)
 	if !ok || err != nil {
 		return fail("malformed", "bad recipient or amount")
+	}
+	// Test rupees are free: anyone may top themselves up by up to 1,000 tINR per tx;
+	// the regulator may send any amount to anyone.
+	if !s.IsAdmin(from) && (to != from || amt.Cmp(SelfFaucetMax) > 0) {
+		return fail("unauthorized", "the faucet gives up to 1000 tINR to yourself")
 	}
 	a := s.Account(to)
 	a.TINR = add(a.TINR, amt)

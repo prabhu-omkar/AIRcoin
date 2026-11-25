@@ -92,9 +92,23 @@ type Miner struct {
 	LastMintEpoch   int64        `json:"last_mint_epoch"`
 	RecentEpochs    []int64      `json:"recent_epochs,omitempty"`
 	Mints           []MintRecord `json:"mints,omitempty"`
+	Rejections      []Rejection  `json:"rejections,omitempty"`
 	BlocksProposed  int64        `json:"blocks_proposed"`
 	ProposerRewards string       `json:"proposer_rewards"`
 }
+
+// Rejection is one refused attestation, kept on-chain as the miner's anti-cheat log.
+type Rejection struct {
+	Epoch       int64  `json:"epoch"`
+	ReasonCode  string `json:"reason_code"`
+	Reason      string `json:"reason"`
+	TxHash      string `json:"tx_hash"`
+	BlockNumber int64  `json:"block_number"`
+	Ts          int64  `json:"ts"`
+}
+
+// MaxRejections is how many rejections each miner keeps.
+const MaxRejections = 100
 
 type Application struct {
 	ID            int64    `json:"id"`
@@ -153,6 +167,24 @@ type State struct {
 	Listings        map[string]*Listing     `json:"listings"`
 	NextListing     int64                   `json:"next_listing"`
 	Supply          Supply                  `json:"supply"`
+	// Ledger keeps the most recent trade, burn and transfer events (mints live on
+	// each miner), so any node can show market history, even one that joined late.
+	Ledger []Event `json:"ledger,omitempty"`
+}
+
+// MaxLedger is how many non-mint events the state keeps.
+const MaxLedger = 2000
+
+// Record appends events to the ledger (mint events are skipped).
+func (s *State) Record(evs []Event) {
+	for _, e := range evs {
+		if e.Type != "mint" {
+			s.Ledger = append(s.Ledger, e)
+		}
+	}
+	if len(s.Ledger) > MaxLedger {
+		s.Ledger = append([]Event(nil), s.Ledger[len(s.Ledger)-MaxLedger:]...)
+	}
 }
 
 func NewState(chainID string, p Params) *State {

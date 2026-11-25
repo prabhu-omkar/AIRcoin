@@ -21,8 +21,44 @@ import (
 
 // KeyPair is a secp256k1 account written to accounts.json for the demo.
 type KeyPair struct {
+	Name       string `json:"name,omitempty"`
 	Address    string `json:"address"`
 	PrivateKey string `json:"private_key"`
+}
+
+// Seed is a demo-accounts file (see demo/demo-accounts.json): fixed keys for the
+// regulator, a company, a citizen and the first miners, so the apps' demo logins and
+// miner-core's device keys work on a fresh network.
+type Seed struct {
+	Admin   KeyPair `json:"admin"`
+	Company struct {
+		KeyPair
+		Obligation struct {
+			Period string `json:"period"`
+			Amount string `json:"amount"`
+		} `json:"obligation"`
+	} `json:"company"`
+	Citizen KeyPair `json:"citizen"`
+	Miners  []struct {
+		MinerID    string         `json:"miner_id"`
+		Label      string         `json:"label"`
+		Owner      KeyPair        `json:"owner"`
+		Device     KeyPair        `json:"device"`
+		StickerIDs []int          `json:"sticker_ids"`
+		Location   chain.Location `json:"location"`
+	} `json:"miners"`
+}
+
+func LoadSeed(path string) (*Seed, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var s Seed
+	if err := json.Unmarshal(b, &s); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return &s, nil
 }
 
 func newKeyPair() KeyPair {
@@ -76,6 +112,7 @@ type TestnetOpts struct {
 	BaseAPI  int
 	EpochMs  int64
 	CalibHex string
+	Seed     *Seed
 }
 
 var labels = []string{"Hackathon venue", "Rooftop garden, Jayanagar", "School terrace, Malleshwaram",
@@ -113,6 +150,16 @@ func Testnet(o TestnetOpts) (*Accounts, error) {
 		return nil, err
 	}
 	acc := &Accounts{ChainID: o.ChainID, Admin: newKeyPair(), Company: newKeyPair(), Citizen: newKeyPair()}
+	companyName, obPeriod, obAmount := "Demo Steel Works", "2026", "5000000000000000000"
+	if sd := o.Seed; sd != nil {
+		acc.Admin, acc.Company, acc.Citizen = sd.Admin, sd.Company.KeyPair, sd.Citizen
+		companyName = sd.Company.Name
+		if sd.Company.Obligation.Period != "" {
+			obPeriod, obAmount = sd.Company.Obligation.Period, sd.Company.Obligation.Amount
+		}
+	}
+	acc.Admin.Address, acc.Company.Address, acc.Citizen.Address =
+		strings.ToLower(acc.Admin.Address), strings.ToLower(acc.Company.Address), strings.ToLower(acc.Citizen.Address)
 	params := chain.DefaultParams()
 	if o.EpochMs > 0 {
 		params.EpochMs = o.EpochMs
@@ -158,8 +205,8 @@ func Testnet(o TestnetOpts) (*Accounts, error) {
 			acc.Company.Address: {AIR: "0", TINR: "100000000000000000000000"}, // 100,000 tINR
 			acc.Citizen.Address: {AIR: "0", TINR: "1000000000000000000000"},   // 1,000 tINR
 		},
-		Obligations: []chain.Obligation{{Company: acc.Company.Address, CompanyName: "Demo Steel Works", Period: "2026",
-			Amount: "5000000000000000000", Burned: "0"}},
+		Obligations: []chain.Obligation{{Company: acc.Company.Address, CompanyName: companyName, Period: obPeriod,
+			Amount: obAmount, Burned: "0"}},
 	}
 	var vals []types.GenesisValidator
 	for i, b := range nodes {
@@ -169,13 +216,30 @@ func Testnet(o TestnetOpts) (*Accounts, error) {
 		for t := 0; t < 20; t++ {
 			mk.StickerIDs = append(mk.StickerIDs, i*20+t)
 		}
+		geofence := 50.0
+		if o.Seed != nil && i < len(o.Seed.Miners) {
+			sm := o.Seed.Miners[i]
+			if sm.MinerID != mk.MinerID {
+				return nil, fmt.Errorf("seed miner %d is %s, expected %s", i, sm.MinerID, mk.MinerID)
+			}
+			mk.Label, mk.Owner, mk.Device, mk.StickerIDs = sm.Label, sm.Owner, sm.Device, sm.StickerIDs
+			mk.Lat, mk.Lon = sm.Location.Lat, sm.Location.Lon
+			if sm.Location.Label != "" {
+				mk.Label = sm.Location.Label
+			}
+			if sm.Location.GeofenceM > 0 {
+				geofence = sm.Location.GeofenceM
+			}
+		}
+		mk.Owner.Address, mk.Device.Address = strings.ToLower(mk.Owner.Address), strings.ToLower(mk.Device.Address)
+		g.Accounts[mk.Owner.Address] = &chain.Account{AIR: "0", TINR: "1000000000000000000000"}
 		pub := b.pv.Key.PubKey
 		pubB64 := base64.StdEncoding.EncodeToString(pub.Bytes())
 		dk, _ := crypto.KeyFromHex(mk.Device.PrivateKey)
 		g.Miners = append(g.Miners, chain.ApproveMinerBody{
 			MinerID: mk.MinerID, Label: mk.Label, DeviceAddress: mk.Device.Address, DevicePublicKey: dk.PublicKeyHex(),
 			OwnerWallet: mk.Owner.Address, StickerIDs: mk.StickerIDs, ValidatorPubKey: pubB64,
-			Location: chain.Location{Lat: mk.Lat, Lon: mk.Lon, Geohash: Geohash(mk.Lat, mk.Lon, 9), GeofenceM: 50, Label: mk.Label},
+			Location: chain.Location{Lat: mk.Lat, Lon: mk.Lon, Geohash: Geohash(mk.Lat, mk.Lon, 9), GeofenceM: geofence, Label: mk.Label},
 		})
 		vals = append(vals, types.GenesisValidator{Address: pub.Address(), PubKey: pub, Power: params.BasePower, Name: mk.MinerID})
 		mk.Node = NodeInfo{Home: b.conf.RootDir, NodeID: string(b.id), P2P: fmt.Sprintf("%s:%d", b.host, b.p2p),
