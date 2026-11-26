@@ -51,7 +51,7 @@ AIRcoin shifts the paradigm from **passive monitoring** to **active, cryptograph
                            │ C4 REST + WebSocket (any node)
            ┌───────────────┴───────────────┐
    marketplace (chain-market/web)   digital twin (vision-twin/twin)
-   citizens · companies · regulator  live rig, city, mints
+   citizens · companies · regulator  3D rig, live dashboard, mints
 ```
 
 1. **See.** The vision pipeline finds each sticker-tagged plant, checks its species and NDVI liveness, and publishes C1 events.
@@ -163,7 +163,7 @@ This starts MQTT, a 4-miner chain, the real miner daemon for `miner-001`, simula
 
 | What | Where |
 |---|---|
-| Marketplace | http://localhost:3000 (password `aircoin`: `alice@aircoin.in`, `rohan@aircoin.in`, `meera@aircoin.in`, `compliance@apexsteel.in`) |
+| Marketplace | http://localhost:3000: **Connect MetaMask**, or a demo account (password `aircoin`): `alice@aircoin.in`, `rohan@aircoin.in`, `meera@aircoin.in`, `compliance@apexsteel.in`, `regulator@cpcb.gov.in` |
 | Digital twin | http://localhost:5174 |
 | Miner health and scenarios | http://localhost:8090 |
 | Chain gateways | http://localhost:8700 … 8703 (one per miner node) |
@@ -181,10 +181,11 @@ Demo keys for every account are in [`aircoin-chain/demo/demo-accounts.json`](air
 ### Walkthrough
 
 1. **Miner:** http://localhost:8090. Switch scenarios (clean morning, rush hour, festival smog) and watch the AIR per epoch change.
-2. **Twin:** http://localhost:5174. The live rig, plant states, AQI and mints arrive over WebSocket as blocks finalise.
+2. **Twin:** http://localhost:5174. The 3D rig, then *Overview*, *Plants* and *Earnings & security* for the same miner, all live. Drag a pot off the rack and watch it get flagged.
 3. **Citizen (Alice):** her miner's mints are in the ledger. List some AIR for tINR, or top up from the faucet.
 4. **Company (Apex Steel):** buy Alice's listing, then burn it under *Retire & Burn*. The 2026 obligation bar moves on every node.
-5. **Fault tolerance:** `kill-node 2`. Blocks keep coming; restart the node and it syncs.
+5. **Request and approve:** connect MetaMask as a new citizen and request a miner, then sign in as `regulator@cpcb.gov.in` and approve it. The new miner is on the chain with its own device key.
+6. **Fault tolerance:** `kill-node 2`. Blocks keep coming; restart the node and it syncs.
 
 ### On Raspberry Pis and AWS
 
@@ -217,7 +218,7 @@ python contracts-schema/scripts/validate.py                      # schemas, exam
 cd aircoin-chain && go test ./...                                # chain rules, determinism, Python-signed proofs
 cd miner-core && python -m pytest tests -q                       # engine, signing, anti-cheat, uplink
 cd miner-core && python -m pytest integration_tests -q           # against a running chain (demo.py start)
-cd vision-twin && python -m pytest pipeline/tests tests -q       # vision pipeline
+cd vision-twin/pipeline && python -m pytest tests -q             # vision pipeline
 cd chain-market/web && npm run build; cd vision-twin/twin && npm run build
 ```
 

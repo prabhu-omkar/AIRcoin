@@ -1,7 +1,7 @@
 import { useTwin } from "../store";
 
-const W = 300;
-const H = 110;
+const W = 480;
+const H = 150;
 const PAD = { l: 28, r: 6, t: 8, b: 16 };
 
 /** AQI and PM2.5 over the last few minutes of C2 telemetry. */
@@ -26,16 +26,16 @@ export function AqiChart() {
           <span className="meta">3 min</span>
         </span>
       </h2>
-      <div className="body" style={{ padding: "6px 8px" }}>
+      <div className="body chart">
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="AQI and PM2.5 history">
           {ticks.map((v) => (
             <g key={v}>
               <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} stroke="var(--line)" />
-              <text x={PAD.l - 4} y={y(v) + 3} fontSize="8" fill="var(--faint)" textAnchor="end" fontFamily="var(--mono)">{v}</text>
+              <text x={PAD.l - 4} y={y(v) + 3} fontSize="11" fill="var(--faint)" textAnchor="end" fontFamily="var(--mono)">{v}</text>
             </g>
           ))}
-          <text x={PAD.l} y={H - 3} fontSize="8" fill="var(--faint)" fontFamily="var(--mono)">−3:00</text>
-          <text x={W - PAD.r} y={H - 3} fontSize="8" fill="var(--faint)" textAnchor="end" fontFamily="var(--mono)">now</text>
+          <text x={PAD.l} y={H - 3} fontSize="11" fill="var(--faint)" fontFamily="var(--mono)">−3:00</text>
+          <text x={W - PAD.r} y={H - 3} fontSize="11" fill="var(--faint)" textAnchor="end" fontFamily="var(--mono)">now</text>
           <path d={line("pm25")} fill="none" stroke="var(--muted)" strokeWidth="1.2" strokeDasharray="3 2" />
           <path d={line("aqi")} fill="none" stroke="var(--text)" strokeWidth="1.5" />
         </svg>

@@ -38,9 +38,24 @@ export function signIn(email: string, password: string): Account | null {
   return acc;
 }
 
+/** A MetaMask session: no password, the wallet is the identity. */
+export function signInWithWallet(wallet: DemoWallet): Account {
+  const acc: Account = { email: wallet.address, name: wallet.name, wallet };
+  sessionStorage.setItem(KEY, JSON.stringify(acc));
+  return acc;
+}
+
 export function currentAccount(): Account | null {
-  const email = sessionStorage.getItem(KEY);
-  return ACCOUNTS.find((a) => a.email === email) ?? null;
+  const v = sessionStorage.getItem(KEY);
+  if (!v) return null;
+  if (v.startsWith("{")) {
+    try {
+      return JSON.parse(v) as Account;
+    } catch {
+      return null;
+    }
+  }
+  return ACCOUNTS.find((a) => a.email === v) ?? null;
 }
 
 export function signOut() {

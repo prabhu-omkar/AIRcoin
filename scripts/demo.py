@@ -9,7 +9,7 @@
     python scripts/demo.py stop
 
 What runs:
-  mqtt      Mosquitto via Docker (1883, WebSocket 9001), else miner-core's small broker (no WS)
+  mqtt      Mosquitto (1883, WebSocket 9001) via Docker or a local install; else miner-core's broker (no WS)
   node0..N  aircoind: AIRcoin chain nodes, one per miner; gateways on :8700, :8701, ...
   miner     miner-core daemon for miner-001 (real engine and signer) -> node0
   sim-*     simulated miners for miner-002.. (aircoind simulate-miner) -> their own nodes
@@ -155,7 +155,17 @@ def start_mqtt() -> None:
         wait_port(1883, 20)
         print("  mqtt         Mosquitto (Docker) on :1883, WebSocket :9001")
         return
-    print("  mqtt         Docker not running: using miner-core's broker (the twin's live MQTT needs Mosquitto)")
+    mosq = shutil.which("mosquitto") or next((p for p in [r"C:\Program Files\mosquitto\mosquitto.exe"] if Path(p).exists()), None)
+    if mosq:
+        RUN.mkdir(parents=True, exist_ok=True)
+        conf = RUN / "mosquitto.conf"
+        conf.write_text("listener 1883\nprotocol mqtt\nallow_anonymous true\n"
+                        "listener 9001\nprotocol websockets\nsocket_domain ipv4\n")
+        launch("mqtt", [mosq, "-c", str(conf)], ROOT)
+        wait_port(1883, 10)
+        print("  mqtt         Mosquitto on :1883, WebSocket :9001")
+        return
+    print("  mqtt         no Docker or Mosquitto: using miner-core's broker (the twin's live MQTT needs Mosquitto)")
     launch("mqtt", [PY, "-m", "mock.mqtt_broker"], ROOT / "miner-core")
     wait_port(1883, 10)
 

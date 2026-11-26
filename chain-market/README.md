@@ -6,7 +6,12 @@ One web app for everyone on the AIRcoin network, running against AIRcoin's own c
 ([`../aircoin-chain`](../aircoin-chain/README.md)). It has no backend of its own: it reads from
 any node's gateway and sends signed transactions to it.
 
-| Login (password `aircoin`) | Can |
+Sign in with **MetaMask** (any EIP-1193 wallet), or with a demo account. MetaMask only signs: there is
+no network to add, no gas and no chain switch. The app works out the role from the chain itself: the
+regulator key, a company with an obligation, a miner owner, or a citizen. A new wallet starts with
+nothing; *Add ₹1,000 test money* tops it up from the faucet.
+
+| Demo login (password `aircoin`) | Can |
 |---|---|
 | `alice@aircoin.in`, `rohan@aircoin.in` (miner owners) | see their miner's verified mints, sell AIR, top up tINR, burn |
 | `meera@aircoin.in` (citizen) | request a miner, buy and retire AIR |
@@ -17,13 +22,23 @@ Wallet keys for these logins are the public demo keys in
 [`aircoin-chain/demo/demo-accounts.json`](../aircoin-chain/demo/demo-accounts.json); the chain's
 genesis funds the same addresses.
 
+## Code
+
+| File | What |
+|---|---|
+| `src/components/Login.tsx` | MetaMask connect and demo sign-in |
+| `src/components/Overview.tsx` | balance, the per-minute epoch strip, miner, mints, company obligation |
+| `src/components/Market.tsx` | buy, sell (with cancel) and retire |
+| `src/components/Regulator.tsx` | miner requests, fleet, rejected proofs, obligations; the citizen's request form |
+| `src/ui.tsx`, `src/styles.css` | shared components, formatters and the design tokens (the twin uses the same ones) |
+
 ## How it talks to the chain
 
 - **Reads:** `src/services/api.ts` fetches from `VITE_CHAIN_URL` (default `http://localhost:8700`):
   accounts, miners, mints, listings, trades, burns, obligations, applications and rejections.
 - **Writes:** `src/services/chain.ts` builds `{type, body}`, asks the node for the exact text to
-  sign (`POST /v1/tx/prepare`), signs it with ethers `signMessage` (EIP-191, the same as
-  MetaMask's `personal_sign`), and submits `{type, body, sig}` to `POST /v1/tx`. The result comes
+  sign (`POST /v1/tx/prepare`), signs it (demo key: ethers `signMessage`; MetaMask: `personal_sign`
+  through `src/services/metamask.ts`, both EIP-191), and submits `{type, body, sig}` to `POST /v1/tx`. The result comes
   back once the transaction is in a block (~1 s).
 
 | Action | Transaction |

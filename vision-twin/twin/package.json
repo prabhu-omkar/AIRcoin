@@ -4,7 +4,6 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "assets": "python scripts/build_city_atlas.py",
     "dev": "vite --port 5174",
     "build": "tsc && vite build --base=./",
     "preview": "vite preview"
@@ -16,7 +15,6 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "mqtt": "^5.10.3",
-    "phaser": "^4.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",

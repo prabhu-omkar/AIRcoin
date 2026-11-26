@@ -5,7 +5,9 @@ export interface DemoWallet {
   name: string;
   role: PersonaRole;
   description: string;
+  /** Demo wallets sign with this key; MetaMask wallets have none and sign in the extension. */
   privateKey?: string;
+  source?: "demo" | "metamask";
   companyName?: string;
   minerId?: string;
 }

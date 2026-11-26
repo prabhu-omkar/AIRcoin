@@ -51,9 +51,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode; initial?: Dem
   }, [refreshBalances]);
 
   const claimFreeFaucet = async (): Promise<string | null> => {
-    if (!currentWallet.privateKey) return null;
     showToast("Requesting 1,000 tINR from the faucet…", "info");
-    const res = await claimFaucet(currentWallet.privateKey);
+    const res = await claimFaucet(currentWallet);
     if (res.success) {
       showToast("Received 1,000 tINR", "success");
       await refreshBalances();

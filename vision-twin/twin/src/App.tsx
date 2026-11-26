@@ -1,88 +1,40 @@
-import { lazy, Suspense, useState } from "react";
-import { Box, Loader2 } from "lucide-react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { Header, type View } from "./components/Header";
+import { startSource } from "./sources";
 
 const TwinApp = lazy(() => import("./apps/twin/TwinApp"));
-const DashboardApp = lazy(() =>
-  import("./apps/dashboard/DashboardApp").then((m) => ({ default: m.DashboardApp }))
-);
+const Dashboard = lazy(() => import("./apps/dashboard/DashboardApp"));
 
-type ViewMode = "twin" | "dashboard";
+const VIEWS: View[] = ["twin", "overview", "plants", "earnings"];
 
-export function App() {
-  const getInitialView = (): ViewMode => {
-    if (typeof window === "undefined") return "twin";
-    const param = new URLSearchParams(window.location.search).get("view");
-    if (param === "dashboard" || window.location.hash.includes("dashboard")) {
-      return "dashboard";
-    }
-    return "twin";
-  };
+function initialView(): View {
+  const fromUrl = new URLSearchParams(window.location.search).get("view") ?? window.location.hash.slice(1);
+  if (fromUrl === "dashboard") return "overview";
+  return (VIEWS as string[]).includes(fromUrl) ? (fromUrl as View) : "twin";
+}
 
-  const [viewMode, setViewMode] = useState<ViewMode>(getInitialView);
+export default function App() {
+  const [view, setView] = useState<View>(initialView);
+  useEffect(() => startSource(), []);
 
-  const switchToTwin = () => {
-    setViewMode("twin");
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", "#twin");
-    }
-  };
-
-  const switchToDashboard = () => {
-    setViewMode("dashboard");
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", "#dashboard");
-    }
+  const go = (v: View) => {
+    setView(v);
+    window.history.replaceState(null, "", `${window.location.search}#${v}`);
   };
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
-      {viewMode === "twin" ? (
-        <Suspense
-          fallback={
-            <div
-              style={{
-                display: "flex",
-                height: "100%",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                color: "var(--muted, #56616f)",
-                fontFamily: "var(--font, sans-serif)",
-              }}
-            >
-              <Loader2 size={20} />
-              <span>Loading 3D Digital Twin...</span>
-            </div>
-          }
-        >
-          <TwinApp onOpenDashboard={switchToDashboard} />
-        </Suspense>
-      ) : (
-        <div style={{ position: "relative", width: "100%", height: "100%" }}>
-          <Suspense
-            fallback={
-              <div
-                style={{
-                  display: "flex",
-                  height: "100%",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  color: "var(--muted, #56616f)",
-                  fontFamily: "var(--font, sans-serif)",
-                }}
-              >
-                <Loader2 size={20} />
-                <span>Loading Owner Dashboard...</span>
-              </div>
-            }
-          >
-            <DashboardApp onOpenTwin={switchToTwin} />
-          </Suspense>
-        </div>
-      )}
+    <div className="app">
+      <Header view={view} onView={go} />
+      <Suspense
+        fallback={
+          <div className="loading">
+            <Loader2 size={18} className="spin" /> Loading…
+          </div>
+        }
+      >
+        {view === "twin" ? <TwinApp /> : <Dashboard view={view} />}
+      </Suspense>
     </div>
   );
 }
-
-export default App;

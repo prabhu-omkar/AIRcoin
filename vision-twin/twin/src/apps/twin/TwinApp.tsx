@@ -1,14 +1,10 @@
 // Judges' demo: the full-screen 3D digital twin of one miner and its 20-plant rig.
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard } from "lucide-react";
-import { Header } from "../../components/Header";
 import { MinerModel } from "../../components/MinerModel";
 import { TwinCam } from "../../components/twin3d/TwinCam";
 import { config } from "../../config";
 import { fromBaseUnits } from "../../contracts";
-import { startSource } from "../../sources";
 import { useTwin } from "../../store";
-import "../../styles.css";
 
 type CamMode = "twin" | "ndvi" | "live";
 
@@ -96,44 +92,10 @@ function EventToasts() {
   );
 }
 
-export function TwinApp({
-  onOpenDashboard,
-}: {
-  onOpenDashboard?: () => void;
-}) {
-  useEffect(() => startSource(), []);
-
+export function TwinApp() {
   return (
-    <div className="twin-app" style={{ width: "100%", height: "100%", position: "relative" }}>
+    <div className="twin-app">
       <MinerModel />
-      <Header
-        app="twin"
-        extraActions={
-          onOpenDashboard ? (
-            <div style={{ display: "flex", alignItems: "center", marginRight: 12 }}>
-              <button
-                onClick={onOpenDashboard}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  background: "var(--surface)",
-                  color: "var(--text)",
-                  border: "1px solid var(--line-2)",
-                  borderRadius: "var(--r-md)",
-                  padding: "6px 12px",
-                  fontWeight: 500,
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
-              >
-                <LayoutDashboard size={14} />
-                <span>Owner Dashboard</span>
-              </button>
-            </div>
-          ) : undefined
-        }
-      />
       <EventToasts />
       <CameraPip />
     </div>

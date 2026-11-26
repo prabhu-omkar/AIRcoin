@@ -68,7 +68,8 @@ export function PlantGrid() {
                 <button key={rp.tag_id} className={`slot ${status}`} onClick={() => selectPlant(rp.tag_id)} title={`${speciesName(rp.species)}, ${STATUS_LABEL[status]}`}>
                   <div className="slot-top"><span>#{rp.tag_id}</span><span className="meta">{lost || status === "suspect" ? STATUS_LABEL[status] : `${Math.round(p?.leaf_area_cm2 ?? 0)} cm²`}</span></div>
                   <div className="name">{speciesName(rp.species)}</div>
-                  <div className="bar"><i style={{ width: `${lost ? 0 : Math.round((p?.alive_score ?? 0) * 100)}%` }} /></div>
+                  <div className="slot-rate">{lost || status === "suspect" ? "not earning" : `${(p?.rate_air_per_h ?? 0).toFixed(3)} AIR/h`}</div>
+                  <div className="bar" title="Alive score"><i style={{ width: `${lost ? 0 : Math.round((p?.alive_score ?? 0) * 100)}%` }} /></div>
                 </button>
               );
             })}

@@ -1,58 +1,133 @@
-import { useState } from "react";
-import { ArrowRight, Building2, Eye, EyeOff, Leaf, Sprout } from "lucide-react";
-import { ACCOUNTS, DEMO_PASSWORD, signIn, type Account } from "../auth";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { useEffect, useState } from "react";
+import { Building2, Landmark, Leaf, Sprout } from "lucide-react";
+import { ACCOUNTS, DEMO_PASSWORD, signIn, signInWithWallet, type Account } from "../auth";
+import { fetchStatus } from "../services/api";
+import { connectMetaMask, hasMetaMask } from "../services/metamask";
+import { Button, EpochStrip, Field, MetaMaskIcon, initials } from "../ui";
+
+const roleLine = (a: Account) =>
+  a.wallet.role === "admin"
+    ? "Regulator: approves miners, sets obligations"
+    : a.wallet.role === "company"
+      ? "Company: buys and retires AIR"
+      : a.wallet.minerId
+        ? `Citizen with ${a.wallet.minerId}`
+        : "Citizen, no miner yet";
+
+const RoleIcon = ({ a }: { a: Account }) =>
+  a.wallet.role === "admin" ? <Landmark size={15} /> : a.wallet.role === "company" ? <Building2 size={15} /> : <Sprout size={15} />;
+
+// A decorative strip for the story panel: a calm, plausible rhythm of epochs.
+const DEMO_STRIP = Array.from({ length: 40 }, (_, i) => ({
+  epoch: Math.floor(Date.now() / 60000) - 40 + i,
+  amount: String(BigInt(Math.round((0.025 + 0.012 * Math.sin(i / 3) + 0.006 * Math.cos(i * 1.7)) * 1e6)) * 10n ** 12n),
+}));
 
 export function Login({ onSignedIn }: { onSignedIn: (a: Account) => void }) {
-  const [email, setEmail] = useState(ACCOUNTS[0].email);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [show, setShow] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [height, setHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchStatus().then((s) => setHeight(s?.height ?? null));
+  }, []);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const account = signIn(email, password);
     if (account) onSignedIn(account);
-    else setError("Those details do not match a demo account.");
+    else setError("That email and password don't match a demo account. Pick one below to fill them in.");
   };
-  const choose = (account: Account) => {
-    setEmail(account.email); setPassword(DEMO_PASSWORD); setError("");
+
+  const metamask = async () => {
+    setError("");
+    setConnecting(true);
+    try {
+      onSignedIn(signInWithWallet(await connectMetaMask()));
+    } catch (err: any) {
+      setError(err?.code === 4001 ? "MetaMask connection was declined." : err?.message ?? String(err));
+    } finally {
+      setConnecting(false);
+    }
   };
+
   return (
-    <div className="auth-shell">
+    <div className="auth">
       <section className="auth-story">
-        <div className="auth-brand"><span><Leaf size={20} /></span><b>AIRcoin</b></div>
-        <div className="story-copy">
-          <h1>Clean air.<br /><em>Measured and rewarded.</em></h1>
+        <div className="brand">
+          <span className="brand-mark">
+            <Leaf size={16} />
+          </span>
+          AIRcoin
+        </div>
+        <div>
+          <h1>Plants clean the air. Prove it, earn for it.</h1>
+          <p>
+            Every minute, a camera miner checks its 20 plants and signs what they removed. Miners across the
+            network verify it before a single AIR is minted.
+          </p>
+          <EpochStrip
+            mints={DEMO_STRIP}
+            count={40}
+            label={<span>{height ? `Chain at block ${height.toLocaleString("en-IN")}` : "AIR minted per minute"}</span>}
+          />
         </div>
       </section>
+
       <section className="auth-panel">
-        <form onSubmit={submit} className="auth-card">
-          <div className="auth-heading">
-            <h2>Welcome back</h2><p>Sign in to manage your AIR, miners, and impact.</p>
-          </div>
-          <div className="auth-fields">
-            <label htmlFor="email">Email address</label>
-            <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
-            <div className="password-label"><label htmlFor="password">Password</label><button type="button">Forgot password?</button></div>
-            <div className="password-wrap">
-              <Input id="password" type={show ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} />
-              <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Hide password" : "Show password"}>{show ? <EyeOff size={17} /> : <Eye size={17} />}</button>
-            </div>
-            {error && <p className="auth-error">{error}</p>}
-            <Button type="submit" className="auth-submit">Enter workspace <ArrowRight size={17} /></Button>
-          </div>
-          <div className="demo-divider"><span>or explore with a demo profile</span></div>
-          <div className="demo-profiles">
-            {ACCOUNTS.map((account) => (
-              <button type="button" key={account.email} onClick={() => choose(account)} className={email === account.email ? "selected" : ""}>
-                <span className="profile-icon">{account.wallet.role === "company" ? <Building2 size={17} /> : <Sprout size={17} />}</span>
-                <span><b>{account.name}</b><small>{account.wallet.minerId ? account.wallet.minerId + " owner" : account.wallet.role === "company" ? "Compliance buyer" : "Citizen / no miner"}</small></span>
-                <ArrowRight size={15} />
+        <div className="auth-card">
+          <h2>Sign in</h2>
+          <p>Use your wallet, or a demo profile.</p>
+
+          <Button variant="primary" size="lg" block onClick={metamask} disabled={connecting}>
+            <MetaMaskIcon /> {connecting ? "Waiting for MetaMask…" : hasMetaMask() ? "Connect MetaMask" : "Connect MetaMask (not installed)"}
+          </Button>
+          {!hasMetaMask() && (
+            <p className="faint" style={{ fontSize: 12.5, margin: "8px 0 0" }}>
+              Install the MetaMask extension to use your own wallet. No network or gas needed: it only signs.
+            </p>
+          )}
+
+          <div className="or">or use a demo account</div>
+
+          <form onSubmit={submit} className="form">
+            <Field label="Email">
+              <input className="input" type="email" autoComplete="username" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} />
+            </Field>
+            <Field label="Password">
+              <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} />
+            </Field>
+            <Button type="submit" block>
+              Sign in
+            </Button>
+          </form>
+          {error && <p className="auth-error">{error}</p>}
+
+          <div className="profiles" style={{ marginTop: 18 }}>
+            {ACCOUNTS.map((a) => (
+              <button
+                type="button"
+                key={a.email}
+                className="profile"
+                onClick={() => {
+                  setEmail(a.email);
+                  setPassword(DEMO_PASSWORD);
+                  setError("");
+                }}
+              >
+                <span className="avatar" aria-hidden>
+                  {a.wallet.role === "citizen" ? initials(a.name) : <RoleIcon a={a} />}
+                </span>
+                <span>
+                  <b>{a.name}</b>
+                  <small>{roleLine(a)}</small>
+                </span>
               </button>
             ))}
           </div>
-        </form>
+        </div>
       </section>
     </div>
   );

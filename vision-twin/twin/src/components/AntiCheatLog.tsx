@@ -5,7 +5,7 @@ const SEVERITY = { critical: "Critical", warn: "Warning", info: "Info" } as cons
 export function AntiCheatLog() {
   const log = useTwin((s) => s.log);
   return (
-    <section className="panel" style={{ flex: 1 }}>
+    <section className="panel area-log">
       <h2>Anti-cheat log<span className="right meta">{log.length ? `${log.length} event${log.length > 1 ? "s" : ""}` : ""}</span></h2>
       <div className="body">
         {log.length ? (

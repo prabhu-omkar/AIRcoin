@@ -23,15 +23,14 @@ Schemas and example payloads: [`../contracts-schema`](../contracts-schema/README
 
 **Stack:** Raspberry Pi 4/5, Pi Camera Module 3 NoIR Wide + blue gel filter, Python, OpenCV (`cv2.aruco`), React + Vite, Three.js, React Three Fiber, WebSockets, and MQTT.
 
-## Suggested layout
+## Layout
 
 ```
 vision-twin/
-├── pipeline/   Python: capture, aruco, plant match, leaf area, NDVI, status machine, C1 publisher
-├── enrol/      enrolment script: photo + feature vector per tag
-├── mock/       C1 mock emitter (replays a recorded scene; can simulate removed/fake plant)
-├── twin/       React + Three.js 3D living miner digital twin & owner dashboard
-└── models/     Blender source and exported glTF
+├── config/rig.json          the rig: miner id, 4 × 5 grid, tag → species per slot
+├── pipeline/aircoin_vision/ Python: capture, ArUco stickers, plant match, leaf area, NDVI,
+│                            status machine, C1 publisher, live streams, mock C1, sticker sheets
+└── twin/                    React + Three.js: the 3D twin and the miner's live dashboard
 ```
 
 ## 3D Living Miner Digital Twin
@@ -48,88 +47,51 @@ The main visual interface is Omkar's interactive 3D living miner digital twin:
 - **Click to Explode Interaction:** Hovering over the PM2.5 monitoring device displays a "click to explode" hint in the HUD hint bar; clicking smoothly animates the enclosure into the exploded diagnostic view.
 - **Camera PiP Feed:** Picture-in-picture real-time camera stream with high-contrast toggle between optical Lens view and NDVI false-color vegetation index heat-map.
 - **Anti-Cheat Drag-and-Drop:** Drag pots to swap or remove plants in real time to trigger anti-cheat mismatch detection and observe the attestation penalty.
-- **Owner Dashboard:** Switch seamlessly into the fleet dashboard to inspect telemetry history, species catalogue distribution, live mint events, and network proofs.
+- **Live dashboard:** the same header switches between the 3D twin and three dashboard views: *Overview* (camera, AQI history, air sensors), *Plants* (camera plus the 20 plants, click one for its readings) and *Earnings & security* (wallet and mints from the chain, anti-cheat log, GPS geofence). It shows public data only, so there is no sign-in. Open it for a miner with `?miner=miner-001` and a view with `#overview`, `#plants` or `#earnings`.
 
-To use an external exported model, optimize it as a single shared-material GLB, place it at `twin/public/models/aircoin-miner.glb`, copy `twin/.env.example` to `twin/.env`, and set `VITE_MINER_MODEL_URL=/models/aircoin-miner.glb`. Without that file, the procedural 3D miner model renders seamlessly. AWS deployment instructions are in [`twin/AWS-DEPLOY.md`](twin/AWS-DEPLOY.md).
+To use an external exported model, optimize it as a single shared-material GLB, place it at `twin/public/models/aircoin-miner.glb`, copy `twin/.env.example` to `twin/.env`, and set `VITE_MINER_MODEL_URL=/models/aircoin-miner.glb`. Without that file, the procedural 3D miner model renders seamlessly.
 
 ## Running locally
 
-```bash
-docker compose up -d mqtt          # from the repo root: mqtt://localhost:1883, ws://localhost:9001
-```
-
-Install Omkar's workstream once:
+The whole product (MQTT, a 4-node chain, the miner, the marketplace and this twin) starts with one command
+from the repo root:
 
 ```bash
-cd vision-twin
-python -m pip install -r requirements.txt
-cd twin && npm install
+python scripts/demo.py start --camera synthetic     # twin at http://localhost:5174
 ```
 
-Run the complete mock-driven Phase 1 demo in separate terminals:
+To work on the twin alone, run it against example data or a live stack:
 
 ```bash
-# Terminal 1, repo root
-docker compose up -d mqtt
-
-# Terminal 2, C2 telemetry + epoch data
-cd miner-core
-python -m mock.c2_emitter --scenario rush_hour --cycle 3 --drop 7 --fake 12
-
-# Terminal 3, C4 balance + mint API: a real local chain (gateways on :8700…)
-cd aircoin-chain && scripts/localnet.sh && scripts/simulate.sh
-
-# Terminal 4, digital twin at http://localhost:5174
-cd vision-twin/twin
-npm run dev
+cd vision-twin/twin && npm install
+npm run dev                                         # http://localhost:5174 (mock data unless VITE_SOURCE=live)
 ```
 
-The dashboard connects to MQTT over WebSockets on port 9001 and the chain gateway on port 8700. If
-either is unavailable it stays usable with clearly labelled demo data. Override the endpoints by
-copying `twin/.env.example` to `twin/.env`.
+The twin reads MQTT over WebSockets (`ws://localhost:9001`) and the chain gateway (`http://localhost:8700`).
+Override them in `twin/.env.local` (see `twin/.env.example`) or with URL parameters
+(`?source=live&mqtt=ws://pi.local:9001&c4=http://pi.local:8700&feed=http://pi.local:8080/`).
 
-Publish Omkar's own C1 mock (all fault switches may be combined):
+The vision pipeline runs from `pipeline/` (`pip install -r requirements.txt`; on the Pi also `sudo apt install python3-picamera2`):
 
 ```bash
-cd vision-twin
-python -m mock.emitter --drop 7 --fake 12 --swap 5 --unknown 42
+cd vision-twin/pipeline
+python -m aircoin_vision.hwcheck                          # Pi camera and GPS check (--camera usb:0 on a laptop)
+python -m aircoin_vision.stickers                         # printable sticker sheets for config/rig.json (45 mm)
+python -m aircoin_vision.enrol picam                      # photo + feature vector per tagged plant
+python -m aircoin_vision.run picam --serve 8080           # C1 to MQTT at 1 Hz, live streams on :8080
+python -m aircoin_vision.mock_c1                          # C1 without a camera (fault switches: --help)
+python -m aircoin_vision.synth ../data/frames --noir --frames 24   # synthetic rig photos to try it without hardware
 ```
 
-Run the real camera pipeline (camera index `0`, one analysed frame per second):
-
-```bash
-cd vision-twin
-python -m pipeline.run --camera 0 --source laptop_camera --preview
-```
-
-Generate print-ready tag images (IDs 0-19 plus unknown spare ID 42):
-
-```bash
-python -m pipeline.generate_markers --output markers
-```
-
-Print the marker itself at 45 mm square with no scaling/cropping and keep the white border.
-
-For a Raspberry Pi use `--source pi_camera`. A recorded video path can be passed to `--camera`
-with `--source recorded`. Enrol a reference plant with
-`python -m enrol.enrol TAG_ID SPECIES path/to/crop.jpg`; the resulting colour feature vector is
-used for per-frame plant matching.
+`run` and `enrol` also take `usb:0`, a video file or a folder of frames as the source (add `--loop` to repeat).
 
 ## Verification
 
 ```bash
-cd vision-twin
-python -m pytest -q
-python -m mock.emitter --dry-run --count 1 --record sample.jsonl
-python ../contracts-schema/scripts/validate.py c1-vision-event sample.jsonl
-cd ../miner-core && python -m minerd c1check ../vision-twin/sample.jsonl
-cd ../vision-twin/twin && npm run build
-```
-
-Without a running miner and chain, drive the twin from the example payloads in `contracts-schema/examples/valid/` (`c2-telemetry.json`, `c2-epoch.json`, `c4-*.json`) or the other workstreams' mock emitters. Validate what you publish:
-
-```bash
-python contracts-schema/scripts/validate.py c1-vision-event my-c1-message.json
+cd vision-twin/pipeline && python -m pytest tests -q
+python -m aircoin_vision.mock_c1 --mqtt - --duration 1 | head -n 1 > ../sample.json
+python ../../contracts-schema/scripts/validate.py c1-vision-event ../sample.json
+cd ../twin && npm run build
 ```
 
 ## Phase checklist

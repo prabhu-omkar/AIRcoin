@@ -1,297 +1,120 @@
 import { useEffect, useState } from "react";
-import {
-  ArrowLeftRight,
-  Bell,
-  Cpu,
-  ExternalLink,
-  Flame,
-  LayoutDashboard,
-  Landmark,
-  Leaf,
-  LogOut,
-  Menu,
-  Radio,
-  Repeat2,
-  ShieldCheck,
-  Sparkles,
-  Store,
-  Wallet,
-  X,
-} from "lucide-react";
-import { WalletProvider, useWallet } from "./context/WalletContext";
+import { Box, Landmark, Leaf, LogOut, Store, LayoutGrid } from "lucide-react";
 import { currentAccount, signOut, type Account } from "./auth";
 import { Login } from "./components/Login";
-import { UnifiedOverviewView, UnifiedMarketView } from "./components/Views";
+import { Overview } from "./components/Overview";
+import { Market, type MarketTab } from "./components/Market";
 import { RegulatorView } from "./components/Regulator";
-import { cn } from "./lib/utils";
+import { WalletProvider, useWallet } from "./context/WalletContext";
+import { onAccountChange } from "./services/metamask";
+import { initials, twinUrl } from "./ui";
 
-type Tab = "overview" | "market" | "regulator";
+type Page = "overview" | "market" | "regulator";
 
-const Shell = ({
-  account,
-  onSignOut,
-}: {
-  account: Account;
-  onSignOut: () => void;
-}) => {
-  const { switchWallet, toast, isChainOnline, blockHeight } = useWallet();
+function Shell({ account, onSignOut }: { account: Account; onSignOut: () => void }) {
+  const { toast, isChainOnline, blockHeight } = useWallet();
   const isRegulator = account.wallet.role === "admin";
-  const [tab, setTab] = useState<Tab>(isRegulator ? "regulator" : "overview");
-  const [marketSubtab, setMarketSubtab] = useState<"buy" | "burn" | "sell">(
-    "buy"
-  );
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [page, setPage] = useState<Page>(isRegulator ? "regulator" : "overview");
+  const [marketTab, setMarketTab] = useState<MarketTab>("buy");
 
+  // If the user switches account in MetaMask, sign out rather than act for the wrong wallet.
   useEffect(() => {
-    switchWallet(account.wallet);
-  }, [account]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (account.wallet.source !== "metamask") return;
+    return onAccountChange((addr) => {
+      if (addr !== account.wallet.address.toLowerCase()) onSignOut();
+    });
+  }, [account, onSignOut]);
 
-  const hasMiner = Boolean(account.wallet.minerId);
-
-  const navigateToMarket = (subtab: "buy" | "burn" | "sell" = "buy") => {
-    setMarketSubtab(subtab);
-    setTab("market");
-    setMobileOpen(false);
+  const go = (p: Page, tab?: MarketTab) => {
+    if (tab) setMarketTab(tab);
+    setPage(p);
+    window.scrollTo(0, 0);
   };
 
+  const subtitle =
+    account.wallet.source === "metamask"
+      ? `MetaMask · ${account.wallet.role === "admin" ? "regulator" : account.wallet.role}`
+      : account.wallet.role === "admin"
+        ? "Regulator"
+        : account.wallet.role === "company"
+          ? "Company"
+          : account.wallet.minerId
+            ? `Owner of ${account.wallet.minerId}`
+            : "Citizen";
+
   return (
-    <div className="pro-platform-shell">
-      {/* SIDEBAR NAVIGATION */}
-      <aside className={cn("pro-sidebar", mobileOpen && "is-open")}>
-        <div className="sidebar-top-brand">
-          <div className="brand-logo-gem">
-            <Leaf size={18} strokeWidth={2.4} />
-          </div>
-          <div className="brand-copy">
-            <span className="brand-title">AIRcoin</span>
-            <span className="brand-network-pill">
-              <span className="network-live-dot" />
-              {isChainOnline ? `AIRcoin chain · block ${blockHeight}` : "Chain offline"}
-            </span>
-          </div>
-          <button
-            className="mobile-close-btn"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close navigation"
-          >
-            <X size={18} />
+    <div className="shell">
+      <aside className="rail">
+        <div className="brand">
+          <span className="brand-mark">
+            <Leaf size={16} />
+          </span>
+          AIRcoin
+        </div>
+        <nav className="nav">
+          <button className={page === "overview" ? "active" : ""} onClick={() => go("overview")}>
+            <LayoutGrid size={17} /> Overview
           </button>
-        </div>
-
-        {/* Live Epoch Status Widget */}
-        <div className="sidebar-epoch-widget">
-          <div className="epoch-header">
-            <span className="epoch-title">PoUW minting · BFT blocks</span>
-            <span className="epoch-live-tag">{isChainOnline ? "Live · 60s epochs" : "Offline"}</span>
+          <button className={page === "market" ? "active" : ""} onClick={() => go("market")}>
+            <Store size={17} /> Market
+          </button>
+          {isRegulator && (
+            <button className={page === "regulator" ? "active" : ""} onClick={() => go("regulator")}>
+              <Landmark size={17} /> Regulator
+            </button>
+          )}
+          <div className="nav-sep" />
+          <button onClick={() => window.open(twinUrl(account.wallet.minerId), "_blank", "noopener")}>
+            <Box size={17} /> Digital twin
+          </button>
+        </nav>
+        <div className="rail-foot">
+          <div className="chain-pill" title="The node this app reads from">
+            <span className={`dot ${isChainOnline ? "live" : "down"}`} />
+            {isChainOnline ? `Block ${blockHeight.toLocaleString("en-IN")}` : "Chain unreachable"}
           </div>
-          <div className="epoch-details">
-            <span>
-              {hasMiner
-                ? `Node: ${account.wallet.minerId}`
-                : "Standard Settlement Node"}
+          <div className="me">
+            <span className="avatar">{initials(account.name)}</span>
+            <span className="me-text">
+              <b>{account.name}</b>
+              <small>{subtitle}</small>
             </span>
-          </div>
-        </div>
-
-        {/* Primary Navigation Items */}
-        <div className="sidebar-nav-section">
-          <span className="nav-group-label">Platform Workspace</span>
-          <nav className="pro-nav-list" aria-label="Main Navigation">
-            <button
-              onClick={() => {
-                setTab("overview");
-                setMobileOpen(false);
-              }}
-              className={cn("nav-item", tab === "overview" && "active")}
-            >
-              <LayoutDashboard size={17} />
-              <div className="nav-text">
-                <span className="nav-title">Overview & Miner</span>
-                <span className="nav-desc">Balances, Rig & Mints</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setTab("market");
-                setMobileOpen(false);
-              }}
-              className={cn("nav-item", tab === "market" && "active")}
-            >
-              <Store size={17} />
-              <div className="nav-text">
-                <span className="nav-title">Market & Retire</span>
-                <span className="nav-desc">Buy, Burn & Trade</span>
-              </div>
-            </button>
-
-            {isRegulator && (
-              <button
-                onClick={() => {
-                  setTab("regulator");
-                  setMobileOpen(false);
-                }}
-                className={cn("nav-item", tab === "regulator" && "active")}
-              >
-                <Landmark size={17} />
-                <div className="nav-text">
-                  <span className="nav-title">Regulator</span>
-                  <span className="nav-desc">Approve miners, audit, obligations</span>
-                </div>
-              </button>
-            )}
-          </nav>
-        </div>
-
-        {/* Sidebar Footer User Profile */}
-        <div className="sidebar-footer">
-          <div className="user-profile-badge">
-            <div className="user-avatar-circle">
-              {account.name
-                .split(" ")
-                .map((n) => n[0])
-                .slice(0, 2)
-                .join("")}
-            </div>
-            <div className="user-meta">
-              <span className="user-name" title={account.name}>
-                {account.name}
-              </span>
-              <span className="user-role-label">
-                {account.wallet.minerId
-                  ? "Miner Operator"
-                  : account.wallet.role === "company"
-                  ? "Compliance Buyer"
-                  : isRegulator
-                  ? "Regulator"
-                  : "Citizen Member"}
-              </span>
-            </div>
-            <button
-              onClick={onSignOut}
-              className="sign-out-btn"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
+            <button className="btn ghost sm" onClick={onSignOut} aria-label="Sign out" title="Sign out">
               <LogOut size={16} />
             </button>
           </div>
         </div>
       </aside>
 
-      {mobileOpen && (
-        <div
-          className="sidebar-scrim-backdrop"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <main className="main">
+        <div className="page">
+          {page === "overview" && <Overview onMarket={(tab) => go("market", tab)} />}
+          {page === "market" && <Market tab={marketTab} onTab={setMarketTab} />}
+          {page === "regulator" && isRegulator && <RegulatorView />}
+        </div>
+      </main>
 
-      {/* MAIN VIEWPORT */}
-      <section className="pro-main-content">
-        {/* Mobile App Bar */}
-        <header className="mobile-header-bar">
-          <button
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open Navigation Menu"
-          >
-            <Menu size={20} />
-          </button>
-          <div className="mobile-brand-title">
-            <Leaf size={16} className="text-emerald-600" /> AIRcoin
-          </div>
-          <button
-            onClick={onSignOut}
-            aria-label="Sign Out"
-            className="text-muted-foreground"
-          >
-            <LogOut size={18} />
-          </button>
-        </header>
-
-        {/* Top Desktop Page Title Bar */}
-        <header className="pro-page-topbar">
-          <div className="topbar-left">
-            <div className="breadcrumb-trail">
-              <span>AIRcoin Network</span>
-              <span className="separator">/</span>
-              <span className="current-page">
-                {tab === "overview" ? "Overview & Miner" : tab === "market" ? "Market & Retire" : "Regulator"}
-              </span>
-            </div>
-            <h1 className="pro-page-title">
-              {tab === "overview"
-                ? "Overview & Hardware Miner"
-                : tab === "market"
-                ? "Marketplace & Compliance Retirement"
-                : "Regulator Console"}
-            </h1>
-          </div>
-        </header>
-
-        {/* Page Content Body */}
-        <main className="pro-content-area">
-          {tab === "overview" && (
-            <UnifiedOverviewView onNavigateMarket={navigateToMarket} />
-          )}
-          {tab === "market" && (
-            <UnifiedMarketView initialSubtab={marketSubtab} />
-          )}
-          {tab === "regulator" && isRegulator && <RegulatorView />}
-        </main>
-      </section>
-
-      {/* Global Toast Alert */}
       {toast && (
-        <div
-          role="status"
-          className={cn(
-            "pro-floating-toast",
-            toast.type === "success" && "toast-success",
-            toast.type === "error" && "toast-error"
-          )}
-        >
-          <div className="toast-icon-gem">
-            {toast.type === "success" ? (
-              <ShieldCheck size={16} />
-            ) : toast.type === "error" ? (
-              <X size={16} />
-            ) : (
-              <Sparkles size={16} />
-            )}
-          </div>
-          <div className="toast-text-copy">
-            <span className="toast-headline">
-              {toast.type === "success"
-                ? "Transaction Confirmed"
-                : toast.type === "error"
-                ? "Action Failed"
-                : "Network Notification"}
-            </span>
-            <span className="toast-subtext">{toast.message}</span>
-          </div>
+        <div className={`toast ${toast.type === "error" ? "error" : ""}`} role="status">
+          {toast.message}
         </div>
       )}
     </div>
   );
-};
+}
 
 export default function App() {
   const [account, setAccount] = useState<Account | null>(currentAccount());
-
+  if (!account) return <Login onSignedIn={setAccount} />;
   return (
-    <WalletProvider>
-      {account ? (
-        <Shell
-          key={account.email}
-          account={account}
-          onSignOut={() => {
-            signOut();
-            setAccount(null);
-          }}
-        />
-      ) : (
-        <Login onSignedIn={setAccount} />
-      )}
+    <WalletProvider key={account.email} initial={account.wallet}>
+      <Shell
+        account={account}
+        onSignOut={() => {
+          signOut();
+          setAccount(null);
+        }}
+      />
     </WalletProvider>
   );
 }

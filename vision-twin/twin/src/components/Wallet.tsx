@@ -41,7 +41,7 @@ export function Wallet() {
   }, [newest]);
 
   return (
-    <section className="panel wallet" style={{ flex: "0 0 auto" }}>
+    <section className="panel wallet">
       <h2>Wallet</h2>
       <div className="body">
         <div className="balance">{air.toFixed(4)}<small>AIR</small></div>
@@ -57,7 +57,7 @@ export function Wallet() {
         <table className="mints">
           <thead><tr><th>Time</th><th>Earned</th></tr></thead>
           <tbody>
-            {mints.slice(0, 5).map((m) => (
+            {mints.slice(0, 8).map((m) => (
               <tr key={m.tx_hash} className={m.tx_hash === fresh ? "fresh" : ""}>
                 <td>{new Date(m.ts).toLocaleTimeString([], { hour12: false })}</td>
                 <td>+{fromBaseUnits(m.amount).toFixed(5)}</td>

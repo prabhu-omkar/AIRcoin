@@ -11,7 +11,7 @@ export const DEMO_WALLETS: DemoWallet[] = [
   },
   {
     address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    name: "Apex Steel Works (Obligated Entity)",
+    name: "Apex Steel Works",
     role: "company",
     companyName: "Apex Steel Works Ltd",
     description: "Industrial Polluter · Mandatory 2026 Offset Obligation: 5.0 AIR",
@@ -32,13 +32,4 @@ export const DEMO_WALLETS: DemoWallet[] = [
     description: "Electronic City Rooftop · 20 Virtual Plants",
     privateKey: "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
   },
-];
-
-export const SPECIES_CATALOGUE = [
-  { id: "neem", name: "Neem (Azadirachta indica)", pm25Rate: 14.8, co2Rate: 22.0, leafAreaCm2: 450 },
-  { id: "peepal", name: "Peepal (Ficus religiosa)", pm25Rate: 18.2, co2Rate: 28.5, leafAreaCm2: 680 },
-  { id: "banyan", name: "Banyan (Ficus benghalensis)", pm25Rate: 21.0, co2Rate: 31.0, leafAreaCm2: 890 },
-  { id: "tulsi", name: "Holy Basil (Ocimum tenuiflorum)", pm25Rate: 6.4, co2Rate: 12.0, leafAreaCm2: 120 },
-  { id: "snake_plant", name: "Snake Plant (Sansevieria)", pm25Rate: 11.2, co2Rate: 16.4, leafAreaCm2: 320 },
-  { id: "areca_palm", name: "Areca Palm (Dypsis lutescens)", pm25Rate: 15.6, co2Rate: 24.1, leafAreaCm2: 540 },
 ];

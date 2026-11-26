@@ -18,7 +18,7 @@ export function MapPanel() {
   const gps = useTwin((s) => s.telemetry?.gps);
   const anchor = useTwin((s) => s.telemetry?.miner_id); // re-centre once per miner
   return (
-    <section className="panel fill map-panel" style={{ flex: "0 0 180px" }}>
+    <section className="panel fill map-panel">
       <h2>Location</h2>
       <div className="body">
         {gps ? (
